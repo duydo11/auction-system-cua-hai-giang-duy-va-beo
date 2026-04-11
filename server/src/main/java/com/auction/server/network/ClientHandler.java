@@ -1,5 +1,6 @@
 package com.auction.server.network;
 
+<<<<<<< Updated upstream
 import com.auction.shared.network.Request;
 import com.auction.shared.network.Response;
 import com.auction.shared.model.user.User;
@@ -65,3 +66,7 @@ public class ClientHandler implements Runnable {
         }
     }
 }
+=======
+public class ClientHandler {
+}
+>>>>>>> Stashed changes
