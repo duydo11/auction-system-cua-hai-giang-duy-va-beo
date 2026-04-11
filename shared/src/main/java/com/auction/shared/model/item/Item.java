@@ -1,6 +1,7 @@
 package com.auction.shared.model.item;
 
 import com.auction.shared.model.Entity;
+import com.auction.shared.model.user.User;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -11,15 +12,13 @@ import lombok.Setter;
 public abstract class Item extends Entity {
     private String name;
     private String description;
-    private double startingPrice;
-    private int sellerId; // ID của người bán (Tham chiếu khóa ngoại DB)
+    private User seller;
 
-    public Item(int id, String name, String description, double startingPrice, int sellerId) {
+    public Item(String id, String name, String description, User seller) {
         super(id);
         this.name = name;
         this.description = description;
-        this.startingPrice = startingPrice;
-        this.sellerId = sellerId;
+        this.seller = seller;
     }
 
     public abstract String getItemType();
