@@ -22,7 +22,6 @@ jobs:
           distribution: 'temurin'
           cache: maven # Lưu cache để lần sau chạy nhanh hơn
 
-
       - name: Chạy kiểm tra và Biên dịch toàn bộ dự án
         # Lệnh này sẽ build cả module shared, server, client. Nếu lỗi cú pháp, ngoặc nhọn, hay thiếu file POM, nó sẽ đánh dấu đỏ (X)
         run: mvn clean compile
