@@ -12,44 +12,43 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" stylesheets="@../ccs/style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" stylesheets="@../ccs/style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.LoginController">
    <children>
       <VBox prefHeight="400.0" prefWidth="299.0">
          <children>
-            <ImageView fitHeight="400.0" fitWidth="300.0" pickOnBounds="true">
+            <ImageView fitHeight="400.0" fitWidth="299.0" pickOnBounds="true">
                <image>
-                  <Image url="@../png/download.jpg" />
+                  <Image url="@../png/download (2).jpg" />
                </image>
             </ImageView>
          </children>
       </VBox>
-      <VBox layoutX="301.0" prefHeight="400.0" prefWidth="299.0">
+      <VBox layoutX="300.0" prefHeight="400.0" prefWidth="299.0">
          <children>
-            <Pane prefHeight="139.0" prefWidth="299.0">
+            <Pane prefHeight="159.0" prefWidth="299.0">
                <children>
-                  <Label layoutX="14.0" layoutY="70.0" styleClass="title-login" text="Welcome Back," textFill="#667cb1">
+                  <Label layoutX="32.0" layoutY="84.0" text="Welcome Back," textFill="#4e7dcf">
                      <font>
-                        <Font size="28.0" />
+                        <Font name="System Bold" size="28.0" />
                      </font>
                   </Label>
-                  <Label layoutX="14.0" layoutY="103.0" prefHeight="29.0" prefWidth="160.0" styleClass="title-login" text=" Sign in to continute " textFill="#667cb1">
+                  <Label layoutX="32.0" layoutY="116.0" prefHeight="29.0" prefWidth="160.0" text=" Sign in to continute " textFill="#4e7dcf">
                      <font>
                         <Font size="14.0" />
                      </font>
                   </Label>
                </children>
             </Pane>
-            <Pane prefHeight="120.0" prefWidth="299.0">
+            <Pane prefHeight="107.0" prefWidth="299.0">
                <children>
-                  <Hyperlink layoutX="171.0" layoutY="88.0" prefHeight="15.0" prefWidth="94.0" text="forget password" textFill="#667cb1" />
+                  <Hyperlink layoutX="171.0" layoutY="88.0" prefHeight="15.0" prefWidth="94.0" text="forget password" textFill="#4e7dcf" />
                   <PasswordField layoutX="38.0" layoutY="57.0" prefHeight="25.0" prefWidth="200.0" promptText="Password" style="-fx-background-radius: 50;" />
                   <TextField layoutX="38.0" layoutY="24.0" prefHeight="25.0" prefWidth="200.0" promptText="Email" style="-fx-background-radius: 50;" />
                </children>
             </Pane>
             <Pane prefHeight="157.0" prefWidth="299.0" styleClass="title-login">
                <children>
-                  <Button layoutX="65.0" layoutY="14.0" mnemonicParsing="false" prefHeight="30.0" prefWidth="150.0" style="-fx-background-color: #667cb1; -fx-background-radius: 30; -fx-border-color: white; -fx-border-radius: 30;" styleClass="title-login" text="Login" textFill="#fffdfd">
+                  <Button layoutX="65.0" layoutY="14.0" mnemonicParsing="false" prefHeight="30.0" prefWidth="150.0" style="-fx-background-color: #4e7dcf; -fx-background-radius: 30; -fx-border-color: white; -fx-border-radius: 30;" styleClass="title-login" text="Login" textFill="#fffdfd">
                      <font>
                         <Font size="14.0" />
                      </font>
@@ -59,7 +58,7 @@
                         <Font size="10.0" />
                      </font>
                   </Label>
-                  <Hyperlink layoutX="175.0" layoutY="53.0" styleClass="root" text="Sign up" textFill="#667cb1">
+                  <Hyperlink fx:id="signUpButton" layoutX="175.0" layoutY="53.0" onAction="#handleSignUpAction" text="Sign up" textFill="#4e7dcf">
                      <font>
                         <Font size="10.0" />
                      </font>
