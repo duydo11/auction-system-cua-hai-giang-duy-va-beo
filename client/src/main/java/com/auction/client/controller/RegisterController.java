@@ -9,24 +9,23 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import java.io.IOException;
 
-public class LoginController {
+public class RegisterController {
 
     @FXML
-    private void handleSignUpAction(ActionEvent event) {
+    private void handleSignInAction(ActionEvent event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Register.fxml"));
+
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Login.fxml"));
             Parent registerRoot = loader.load();
 
-
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-
 
             Scene registerScene = new Scene(registerRoot);
             stage.setScene(registerScene);
             stage.show();
 
         } catch (IOException e) {
-            System.err.println("Không tìm thấy file Register.fxml! Kiểm tra lại đường dẫn.");
+            System.err.println("Không tìm thấy file Login.fxml! Kiểm tra lại đường dẫn.");
             e.printStackTrace();
         }
     }
