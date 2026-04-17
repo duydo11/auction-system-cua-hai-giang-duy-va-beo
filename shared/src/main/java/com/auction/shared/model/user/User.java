@@ -1,27 +1,44 @@
 package com.auction.shared.model.user;
 
-import com.auction.shared.model.Entity;
-import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 
-@Getter
-@Setter
+import java.io.Serial;
+import java.io.Serializable;
+
+@Data
 @NoArgsConstructor
-@ToString(exclude = "password") // Giấu mật khẩu khi in ra console
-public abstract class User extends Entity {
+@AllArgsConstructor
+public class User implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
+
+    private int id;
     private String username;
     private String password;
     private String email;
+    private String fullName;
+    private String phone;
+    private double accountBalance;
+    private String registrationDate;
+
+    public User(String username, String email, String fullName) {
+        this.username = username;
+        this.email = email;
+        this.fullName = fullName;
+        this.accountBalance = 0.0;
+    }
 
     public User(int id, String username, String password, String email) {
-        super(id);
+        this.id = id;
         this.username = username;
         this.password = password;
         this.email = email;
     }
 
-    // Đa hình: Ép các class con phải khai báo role (vai trò)
-    public abstract String getRoleName();
+
+    public String getRoleName(){
+        return "User";
+    }
 }
