@@ -1,5 +1,6 @@
 package com.auction.client.controller;
 
+import com.auction.client.MockData.UserSession;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -8,6 +9,9 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
+import com.auction.client.MockData.DataStore;
+
+import javax.sql.DataSource;
 import java.io.IOException;
 
 public class RegisterController {
@@ -43,10 +47,9 @@ public class RegisterController {
     @FXML
     private Label ifSuccess;
 
-    //Lấy dữ liệu người dùng
+    //Lấy dữ liệu người dùng, Đăng kí
     @FXML
     private void handleRegister(ActionEvent event) {
-
 
         ifError.setText("");//Xóa thông báo lỗi cũ
         ifSuccess.setText("");
@@ -61,8 +64,11 @@ public class RegisterController {
             Error = true;
             ifError.setText("Please complete all fields!");
         }
+        //Nếu thành công, lưu dữ liệu
         if (!Error) {
             ifSuccess.setText("Registration successful!");
+            UserSession newUser = new  UserSession(username, email, password);
+            DataStore.users.put(email, newUser);
         }
     }
 }

@@ -34,7 +34,7 @@
                   </Label>
                   <Label layoutX="28.0" layoutY="77.0" text="Hello, Welcome !" textFill="#2b377e">
                      <font>
-                        <Font name="System Bold" size="28.0" />
+                        <Font name="Montserrat Bold" size="28.0" />
                      </font>
                   </Label>
                </children>
