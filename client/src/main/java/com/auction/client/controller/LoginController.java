@@ -57,7 +57,7 @@ public class LoginController {
 
             DataStore.currentUser = userSession;
 
-            Parent root = FXMLLoader.load(getClass().getResource("/fxml/BidderDashboard.fxml"));
+            Parent root = FXMLLoader.load(getClass().getResource("/fxml/BidderScene/BidderDashboard.fxml"));
             Stage stage = (Stage)((Node)event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.show();

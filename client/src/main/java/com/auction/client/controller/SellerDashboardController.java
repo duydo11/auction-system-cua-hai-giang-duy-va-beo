@@ -11,7 +11,6 @@ import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 
-import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Objects;
@@ -37,7 +36,7 @@ public class SellerDashboardController implements Initializable {
         try {
             // 1. Load file giao diện Seller
 
-            Parent sellerView = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/BidderDashboard.fxml")));
+            Parent sellerView = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/BidderScene/BidderDashboard.fxml")));
 
             Stage stage = (Stage) ((Node) mouseEvent.getSource()).getScene().getWindow();
 
