@@ -9,19 +9,18 @@ import lombok.ToString;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(exclude = "password") // Giấu mật khẩu khi in ra console
+@ToString(exclude = "password")
 public abstract class User extends Entity {
     private String username;
     private String password;
     private String email;
 
-    public User(int id, String username, String password, String email) {
+    public User(String id, String username, String password, String email) {
         super(id);
         this.username = username;
         this.password = password;
         this.email = email;
     }
 
-    // Đa hình: Ép các class con phải khai báo role (vai trò)
     public abstract String getRoleName();
 }
