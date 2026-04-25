@@ -21,4 +21,5 @@ public class Constants {
 
     // API Timeouts
     public static final int REQUEST_TIMEOUT = 30000; // 30 seconds
+
 }

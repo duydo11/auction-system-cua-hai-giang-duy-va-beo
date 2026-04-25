@@ -22,4 +22,5 @@ public class Bid implements Serializable {
         this.bidderId = bidderId;
         this.bidAmount = bidAmount;
     }
+
 }
