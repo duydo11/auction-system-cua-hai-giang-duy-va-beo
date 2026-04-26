@@ -21,20 +21,19 @@ jobs:
         run: mkdir -p docs/images
 
       - name: Render PlantUML diagrams (SVG)
-        # use plantuml Docker image to render .puml to SVG into docs/images
+        # Sửa: Thêm -w /workspace và chỉnh lại đường dẫn -o cho chuẩn
         run: |
-          docker run --rm -v "${{ github.workspace }}:/workspace" plantuml/plantuml:latest -tsvg -o docs/images docs/diagrams/*.puml
-        # If you prefer png: replace -tsvg with -tpng
+          docker run --rm -v "${{ github.workspace }}:/workspace" -w /workspace plantuml/plantuml:latest -tsvg "docs/diagrams/*.puml" -o "../images"
 
       - name: Add and commit generated images
-        uses: stefanzweifel/git-auto-commit-action@v4
+        # Mẹo nhỏ: Nên dùng v5 thay vì v4 vì GitHub Actions đã ngưng hỗ trợ Node.js 16 (v4 dùng Node 16)
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(docs): update generated diagrams"
           file_pattern: docs/images/*.svg
           commit_user_name: "github-actions[bot]"
           commit_user_email: "41898282+github-actions[bot]@users.noreply.github.com"
           branch: ${{ github.ref_name }}
-          # If you want to push to a separate branch, set branch accordingly
 
       - name: Done
         run: echo "Diagrams generated and committed."

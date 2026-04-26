@@ -1,0 +1,16 @@
+@startuml
+left to right direction
+actor User
+actor Admin
+
+rectangle "Auction System" {
+  User -- (Register)
+  User -- (Login)
+  User -- (View Auctions)
+  User -- (Create Auction)
+  User -- (Place Bid)
+  User -- (View Bid History)
+  Admin -- (Manage Categories)
+  Admin -- (End Auction)
+}
+@enduml

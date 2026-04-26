@@ -1,0 +1,21 @@
+@startuml
+actor User
+participant ClientUI
+participant BidController
+participant ClientConnection
+participant ServerProtocolHandler
+participant BidService
+participant AuctionService
+
+User -> ClientUI: placeBid(auctionId, amount)
+ClientUI -> BidController: placeBid(...)
+BidController -> ClientConnection: sendMessage(PLACE_BID_REQUEST)
+ClientConnection -> ServerProtocolHandler: receive
+ServerProtocolHandler -> BidService: placeBid(...)
+BidService -> AuctionService: getAuctionById(...)
+BidService -> BidDAO: createBid(...)
+BidService -> AuctionDAO: updateAuction(...)
+ServerProtocolHandler -> ClientConnection: sendMessage(PLACE_BID_RESPONSE)
+ClientConnection -> BidController: response
+BidController -> ClientUI: show result
+@enduml

@@ -1,0 +1,28 @@
+@startuml
+' Architecture / Component diagram
+skinparam componentStyle rectangle
+package "CLIENT APP" {
+  [ClientUI] as UI
+  [ClientControllers] as ClientCtrl
+  UI ..> ClientCtrl : uses
+}
+
+interface "TCP Socket (I/O Stream)" as Network
+
+package "SERVER APP" {
+  [AuctionServer (Multi-thread)] as ServerCore
+  [ProtocolHandler] as Protocol
+  [Service Layer] as Service
+  [DAO Layer] as DAO
+
+  ServerCore --> Protocol : routes messages
+  Protocol --> Service : invokes
+  Service --> DAO : calls
+}
+
+database "MySQL\n(auction_system)" as DB
+
+ClientCtrl ..> Network
+Network <..> ServerCore
+DAO ..> DB : JDBC
+@enduml

@@ -1,0 +1,49 @@
+@startuml
+' Class diagram - Server module (DAO & Service)
+skinparam classAttributeIconSize 0
+
+package "Server Module" {
+  class DatabaseConnection <<Singleton>> {
+    - instance: DatabaseConnection
+    - connection: Connection
+    + getInstance(): DatabaseConnection
+    + getConnection(): Connection
+  }
+
+  abstract class BaseDAO {
+    # connection: Connection
+  }
+
+  class UserDAO
+  class AuctionDAO
+  class BidDAO
+
+  class UserService {
+    - userDAO: UserDAO
+    + registerUser(...)
+    + loginUser(...)
+  }
+
+  class AuctionService {
+    - auctionDAO: AuctionDAO
+    + createAuction(...)
+    + getActiveAuctions()
+  }
+
+  class BidService {
+    - bidDAO: BidDAO
+    + placeBid(...)
+    + getHighestBid(...)
+  }
+
+  DatabaseConnection <|-- BaseDAO
+  BaseDAO <|-- UserDAO
+  BaseDAO <|-- AuctionDAO
+  BaseDAO <|-- BidDAO
+
+  UserService --> UserDAO
+  AuctionService --> AuctionDAO
+  BidService --> BidDAO
+  BidService --> AuctionDAO
+}
+@enduml

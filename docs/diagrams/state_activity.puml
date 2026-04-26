@@ -1,0 +1,11 @@
+@startuml
+state "AUCTION" as AuctionState {
+  [*] --> CREATED
+  CREATED --> ACTIVE : start
+  ACTIVE --> ENDED : time_up / end
+  ACTIVE --> CANCELLED : cancel
+  ENDED --> COMPLETED : determine_winner
+  CANCELLED --> [*]
+  COMPLETED --> [*]
+}
+@enduml

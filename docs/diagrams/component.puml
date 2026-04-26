@@ -1,0 +1,21 @@
+@startuml
+' Component view
+package "Client" {
+    [ClientUI]
+    [Controllers]
+    [ClientConnection]
+}
+
+package "Server" {
+    [AuctionServer]
+    [ProtocolHandler]
+    [Service_Layer]
+    [DAO_Layer]
+}
+
+database "MySQL" as DB
+
+[ClientConnection] <-- [AuctionServer]
+[Service_Layer] --> [DAO_Layer]
+[DAO_Layer] --> DB
+@enduml

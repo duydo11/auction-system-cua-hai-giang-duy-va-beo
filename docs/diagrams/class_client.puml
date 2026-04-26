@@ -1,0 +1,45 @@
+@startuml
+' Class diagram - Client module
+skinparam classAttributeIconSize 0
+
+package "Client Module" {
+  class ClientConnection {
+    - socket: Socket
+    - connected: boolean
+    + connect()
+    + sendMessage()
+  }
+
+  class AuthController {
+    - connection: ClientConnection
+    + login()
+    + register()
+  }
+
+  class AuctionController {
+    - connection: ClientConnection
+    + getActiveAuctions()
+    + createAuction()
+  }
+
+  class BidController {
+    - connection: ClientConnection
+    + placeBid()
+    + getBidHistory()
+  }
+
+  class ClientUI {
+    - authController: AuthController
+    - auctionController: AuctionController
+    - bidController: BidController
+    + start()
+  }
+
+  ClientUI --> AuthController
+  ClientUI --> AuctionController
+  ClientUI --> BidController
+  AuthController --> ClientConnection
+  AuctionController --> ClientConnection
+  BidController --> ClientConnection
+}
+@enduml

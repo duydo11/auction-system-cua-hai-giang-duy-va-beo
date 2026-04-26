@@ -1,0 +1,41 @@
+@startuml
+entity USERS {
+  * user_id : INT
+  --
+  username
+  password
+  email
+  full_name
+  phone
+  account_balance
+  registration_date
+}
+
+entity AUCTIONS {
+  * auction_id : INT
+  --
+  title
+  description
+  starting_price
+  current_price
+  seller_id
+  status
+  start_date
+  end_date
+  category
+  total_bids
+}
+
+entity BIDS {
+  * bid_id : INT
+  --
+  auction_id
+  bidder_id
+  bid_amount
+  bid_time
+}
+
+USERS ||--o{ AUCTIONS : "sells"
+AUCTIONS ||--o{ BIDS : "has"
+USERS ||--o{ BIDS : "places"
+@enduml

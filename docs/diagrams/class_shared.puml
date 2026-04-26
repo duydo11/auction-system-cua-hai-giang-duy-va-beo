@@ -1,0 +1,43 @@
+@startuml
+' Class diagram - Shared module
+skinparam classAttributeIconSize 0
+
+package "Shared Module" {
+  class User {
+    - userId: int
+    - username: String
+    - password: String
+    - email: String
+    - fullName: String
+    - phone: String
+    - accountBalance: double
+    - registrationDate: String
+  }
+
+  class Auction {
+    - auctionId: int
+    - title: String
+    - description: String
+    - startingPrice: double
+    - currentPrice: double
+    - sellerId: int
+    - status: String
+    - startDate: String
+    - endDate: String
+    - category: String
+    - totalBids: int
+  }
+
+  class Bid {
+    - bidId: int
+    - auctionId: int
+    - bidderId: int
+    - bidAmount: double
+    - bidTime: String
+  }
+
+  User "1" -- "0..*" Auction : sells >
+  Auction "1" -- "0..*" Bid : has >
+  User "1" -- "0..*" Bid : places >
+}
+@enduml

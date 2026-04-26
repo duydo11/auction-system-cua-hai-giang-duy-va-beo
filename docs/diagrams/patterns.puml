@@ -1,0 +1,28 @@
+@startuml
+' Patterns overview (simplified)
+package "Singleton" {
+  class DatabaseConnection <<Singleton>> {
+    + getInstance()
+  }
+}
+
+package "DAO Pattern" {
+  class UserDAO
+  class AuctionDAO
+  class BidDAO
+  class Service
+  Service --> UserDAO
+}
+
+package "Command/Factory" {
+  interface Command
+  class MessageFactory
+  MessageFactory --> Command
+}
+
+package "Observer" {
+  class AuctionServer
+  class ClientUI
+  AuctionServer ..> ClientUI : notify()
+}
+@enduml

@@ -1,0 +1,11 @@
+@startuml
+node "Client Machine" {
+  component "ClientUI (JAR)" as clientApp
+}
+node "Server Machine" {
+  component "AuctionServer (JAR)" as serverApp
+  database "MySQL" as db
+}
+clientApp --> serverApp : TCP Socket
+serverApp --> db : JDBC
+@enduml

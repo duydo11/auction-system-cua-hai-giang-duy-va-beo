@@ -1,0 +1,18 @@
+@startuml
+actor User
+participant ClientUI
+participant AuthController
+participant ClientConnection
+participant ServerProtocolHandler
+participant UserService
+
+User -> ClientUI: start/login()
+ClientUI -> AuthController: login(u,p)
+AuthController -> ClientConnection: sendMessage(Message(LOGIN_REQUEST, [u,p]))
+ClientConnection -> ServerProtocolHandler: receive message
+ServerProtocolHandler -> UserService: loginUser(u,p)
+UserService --> ServerProtocolHandler: User or null
+ServerProtocolHandler -> ClientConnection: send Message(LOGIN_RESPONSE, user)
+ClientConnection -> AuthController: response
+AuthController -> ClientUI: success/fail
+@enduml
