@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.BidderDashboardController">
+   <children>
+      <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
+         <image>
+            <Image url="@../../png/download.jpg" />
+         </image>
+      </ImageView>
+      <VBox alignment="CENTER" layoutX="14.0" prefHeight="680.0" prefWidth="230.0" spacing="10.0">
+         <children>
+            <HBox alignment="CENTER" opacity="0.9" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+               <children>
+                  <ImageView fitHeight="40.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../../png/Home button.png" />
+                     </image>
+                  </ImageView>
+                  <Label prefHeight="54.0" prefWidth="162.0" text=" HOME" textFill="#3a3386">
+                     <font>
+                        <Font name="Montserrat Bold" size="15.0" />
+                     </font>
+                  </Label>
+               </children>
+            </HBox>
+            <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+               <children>
+                  <ImageView fitHeight="40.0" fitWidth="39.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../../png/Mybids button.png" />
+                     </image>
+                  </ImageView>
+                  <Label prefHeight="54.0" prefWidth="162.0" text="MY BIDS" textFill="#3a3386">
+                     <font>
+                        <Font name="Montserrat Bold" size="15.0" />
+                     </font>
+                  </Label>
+               </children>
+            </HBox>
+            <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+               <children>
+                  <ImageView fitHeight="46.0" fitWidth="46.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../../png/Items Button.png" />
+                     </image>
+                  </ImageView>
+                  <Label prefHeight="54.0" prefWidth="162.0" text="ITEMS" textFill="#3a3386">
+                     <font>
+                        <Font name="Montserrat Bold" size="15.0" />
+                     </font>
+                  </Label>
+               </children>
+            </HBox>
+            <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+               <children>
+                  <ImageView fitHeight="40.0" fitWidth="39.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../../png/Wallet button.png" />
+                     </image>
+                  </ImageView>
+                  <Label prefHeight="54.0" prefWidth="162.0" text="WALLET" textFill="#3a3386">
+                     <font>
+                        <Font name="Montserrat Bold" size="15.0" />
+                     </font>
+                  </Label>
+               </children>
+            </HBox>
+            <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+               <children>
+                  <ImageView fitHeight="34.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../../png/setting symbol.png" />
+                     </image>
+                  </ImageView>
+                  <Label prefHeight="54.0" prefWidth="162.0" text="SETTINGS" textFill="#3a3386">
+                     <font>
+                        <Font name="Montserrat Bold" size="15.0" />
+                     </font>
+                  </Label>
+               </children>
+            </HBox>
+            <HBox opacity="0.9" prefHeight="48.0" prefWidth="220.0" style="-fx-background-radius: 15; -fx-background-color: white;">
+               <children>
+                  <AnchorPane fx:id="lblSeller" onMouseClicked="#switchSellerDB" prefHeight="114.0" prefWidth="220.0">
+                     <children>
+                        <HBox alignment="CENTER" layoutX="19.0" layoutY="4.0" prefHeight="40.0" prefWidth="200.0" style="-fx-background-radius: 15; -fx-background-color: #c6c9cf; -fx-border-color: #525a69; -fx-border-radius: 15;">
+                           <children>
+                              <AnchorPane prefHeight="38.0" prefWidth="149.0" />
+                              <Label alignment="CENTER" prefHeight="54.0" prefWidth="162.0" text="SELLER" textFill="#344985">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="15.0" />
+                                 </font>
+                              </Label>
+                           </children>
+                        </HBox>
+                        <HBox alignment="CENTER" layoutX="8.0" layoutY="4.0" prefHeight="40.0" prefWidth="113.0" style="-fx-background-radius: 15; -fx-background-color: #344985;">
+                           <children>
+                              <Label alignment="CENTER" prefHeight="54.0" prefWidth="162.0" text="BIDDER" textFill="WHITE">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="15.0" />
+                                 </font>
+                              </Label>
+                           </children>
+                        </HBox>
+                     </children>
+                  </AnchorPane>
+               </children>
+            </HBox>
+         </children>
+      </VBox>
+      <VBox layoutX="250.0" layoutY="20.0" prefHeight="640.0" prefWidth="960.0" spacing="10.0">
+         <children>
+            <VBox alignment="TOP_CENTER" prefHeight="680.0" prefWidth="980.0" spacing="10.0" style="-fx-background-color: white; -fx-background-radius: 25;">
+               <children>
+                  <HBox alignment="BOTTOM_CENTER" prefHeight="50.0" prefWidth="960.0" spacing="10.0">
+                     <children>
+                        <ImageView fitHeight="37.0" fitWidth="44.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="@../../png/search button.png" />
+                           </image>
+                        </ImageView>
+                        <TextField prefHeight="35.0" prefWidth="463.0" promptText="Search" style="-fx-border-radius: 25; -fx-background-radius: 25; -fx-border-color: #084596;">
+                           <font>
+                              <Font name="Montserrat Regular" size="14.0" />
+                           </font>
+                        </TextField>
+                        <Label fx:id="lblUsername" alignment="CENTER" contentDisplay="CENTER" prefHeight="39.0" prefWidth="211.0" textAlignment="CENTER" textFill="#14336e">
+                           <font>
+                              <Font name="Montserrat Bold" size="16.0" />
+                           </font>
+                        </Label>
+                        <ImageView fitHeight="42.0" fitWidth="49.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="@../../png/user button.png" />
+                           </image>
+                        </ImageView>
+                     </children>
+                  </HBox>
+                  <ScrollPane maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="562.0" prefWidth="945.0" vbarPolicy="ALWAYS" vmax="3.0">
+                     <content>
+                        <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="664.0" prefWidth="946.0" spacing="5.0">
+                           <children>
+                              <AnchorPane prefHeight="202.0" prefWidth="934.0">
+                                 <children>
+                                    <ImageView fitHeight="195.0" fitWidth="942.0" layoutX="3.0" layoutY="2.0" pickOnBounds="true">
+                                       <image>
+                                          <Image url="@../../png/IntroImage(dashboard).png" />
+                                       </image>
+                                    </ImageView>
+                                    <Label layoutX="89.0" layoutY="14.0" prefHeight="78.0" prefWidth="323.0">
+                                       <font>
+                                          <Font size="24.0" />
+                                       </font>
+                                    </Label>
+                                    <Label layoutX="105.0" layoutY="69.0" prefHeight="46.0" prefWidth="396.0" text="Thousands of Products Await!" textFill="#344985">
+                                       <font>
+                                          <Font name="Montserrat Bold" size="24.0" />
+                                       </font>
+                                    </Label>
+                                    <Label layoutX="105.0" layoutY="100.0" prefHeight="30.0" prefWidth="412.0" text="Join the auction and place your bid today." textFill="#344385">
+                                       <font>
+                                          <Font name="Montserrat Regular" size="18.0" />
+                                       </font>
+                                    </Label>
+                                 </children>
+                              </AnchorPane>
+                              <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="450.0" prefWidth="946.0">
+                                 <children>
+                                    <HBox prefHeight="30.0" prefWidth="946.0" spacing="5.0">
+                                       <children>
+                                          <AnchorPane prefHeight="30.0" prefWidth="30.0" />
+                                          <ImageView fitHeight="28.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true">
+                                             <image>
+                                                <Image url="@../../png/fire symbol.png" />
+                                             </image>
+                                          </ImageView>
+                                          <Label prefHeight="30.0" prefWidth="396.0" text="Top Picks: Bid Now!" textFill="#344985">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="16.0" />
+                                             </font>
+                                          </Label>
+                                       </children>
+                                    </HBox>
+                                    <AnchorPane minHeight="200.0" minWidth="-Infinity" prefHeight="400.0" prefWidth="946.0" VBox.vgrow="ALWAYS" />
+                                 </children>
+                              </VBox>
+                              <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="450.0" prefWidth="946.0">
+                                 <children>
+                                    <HBox prefHeight="30.0" prefWidth="946.0" spacing="5.0">
+                                       <children>
+                                          <AnchorPane prefHeight="30.0" prefWidth="30.0" />
+                                          <ImageView fitHeight="29.0" fitWidth="26.0" pickOnBounds="true" preserveRatio="true">
+                                             <image>
+                                                <Image url="@../../png/X symbol.png" />
+                                             </image>
+                                          </ImageView>
+                                          <Label prefHeight="46.0" prefWidth="396.0" text="Don't Miss Out! Ending Soon" textFill="#344985">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="16.0" />
+                                             </font>
+                                          </Label>
+                                       </children>
+                                    </HBox>
+                                    <AnchorPane minHeight="200.0" prefHeight="300.0" prefWidth="200.0" VBox.vgrow="ALWAYS" />
+                                 </children>
+                              </VBox>
+                              <AnchorPane prefHeight="202.0" prefWidth="942.0">
+                                 <children>
+                                    <ImageView fitHeight="195.0" fitWidth="949.0" layoutY="4.0" pickOnBounds="true">
+                                       <image>
+                                          <Image url="@../../png/IntroImage2(dashboard.png" />
+                                       </image>
+                                    </ImageView>
+                                    <Label layoutX="89.0" layoutY="14.0" prefHeight="78.0" prefWidth="323.0">
+                                       <font>
+                                          <Font size="24.0" />
+                                       </font>
+                                    </Label>
+                                    <Label layoutX="105.0" layoutY="53.0" prefHeight="46.0" prefWidth="396.0" text="Ready to Sell? Join Us Now!" textFill="#546aa6">
+                                       <font>
+                                          <Font name="Montserrat Bold" size="24.0" />
+                                       </font>
+                                    </Label>
+                                    <Label layoutX="105.0" layoutY="89.0" prefHeight="30.0" prefWidth="494.0" text="It only takes a few minutes to set up your first auction." textFill="#59679e">
+                                       <font>
+                                          <Font name="Montserrat Regular" size="18.0" />
+                                       </font>
+                                    </Label>
+                                    <Button fx:id="btnStartSelling" layoutX="105.0" layoutY="131.0" mnemonicParsing="false" onMouseClicked="#switchSellerDB" prefHeight="38.0" prefWidth="220.0" style="-fx-background-color: #dce0e8; -fx-background-radius: 15; -fx-border-color: #546aa6; -fx-border-radius: 15;" text="START SELLING" textFill="#546aa6">
+                                       <font>
+                                          <Font size="14.0" />
+                                       </font>
+                                    </Button>
+                                 </children>
+                              </AnchorPane>
+                              <AnchorPane prefHeight="200.0" prefWidth="200.0" />
+                           </children>
+                        </VBox>
+                     </content>
+                  </ScrollPane>
+               </children>
+            </VBox>
+         </children>
+      </VBox>
+   </children>
+</AnchorPane>

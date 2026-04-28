@@ -14,7 +14,7 @@
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.RegisterController">
    <children>
-      <VBox layoutX="301.0" prefHeight="400.0" prefWidth="299.0">
+      <VBox layoutX="301.0" prefHeight="400.0" prefWidth="300.0">
          <children>
             <ImageView fitHeight="400.0" fitWidth="300.0" pickOnBounds="true">
                <image>
@@ -23,9 +23,9 @@
             </ImageView>
          </children>
       </VBox>
-      <VBox prefHeight="400.0" prefWidth="293.0">
+      <VBox prefHeight="400.0" prefWidth="300.0">
          <children>
-            <Pane prefHeight="167.0" prefWidth="294.0">
+            <Pane prefHeight="167.0" prefWidth="300.0">
                <children>
                   <Label layoutX="28.0" layoutY="112.0" text="Create your account " textFill="#2b377e">
                      <font>
@@ -34,27 +34,37 @@
                   </Label>
                   <Label layoutX="28.0" layoutY="77.0" text="Hello, Welcome !" textFill="#2b377e">
                      <font>
-                        <Font name="System Bold" size="28.0" />
+                        <Font name="Montserrat Bold" size="28.0" />
                      </font>
                   </Label>
                </children>
             </Pane>
-            <Pane prefHeight="129.0" prefWidth="294.0">
+            <Pane prefHeight="129.0" prefWidth="300.0">
                <children>
-                  <TextField layoutX="47.0" layoutY="2.0" prefHeight="25.0" prefWidth="200.0" promptText="Username" style="-fx-background-radius: 50;" />
-                  <TextField layoutX="47.0" layoutY="41.0" prefHeight="25.0" prefWidth="200.0" promptText="Email address" style="-fx-background-radius: 50;" />
-                  <PasswordField layoutX="47.0" layoutY="81.0" prefHeight="25.0" prefWidth="200.0" promptText="Password" style="-fx-background-radius: 50;" />
+                  <TextField fx:id="textUsername" layoutX="47.0" layoutY="2.0" prefHeight="25.0" prefWidth="200.0" promptText="Username" style="-fx-background-radius: 50;" />
+                  <TextField fx:id="textEmailAddress" layoutX="47.0" layoutY="41.0" prefHeight="25.0" prefWidth="200.0" promptText="Email address" style="-fx-background-radius: 50;" />
+                  <PasswordField fx:id="textPassword" layoutX="47.0" layoutY="81.0" prefHeight="25.0" prefWidth="200.0" promptText="Password" style="-fx-background-radius: 50;" />
                </children>
             </Pane>
-            <Pane prefHeight="126.0" prefWidth="294.0">
+            <Pane prefHeight="126.0" prefWidth="300.0">
                <children>
                   <Hyperlink fx:id="signInButton" layoutX="185.0" layoutY="35.0" onAction="#handleSignInAction" text="Sign in" textFill="#2b377e">
                      <font>
                         <Font size="10.0" />
                      </font>
                   </Hyperlink>
-                  <Button layoutX="72.0" layoutY="-1.0" mnemonicParsing="false" prefHeight="30.0" prefWidth="150.0" style="-fx-background-radius: 30; -fx-border-radius: 30; -fx-background-color: #2b377e; -fx-border-color: white;" text="Register" textFill="WHITE" />
+                  <Button fx:id="btnRegister" layoutX="72.0" layoutY="-1.0" mnemonicParsing="false" onAction="#handleRegister" prefHeight="30.0" prefWidth="150.0" style="-fx-background-radius: 30; -fx-border-radius: 30; -fx-background-color: #2b377e; -fx-border-color: white;" text="Register" textFill="WHITE" />
                   <Label layoutX="72.0" layoutY="38.0" text="Already have an account? ">
+                     <font>
+                        <Font size="10.0" />
+                     </font>
+                  </Label>
+                  <Label fx:id="ifError" alignment="CENTER" layoutX="35.0" layoutY="60.0" prefHeight="15.0" prefWidth="224.0" textFill="RED">
+                     <font>
+                        <Font size="10.0" />
+                     </font>
+                  </Label>
+                  <Label fx:id="ifSuccess" alignment="CENTER" layoutX="47.0" layoutY="59.0" prefHeight="17.0" prefWidth="200.0" textFill="#3d3589">
                      <font>
                         <Font size="10.0" />
                      </font>

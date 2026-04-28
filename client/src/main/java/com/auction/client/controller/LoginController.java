@@ -1,43 +1,28 @@
 package com.auction.client.controller;
 
+import com.auction.client.MockData.DataStore;
+import com.auction.client.MockData.UserSession;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import java.io.IOException;
 
-import com.auction.client.network.ServerConnection;
-import com.auction.shared.model.user.Bidder;
-import com.auction.shared.network.Request;
-import com.auction.shared.network.Response;
-
 public class LoginController {
-
-    // Hàm main này để test thử mạng, sau này vẽ giao diện xong sẽ xóa đi
-    public static void main(String[] args) {
-        System.out.println("Đang test kết nối Login...");
-
-        // Dùng đúng class Bidder mà bạn đã tạo ở shared
-        Bidder testUser = new Bidder(1, "hoang", "123", "hoang@gmail.com", 500.0);
-
-        // Đóng gói request
-        Request request = new Request("LOGIN", testUser);
-
-        // Gửi lên server
-        Response response = ServerConnection.getInstance().sendRequest(request);
-
+    //Nếu người dùng chưa có tài khoản, ấn đăng nhập
     @FXML
     private void handleSignUpAction(ActionEvent event) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Register.fxml"));
             Parent registerRoot = loader.load();
 
-
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-
 
             Scene registerScene = new Scene(registerRoot);
             stage.setScene(registerScene);
@@ -48,15 +33,38 @@ public class LoginController {
             e.printStackTrace();
         }
     }
-}
+    //Khai báo biến nhập vào
+    @FXML
+    private TextField textEmailaddress;
+    @FXML
+    private PasswordField textPassword;
+    @FXML
+    private Label ifError;
+    @FXML
+    private Label ifSuccess;
 
-        // In kết quả
-        if (response != null) {
-            System.out.println("Trạng thái: " + response.getStatus());
-            System.out.println("Tin nhắn: " + response.getMessage());
-        } else {
-            System.out.println("Không nhận được phản hồi từ Server.");
+    @FXML
+    private void handleLogin(ActionEvent event) throws IOException {
+        ifError.setText("");
+        ifSuccess.setText("");
+        String email = textEmailaddress.getText();
+        String password = textPassword.getText();
+
+        if (DataStore.users.containsKey(email)) {
+            UserSession userSession = DataStore.users.get(email);
+            if (userSession.getPassword().equals(password)) {
+                ifSuccess.setText("Login successful");
+
+            DataStore.currentUser = userSession;
+
+            Parent root = FXMLLoader.load(getClass().getResource("/fxml/BidderScene/BidderDashboard.fxml"));
+            Stage stage = (Stage)((Node)event.getSource()).getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+            }
+        }
+        else {
+            ifError.setText("Login failed");
         }
     }
 }
-//đang viết tạm hàm main test mạng ae
