@@ -22,11 +22,4 @@ public class ServerMain {
     }
 }
 
-import com.auction.server.network.AuctionServer;
-
-public class ServerMain {
-    public static void main(String[] args){
-        new AuctionServer().start();
-    }
-}
 
