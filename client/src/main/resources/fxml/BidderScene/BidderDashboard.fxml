@@ -34,7 +34,7 @@
                   </Label>
                </children>
             </HBox>
-            <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+            <HBox fx:id="btnMybids" alignment="CENTER" onMouseClicked="#switchMyBids" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                <children>
                   <ImageView fitHeight="40.0" fitWidth="39.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -48,7 +48,7 @@
                   </Label>
                </children>
             </HBox>
-            <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+            <HBox fx:id="btnItems" alignment="CENTER" onMouseClicked="#switchItems" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                <children>
                   <ImageView fitHeight="46.0" fitWidth="46.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -62,7 +62,7 @@
                   </Label>
                </children>
             </HBox>
-            <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+            <HBox fx:id="btnWallet" alignment="CENTER" onMouseClicked="#switchWalletPane" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                <children>
                   <ImageView fitHeight="40.0" fitWidth="39.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -76,7 +76,7 @@
                   </Label>
                </children>
             </HBox>
-            <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+            <HBox fx:id="btnSettings" alignment="CENTER" onMouseClicked="#switchSettingsPane" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                <children>
                   <ImageView fitHeight="34.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -140,7 +140,7 @@
                               <Font name="Montserrat Bold" size="16.0" />
                            </font>
                         </Label>
-                        <ImageView fitHeight="42.0" fitWidth="49.0" pickOnBounds="true" preserveRatio="true">
+                        <ImageView fx:id="lblSettings" fitHeight="42.0" fitWidth="49.0" onMouseClicked="#switchSettingsPane1" pickOnBounds="true" preserveRatio="true">
                            <image>
                               <Image url="@../../png/user button.png" />
                            </image>
