@@ -12,43 +12,43 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" stylesheets="@../ccs/style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.LoginController">
+<AnchorPane stylesheets="@../css/style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.LoginController">
    <children>
-      <VBox prefHeight="400.0" prefWidth="299.0">
+      <VBox alignment="CENTER" prefHeight="400.0" prefWidth="300.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="300.0" AnchorPane.topAnchor="0.0">
          <children>
-            <ImageView fitHeight="400.0" fitWidth="299.0" pickOnBounds="true">
+            <ImageView fitHeight="400.0" fitWidth="300.0" pickOnBounds="true" VBox.vgrow="ALWAYS">
                <image>
                   <Image url="@../png/download (2).jpg" />
                </image>
             </ImageView>
          </children>
       </VBox>
-      <VBox layoutX="300.0" prefHeight="400.0" prefWidth="299.0">
+      <VBox alignment="CENTER" layoutX="302.0" prefHeight="400.0" prefWidth="300.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="300.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <Pane prefHeight="159.0" prefWidth="299.0">
+            <Pane VBox.vgrow="ALWAYS">
                <children>
                   <Label layoutX="32.0" layoutY="84.0" text="Welcome Back," textFill="#4e7dcf">
                      <font>
-                        <Font name="System Bold" size="28.0" />
+                        <Font name="Montserrat Bold" size="28.0" />
                      </font>
                   </Label>
-                  <Label layoutX="32.0" layoutY="116.0" prefHeight="29.0" prefWidth="160.0" text=" Sign in to continute " textFill="#4e7dcf">
+                  <Label layoutX="32.0" layoutY="116.0" text=" Sign in to continue " textFill="#4e7dcf">
                      <font>
                         <Font size="14.0" />
                      </font>
                   </Label>
                </children>
             </Pane>
-            <Pane prefHeight="107.0" prefWidth="299.0">
+            <Pane prefHeight="94.0" prefWidth="300.0" VBox.vgrow="ALWAYS">
                <children>
-                  <Hyperlink layoutX="171.0" layoutY="88.0" prefHeight="15.0" prefWidth="94.0" text="forget password" textFill="#4e7dcf" />
-                  <PasswordField layoutX="38.0" layoutY="57.0" prefHeight="25.0" prefWidth="200.0" promptText="Password" style="-fx-background-radius: 50;" />
-                  <TextField layoutX="38.0" layoutY="24.0" prefHeight="25.0" prefWidth="200.0" promptText="Email" style="-fx-background-radius: 50;" />
+                  <Hyperlink layoutX="170.0" layoutY="82.0" text="forget password" textFill="#4e7dcf" />
+                  <PasswordField fx:id="textPassword" layoutX="38.0" layoutY="57.0" prefHeight="25.0" prefWidth="200.0" promptText="Password" style="-fx-background-radius: 50;" />
+                  <TextField fx:id="textEmailaddress" layoutX="38.0" layoutY="24.0" prefHeight="25.0" prefWidth="200.0" promptText="Email" style="-fx-background-radius: 50;" />
                </children>
             </Pane>
-            <Pane prefHeight="157.0" prefWidth="299.0" styleClass="title-login">
+            <Pane prefHeight="142.0" prefWidth="300.0" styleClass="title-login" VBox.vgrow="ALWAYS">
                <children>
-                  <Button layoutX="65.0" layoutY="14.0" mnemonicParsing="false" prefHeight="30.0" prefWidth="150.0" style="-fx-background-color: #4e7dcf; -fx-background-radius: 30; -fx-border-color: white; -fx-border-radius: 30;" styleClass="title-login" text="Login" textFill="#fffdfd">
+                  <Button fx:id="btnLogin" layoutX="68.0" layoutY="14.0" mnemonicParsing="false" onAction="#handleLogin" prefHeight="31.0" prefWidth="143.0" style="-fx-background-color: #4e7dcf; -fx-background-radius: 30; -fx-border-color: white; -fx-border-radius: 30;" styleClass="title-login" text="Login" textFill="#fffdfd">
                      <font>
                         <Font size="14.0" />
                      </font>
@@ -63,6 +63,16 @@
                         <Font size="10.0" />
                      </font>
                   </Hyperlink>
+                  <Label fx:id="ifError" alignment="CENTER" layoutX="67.0" layoutY="76.0" prefHeight="17.0" prefWidth="143.0" textFill="RED">
+                     <font>
+                        <Font size="10.0" />
+                     </font>
+                  </Label>
+                  <Label fx:id="ifSuccess" alignment="CENTER" layoutX="68.0" layoutY="76.0" prefHeight="17.0" prefWidth="143.0" textFill="#4e7dcf">
+                     <font>
+                        <Font size="10.0" />
+                     </font>
+                  </Label>
                </children>
             </Pane>
          </children>
