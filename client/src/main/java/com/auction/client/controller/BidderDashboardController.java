@@ -9,6 +9,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import java.io.IOException;
 import java.net.URL;
@@ -27,6 +28,8 @@ public class BidderDashboardController implements Initializable {
         } else {
             lblUsername.setText("Guest User");
         }
+
+        testLoadCards(); //Test productcard
     }
 
     //Đổi giao diện Seller
@@ -116,6 +119,30 @@ public class BidderDashboardController implements Initializable {
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         stage.setScene(scene);
         stage.show();
+    }
+
+    //Test Product Card
+    @FXML
+    private HBox container1;
+    @FXML
+    private HBox container2;
+    private void testLoadCards() {
+        try {
+            for (int i = 0; i < 4; i++) {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/ProductCard.fxml"));
+                Node card = loader.load();
+                card.getStyleClass().add("product-card");
+                container1.getChildren().add(card);
+
+                FXMLLoader loader2 = new FXMLLoader(getClass().getResource("/fxml/Card/ProductCard.fxml"));
+                Node card2 = loader2.load();
+                card.getStyleClass().add("product-card");
+                container2.getChildren().add(card2);
+            }
+        } catch (IOException e) {
+            System.out.println("Lỗi rồi: Không tìm thấy file CardItems.fxml");
+            e.printStackTrace();
+        }
     }
 
 

@@ -1,7 +1,6 @@
 package com.auction.client.controller;
 
 import com.auction.client.MockData.DataStore;
-import com.auction.client.MockData.UserSession;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -11,10 +10,9 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.FlowPane;
 import javafx.stage.Stage;
 import java.io.IOException;
 import java.net.URL;
@@ -33,6 +31,7 @@ public class ItemsController implements Initializable {
         } else {
             lblUsername.setText("Guest User");
         }
+        testLoadCards();
     }
 
     //Đổi seller
@@ -166,5 +165,22 @@ public class ItemsController implements Initializable {
         }
     }
 
+
+    //Productcard Art
+    @FXML
+    private FlowPane containerArt;
+
+    private void testLoadCards() {
+        try {
+            for (int i = 0; i < 10; i++) {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/ProductCard.fxml"));
+                Node card = loader.load();
+                containerArt.getChildren().add(card);
+            }
+        } catch (IOException e) {
+            System.out.println("Lỗi rồi: Không tìm thấy file CardItems.fxml");
+            e.printStackTrace();
+        }
+    }
 
 }

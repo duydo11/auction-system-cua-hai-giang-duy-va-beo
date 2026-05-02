@@ -11,6 +11,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.event.ActionEvent;
 import java.io.IOException;
@@ -19,7 +20,10 @@ import java.sql.SQLXML;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
-public class MyBidsController {
+public class MyBidsController implements Initializable{
+    public void initialize(URL location, ResourceBundle resources) {
+        testLoadCards(); //Test productcard
+    }
 
     //Đổi home
     @FXML
@@ -106,4 +110,24 @@ public class MyBidsController {
             btnTotalPane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color: #3a3386");
         }
     }
+
+    //HistoryCard
+    @FXML
+    private VBox containerTotal;
+    private void testLoadCards() {
+        try {
+            for (int i = 0; i < 4; i++) {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/HistoryCard.fxml"));
+                Node card = loader.load();
+                card.getStyleClass().add("product-card");
+                containerTotal.getChildren().add(card);
+            }
+        } catch (IOException e) {
+            System.out.println("Lỗi rồi: Không tìm thấy file");
+            e.printStackTrace();
+        }
+    }
+
+
+
 }

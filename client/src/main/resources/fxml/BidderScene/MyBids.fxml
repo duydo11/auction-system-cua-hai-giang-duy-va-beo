@@ -172,7 +172,7 @@
                            <children>
                               <ScrollPane prefHeight="538.0" prefWidth="948.0">
                                  <content>
-                                    <VBox prefHeight="554.0" prefWidth="932.0">
+                                    <VBox prefHeight="663.0" prefWidth="932.0">
                                        <children>
                                           <HBox alignment="CENTER_LEFT" prefHeight="40.0" prefWidth="932.0">
                                              <children>
@@ -190,7 +190,7 @@
                                                 <AnchorPane prefHeight="200.0" prefWidth="200.0" />
                                              </children>
                                           </HBox>
-                                          <VBox prefHeight="498.0" prefWidth="921.0" />
+                                          <VBox fx:id="containerTotal" alignment="TOP_CENTER" prefHeight="498.0" prefWidth="921.0" spacing="10.0" />
                                        </children>
                                     </VBox>
                                  </content>

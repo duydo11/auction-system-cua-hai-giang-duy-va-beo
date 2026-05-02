@@ -17,7 +17,7 @@ public class MainApp extends Application {
         Font.loadFont(getClass().getResourceAsStream("/fonts/Montserrat-Regular.ttf"), 14);
         Font.loadFont(getClass().getResourceAsStream("/fonts/PlaywriteIE-Regular.ttf"), 14);
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Login.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/BidderScene/BidderDashboard.fxml"));
             Parent root = loader.load();
 
             primaryStage.setTitle("Hệ thống đấu giá - Đăng nhập");
