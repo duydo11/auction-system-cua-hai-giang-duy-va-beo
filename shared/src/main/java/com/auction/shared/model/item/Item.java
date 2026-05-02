@@ -14,7 +14,7 @@ public abstract class Item extends Entity {
     private String description;
     private User seller;
 
-    public Item(String id, String name, String description, User seller) {
+    public Item(int id, String name, String description, User seller) {
         super(id);
         this.name = name;
         this.description = description;

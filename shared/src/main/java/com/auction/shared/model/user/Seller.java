@@ -9,7 +9,7 @@ import lombok.Setter;
 public class Seller extends User {
     private double rating;
 
-    public Seller(String id, String username, String password, String email, double rating) {
+    public Seller(int id, String username, String password, String email, double rating) {
         super(id, username, password, email);
         this.rating = rating;
     }

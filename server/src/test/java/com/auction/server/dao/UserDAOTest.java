@@ -15,7 +15,7 @@ public class UserDAOTest {
     @Test
     public void testLoginSuccess() {
         UserDAO userDAO = new UserDAO();
-        String testId = "ADMIN_TEST_01";
+        int testId = 90001;
         Admin testAdmin = new Admin(testId, "testadmin", "pass123", "test@mail.com", "SUPER_ADMIN");
 
         try {
@@ -34,7 +34,7 @@ public class UserDAOTest {
     @Test
     public void testLoginFailure_WrongPassword() {
         UserDAO userDAO = new UserDAO();
-        String testId = "ADMIN_TEST_02";
+        int testId = 90002;
         Admin testAdmin = new Admin(testId, "admin_sai_pass", "matkhau_dung", "mail@mail.com", "MODERATOR");
 
         try {
@@ -69,7 +69,7 @@ public class UserDAOTest {
     @Test
     public void testSaveAndGetBidder() {
         UserDAO userDAO = new UserDAO();
-        String testId = "BIDDER_TEST_01";
+        int testId = 90003;
         // Tạo một người mua (Bidder) với số dư 500,000
         Bidder testBidder = new Bidder(testId, "nguoimua1", "pass123", "mua@gmail.com", 500000.0);
 
@@ -94,7 +94,7 @@ public class UserDAOTest {
     @Test
     public void testUpdateUser() {
         UserDAO userDAO = new UserDAO();
-        String testId = "ADMIN_UPDATE_TEST";
+        int testId = 90004;
         Admin testAdmin = new Admin(testId, "admin_cu", "pass", "cu@mail", "MODERATOR");
 
         try {
@@ -120,7 +120,7 @@ public class UserDAOTest {
     @Test
     public void testDeleteUser() {
         UserDAO userDAO = new UserDAO();
-        String testId = "USER_DELETE_TEST";
+        int testId = 90005;
         Admin testAdmin = new Admin(testId, "xoa_toi_di", "pass", "del@mail", "MODERATOR");
 
         try {

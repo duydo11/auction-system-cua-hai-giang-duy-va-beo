@@ -20,10 +20,22 @@ public class AuctionSessionDAO {
                 "starting_price, current_price, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         Connection conn = DatabaseConnection.getInstance().getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, session.getId());
-            ps.setString(2, session.getItem() != null ? session.getItem().getId() : null);
-            ps.setString(3, session.getSeller() != null ? session.getSeller().getId() : null);
-            ps.setString(4, session.getWinner() != null ? session.getWinner().getId() : null);
+            ps.setInt(1, session.getId());
+            if (session.getItem() != null) {
+                ps.setInt(2, session.getItem().getId());
+            } else {
+                ps.setNull(2, java.sql.Types.INTEGER);
+            }
+            if (session.getSeller() != null) {
+                ps.setInt(3, session.getSeller().getId());
+            } else {
+                ps.setNull(3, java.sql.Types.INTEGER);
+            }
+            if (session.getWinner() != null) {
+                ps.setInt(4, session.getWinner().getId());
+            } else {
+                ps.setNull(4, java.sql.Types.INTEGER);
+            }
             ps.setDouble(5, session.getStartingPrice());
             ps.setDouble(6, session.getCurrentPrice());
             ps.setObject(7, session.getStartTime());
@@ -35,22 +47,25 @@ public class AuctionSessionDAO {
     }
 
     // Lay thong tin cua phien dau gia
-    public AuctionSession getSessionById(String id) {
+    public AuctionSession getSessionById(int id) {
         String sql = "SELECT * FROM auction_sessions WHERE id = ?";
         Connection conn = DatabaseConnection.getInstance().getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, id);
+            ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                String fetchedId = rs.getString("id");
+                int fetchedId = rs.getInt("id");
                 double startingPrice = rs.getDouble("starting_price");
                 LocalDateTime startTime = rs.getObject("start_time", LocalDateTime.class);
                 LocalDateTime endTime = rs.getObject("end_time", LocalDateTime.class);
 
                 // Lấy ID của các Object liên quan
-                String sellerId = rs.getString("seller_id");
-                String itemId = rs.getString("item_id");
-                String winnerId = rs.getString("winner_id");
+                int sellerId = rs.getInt("seller_id");
+                boolean hasSeller = !rs.wasNull();
+                int itemId = rs.getInt("item_id");
+                boolean hasItem = !rs.wasNull();
+                int winnerId = rs.getInt("winner_id");
+                boolean hasWinner = !rs.wasNull();
 
                 // SỬ DỤNG CÁC DAO KHÁC ĐỂ KÉO FULL DỮ LIỆU
                 UserDAO userDAO = new UserDAO();
@@ -58,9 +73,9 @@ public class AuctionSessionDAO {
                 BidDAO bidDAO = new BidDAO();
 
                 // Lấy các Object con
-                User seller = userDAO.getUserById(sellerId);
-                Item item = itemDAO.getItemById(itemId);
-                User winner = (winnerId != null) ? userDAO.getUserById(winnerId) : null;
+                User seller = hasSeller ? userDAO.getUserById(sellerId) : null;
+                Item item = hasItem ? itemDAO.getItemById(itemId) : null;
+                User winner = hasWinner ? userDAO.getUserById(winnerId) : null;
 
                 // Khởi tạo AuctionSession với ĐẦY ĐỦ tham số
                 AuctionSession session = new AuctionSession(fetchedId, seller, item, startingPrice, startTime, endTime);
@@ -85,8 +100,12 @@ public class AuctionSessionDAO {
         Connection conn = DatabaseConnection.getInstance().getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDouble(1, session.getCurrentPrice());
-            ps.setString(2, session.getWinner() != null ? session.getWinner().getId() : null);
-            ps.setString(3, session.getId());
+            if (session.getWinner() != null) {
+                ps.setInt(2, session.getWinner().getId());
+            } else {
+                ps.setNull(2, java.sql.Types.INTEGER);
+            }
+            ps.setInt(3, session.getId());
             ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -94,11 +113,11 @@ public class AuctionSessionDAO {
     }
 
     // Xoa
-    public void deleteSession(String sessionId) {
+    public void deleteSession(int sessionId) {
         String sql = "DELETE FROM auction_sessions WHERE id = ?";
         Connection conn = DatabaseConnection.getInstance().getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, sessionId);
+            ps.setInt(1, sessionId);
             ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();

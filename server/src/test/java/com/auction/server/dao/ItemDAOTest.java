@@ -14,8 +14,8 @@ public class ItemDAOTest {
         UserDAO userDAO = new UserDAO();
         ItemDAO itemDAO = new ItemDAO();
 
-        String sellerId = "SELLER_ITEM_TEST";
-        String itemId = "ITEM_VEHICLE_TEST";
+        int sellerId = 91001;
+        int itemId = 92001;
 
         // 1. Chuẩn bị User (Người bán) trước vì Item bắt buộc phải có khóa ngoại seller_id
         Admin seller = new Admin(sellerId, "seller_item", "123", "sell@mail.com", "MODERATOR");

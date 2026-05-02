@@ -15,7 +15,7 @@ public class Bid extends Entity {
     private LocalDateTime time;
     private AuctionSession auctionSession;
 
-    public Bid(String id, User bidder,AuctionSession auctionSession , double amount){
+    public Bid(int id, User bidder,AuctionSession auctionSession , double amount){
         super(id);
         this.bidder = bidder;
         this.amount = amount;
