@@ -15,31 +15,39 @@ public class UserDAOTest {
     @Test
     public void testLoginSuccess() {
         UserDAO userDAO = new UserDAO();
-        Admin testAdmin = new Admin("ADMIN_TEST_01", "testadmin", "pass123", "test@mail.com", "SUPER_ADMIN");
-        userDAO.saveUser(testAdmin);
+        int testId = 90001;
+        Admin testAdmin = new Admin(testId, "testadmin", "pass123", "test@mail.com", "SUPER_ADMIN");
 
-        User loggedInUser = userDAO.login("testadmin", "pass123");
+        try {
+            userDAO.saveUser(testAdmin);
 
-        assertNotNull(loggedInUser, "Lỗi: Không lấy được thông tin đăng nhập!");
-        assertEquals("ADMIN", loggedInUser.getRoleName(), "Lỗi: Không nhận diện đúng phân quyền Admin!");
-        assertEquals("testadmin", loggedInUser.getUsername());
+            User loggedInUser = userDAO.login("testadmin", "pass123");
 
-        userDAO.deleteUser("ADMIN_TEST_01"); // Dọn dẹp
+            assertNotNull(loggedInUser, "Lỗi: Không lấy được thông tin đăng nhập!");
+            assertEquals("ADMIN", loggedInUser.getRoleName(), "Lỗi: Không nhận diện đúng phân quyền Admin!");
+            assertEquals("testadmin", loggedInUser.getUsername());
+        } finally {
+            userDAO.deleteUser(testId); // Đảm bảo dọn dẹp rác trên Aiven
+        }
     }
 
     @Test
     public void testLoginFailure_WrongPassword() {
         UserDAO userDAO = new UserDAO();
-        Admin testAdmin = new Admin("ADMIN_TEST_02", "admin_sai_pass", "matkhau_dung", "mail@mail.com", "MODERATOR");
-        userDAO.saveUser(testAdmin);
+        int testId = 90002;
+        Admin testAdmin = new Admin(testId, "admin_sai_pass", "matkhau_dung", "mail@mail.com", "MODERATOR");
 
-        // Thử đăng nhập với mật khẩu sai
-        User loggedInUser = userDAO.login("admin_sai_pass", "matkhau_sai_hoan_toan");
+        try {
+            userDAO.saveUser(testAdmin);
 
-        // KHẲNG ĐỊNH: Kết quả phải là NULL
-        assertNull(loggedInUser, "Lỗi: Nhập sai mật khẩu nhưng hệ thống vẫn cho đăng nhập!");
+            // Thử đăng nhập với mật khẩu sai
+            User loggedInUser = userDAO.login("admin_sai_pass", "matkhau_sai_hoan_toan");
 
-        userDAO.deleteUser("ADMIN_TEST_02"); // Dọn dẹp
+            // KHẲNG ĐỊNH: Kết quả phải là NULL
+            assertNull(loggedInUser, "Lỗi: Nhập sai mật khẩu nhưng hệ thống vẫn cho đăng nhập!");
+        } finally {
+            userDAO.deleteUser(testId); // Đảm bảo dọn dẹp rác trên Aiven
+        }
     }
 
     @Test
@@ -51,6 +59,7 @@ public class UserDAOTest {
 
         // KHẲNG ĐỊNH: Kết quả phải là NULL
         assertNull(loggedInUser, "Lỗi: Tài khoản không tồn tại nhưng vẫn trả về dữ liệu!");
+        // Hàm này không đẩy dữ liệu ảo lên DB nên không cần khối try...finally
     }
 
     // ==========================================
@@ -60,64 +69,74 @@ public class UserDAOTest {
     @Test
     public void testSaveAndGetBidder() {
         UserDAO userDAO = new UserDAO();
-        String testId = "BIDDER_TEST_01";
+        int testId = 90003;
         // Tạo một người mua (Bidder) với số dư 500,000
         Bidder testBidder = new Bidder(testId, "nguoimua1", "pass123", "mua@gmail.com", 500000.0);
 
-        // Lưu vào Database
-        userDAO.saveUser(testBidder);
+        try {
+            // Lưu vào Database
+            userDAO.saveUser(testBidder);
 
-        // Lấy từ Database lên
-        User retrievedUser = userDAO.getUserById(testId);
+            // Lấy từ Database lên
+            User retrievedUser = userDAO.getUserById(testId);
 
-        assertNotNull(retrievedUser, "Lỗi: Không tìm thấy user vừa lưu vào DB!");
-        assertEquals("BIDDER", retrievedUser.getRoleName(), "Lỗi: Lưu Bidder nhưng lấy lên sai Role!");
+            assertNotNull(retrievedUser, "Lỗi: Không tìm thấy user vừa lưu vào DB!");
+            assertEquals("BIDDER", retrievedUser.getRoleName(), "Lỗi: Lưu Bidder nhưng lấy lên sai Role!");
 
-        // Ép kiểu để kiểm tra thuộc tính riêng (số dư tài khoản)
-        Bidder b = (Bidder) retrievedUser;
-        assertEquals(500000.0, b.getAccountBalance(), "Lỗi: Số dư tài khoản lưu vào DB bị sai lệch!");
-
-        userDAO.deleteUser(testId); // Dọn dẹp
+            // Ép kiểu để kiểm tra thuộc tính riêng (số dư tài khoản)
+            Bidder b = (Bidder) retrievedUser;
+            assertEquals(500000.0, b.getAccountBalance(), "Lỗi: Số dư tài khoản lưu vào DB bị sai lệch!");
+        } finally {
+            userDAO.deleteUser(testId); // Đảm bảo dọn dẹp rác trên Aiven
+        }
     }
 
     @Test
     public void testUpdateUser() {
         UserDAO userDAO = new UserDAO();
-        String testId = "ADMIN_UPDATE_TEST";
+        int testId = 90004;
         Admin testAdmin = new Admin(testId, "admin_cu", "pass", "cu@mail", "MODERATOR");
-        userDAO.saveUser(testAdmin);
 
-        // Tiến hành thay đổi thông tin ở trên RAM
-        testAdmin.setUsername("admin_moi");
-        testAdmin.setAccessLevel("SUPER_ADMIN");
+        try {
+            userDAO.saveUser(testAdmin);
 
-        // Đẩy thông tin mới xuống Database
-        userDAO.updateUser(testAdmin);
+            // Tiến hành thay đổi thông tin ở trên RAM
+            testAdmin.setUsername("admin_moi");
+            testAdmin.setAccessLevel("SUPER_ADMIN");
 
-        // Lấy lại từ Database để kiểm chứng
-        Admin updatedAdmin = (Admin) userDAO.getUserById(testId);
+            // Đẩy thông tin mới xuống Database
+            userDAO.updateUser(testAdmin);
 
-        assertEquals("admin_moi", updatedAdmin.getUsername(), "Lỗi: Cập nhật Username thất bại!");
-        assertEquals("SUPER_ADMIN", updatedAdmin.getAccessLevel(), "Lỗi: Cập nhật AccessLevel thất bại!");
+            // Lấy lại từ Database để kiểm chứng
+            Admin updatedAdmin = (Admin) userDAO.getUserById(testId);
 
-        userDAO.deleteUser(testId); // Dọn dẹp
+            assertEquals("admin_moi", updatedAdmin.getUsername(), "Lỗi: Cập nhật Username thất bại!");
+            assertEquals("SUPER_ADMIN", updatedAdmin.getAccessLevel(), "Lỗi: Cập nhật AccessLevel thất bại!");
+        } finally {
+            userDAO.deleteUser(testId); // Đảm bảo dọn dẹp rác trên Aiven
+        }
     }
 
     @Test
     public void testDeleteUser() {
         UserDAO userDAO = new UserDAO();
-        String testId = "USER_DELETE_TEST";
+        int testId = 90005;
         Admin testAdmin = new Admin(testId, "xoa_toi_di", "pass", "del@mail", "MODERATOR");
 
-        // Bước 1: Lưu vào
-        userDAO.saveUser(testAdmin);
-        assertNotNull(userDAO.getUserById(testId), "Lưu thất bại, chưa có để xóa!");
+        try {
+            // Bước 1: Lưu vào
+            userDAO.saveUser(testAdmin);
+            assertNotNull(userDAO.getUserById(testId), "Lưu thất bại, chưa có để xóa!");
 
-        // Bước 2: Gọi hàm xóa
-        userDAO.deleteUser(testId);
+            // Bước 2: Gọi hàm xóa
+            userDAO.deleteUser(testId);
 
-        // Bước 3: Tìm lại xem còn không
-        User deletedUser = userDAO.getUserById(testId);
-        assertNull(deletedUser, "Lỗi: Xóa user thất bại, dữ liệu vẫn còn trong DB!");
+            // Bước 3: Tìm lại xem còn không
+            User deletedUser = userDAO.getUserById(testId);
+            assertNull(deletedUser, "Lỗi: Xóa user thất bại, dữ liệu vẫn còn trong DB!");
+        } finally {
+            // Dù bài test có bị tạch ở bước assert bên trên thì khối này vẫn đảm bảo xóa rác đi
+            userDAO.deleteUser(testId);
+        }
     }
 }

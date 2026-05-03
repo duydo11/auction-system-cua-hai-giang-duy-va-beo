@@ -56,7 +56,7 @@ public class ServerProtocolHandler {
         boolean success = userService.registerUser(userData[0], userData[1], userData[2], userData[3]);
 
         if (success) {
-            return new Message(MessageType.REGISTER_RESPONSE, "Registration successful");
+            return new Message(MessageType.REGISTER_RESPONSE, (Object) "Registration successful");
         } else {
             return new Message(MessageType.REGISTER_RESPONSE, "Username already exists");
         }
@@ -79,16 +79,16 @@ public class ServerProtocolHandler {
     }
 
     private Message handlePlaceBid(Object data) throws Exception {
-        String sessionId;
-        String bidderId;
+        int sessionId;
+        int bidderId;
         double bidAmount;
         if (data instanceof String[] arr && arr.length >= 3) {
+            sessionId = Integer.parseInt(arr[0].trim());
+            bidderId = Integer.parseInt(arr[1].trim());
+            bidAmount = Double.parseDouble(arr[2].trim());
+        } else if (data instanceof int[] arr && arr.length >= 3) {
             sessionId = arr[0];
             bidderId = arr[1];
-            bidAmount = Double.parseDouble(arr[2]);
-        } else if (data instanceof int[] arr && arr.length >= 3) {
-            sessionId = String.valueOf(arr[0]);
-            bidderId = String.valueOf(arr[1]);
             bidAmount = Double.parseDouble(String.valueOf(arr[2]));
         } else {
             throw new IllegalArgumentException("PLACE_BID expects String[3] or int[3] payload");
@@ -97,14 +97,14 @@ public class ServerProtocolHandler {
         boolean success = bidService.placeBid(sessionId, bidderId, bidAmount);
 
         if (success) {
-            return new Message(MessageType.PLACE_BID_RESPONSE, "Bid placed successfully");
+            return new Message(MessageType.PLACE_BID_RESPONSE, (Object) "Bid placed successfully");
         } else {
             return new Message(MessageType.PLACE_BID_RESPONSE, "Failed to place bid");
         }
     }
 
     private Message handleGetBids(Object data) throws Exception {
-        String sessionId = data instanceof String ? (String) data : String.valueOf(data);
+        int sessionId = Integer.parseInt(String.valueOf(data).trim());
         List<Bid> bids = bidService.getBidHistory(sessionId);
         return new Message(MessageType.GET_BIDS_RESPONSE, bids);
     }

@@ -16,9 +16,9 @@ public class AuctionSessionDAOTest {
         ItemDAO itemDAO = new ItemDAO();
         AuctionSessionDAO sessionDAO = new AuctionSessionDAO();
 
-        String sellerId = "SELLER_SESSION_TEST";
-        String itemId = "ITEM_ELEC_TEST";
-        String sessionId = "SESSION_TEST_01";
+        int sellerId = 93001;
+        int itemId = 93002;
+        int sessionId = 93003;
 
         // 1. Chuẩn bị Dữ liệu nền (Cha)
         Admin seller = new Admin(sellerId, "seller_ss", "123", "ss@mail.com", "MODERATOR");

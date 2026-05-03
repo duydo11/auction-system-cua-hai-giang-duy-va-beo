@@ -10,7 +10,7 @@ import lombok.Setter;
 public class Bidder extends User {
     private double accountBalance;
 
-    public Bidder(String id, String username, String password, String email, double accountBalance) {
+    public Bidder(int id, String username, String password, String email, double accountBalance) {
         super(id, username, password, email);
         this.accountBalance = accountBalance;
     }

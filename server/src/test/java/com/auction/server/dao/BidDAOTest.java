@@ -18,11 +18,11 @@ public class BidDAOTest {
         AuctionSessionDAO sessionDAO = new AuctionSessionDAO();
         BidDAO bidDAO = new BidDAO();
 
-        String bidderId = "BIDDER_TEST_01";
-        String sellerId = "SELLER_TEST_02";
-        String itemId = "ITEM_ART_TEST";
-        String sessionId = "SESSION_TEST_02";
-        String bidId = "BID_TEST_01";
+        int bidderId = 94001;
+        int sellerId = 94002;
+        int itemId = 94003;
+        int sessionId = 94004;
+        int bidId = 94005;
 
         // 1. Chuẩn bị bộ dữ liệu siêu to
         Bidder bidder = new Bidder(bidderId, "nguoi_mua", "123", "m@mail", 5000.0);

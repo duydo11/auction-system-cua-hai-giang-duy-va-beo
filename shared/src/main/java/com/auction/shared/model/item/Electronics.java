@@ -9,7 +9,7 @@ import lombok.Setter;
 public class Electronics extends Item {
     private int warrantyMonths;
 
-    public Electronics(String id, String name, String description,
+    public Electronics(int id, String name, String description,
                        User seller, int warrantyMonths) {
         super(id, name, description, seller);
         this.warrantyMonths = warrantyMonths;

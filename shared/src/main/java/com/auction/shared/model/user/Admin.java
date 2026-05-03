@@ -10,7 +10,7 @@ import lombok.Setter;
 public class Admin extends User {
     private String accessLevel;
 
-    public Admin(String id, String username, String password, String email, String accessLevel) {
+    public Admin(int id, String username, String password, String email, String accessLevel) {
         super(id, username, password, email);
         this.accessLevel = accessLevel;
     }

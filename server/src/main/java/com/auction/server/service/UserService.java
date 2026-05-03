@@ -6,8 +6,6 @@ import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
 
-import java.util.UUID;
-
 public class UserService {
     private final UserDAO userDAO = new UserDAO();
 
@@ -19,7 +17,7 @@ public class UserService {
         if (userDAO.existsByUsername(username)) {
             return false;
         }
-        String id = UUID.randomUUID().toString();
+        int id = userDAO.allocateNextUserId();
         String r = role == null ? "BIDDER" : role.trim().toUpperCase();
         User user;
         switch (r) {
