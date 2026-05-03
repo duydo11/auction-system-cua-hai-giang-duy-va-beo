@@ -10,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class AuctionSessionDAO {
@@ -32,6 +33,27 @@ public class AuctionSessionDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public List<AuctionSession> findAllActiveSessions() {
+        List<AuctionSession> list = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        String sql = "SELECT id FROM auction_sessions WHERE start_time < ? AND end_time > ?";
+        Connection conn = DatabaseConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, now);
+            ps.setObject(2, now);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                AuctionSession session = getSessionById(rs.getString("id"));
+                if (session != null) {
+                    list.add(session);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 
     // Lay thong tin cua phien dau gia
