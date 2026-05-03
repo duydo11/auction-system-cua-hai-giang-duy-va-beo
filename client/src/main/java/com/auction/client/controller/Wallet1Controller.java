@@ -1,6 +1,6 @@
 package com.auction.client.controller;
 
-import com.auction.client.MockData.DataStore;
+import com.auction.client.SessionContext;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -15,7 +15,6 @@ import javafx.stage.Stage;
 import javafx.event.ActionEvent;
 import java.io.IOException;
 import java.net.URL;
-import java.sql.SQLXML;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
@@ -98,10 +97,7 @@ public class Wallet1Controller implements Initializable {
     private Label lblUsername;
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        if (DataStore.currentUser != null) {
-            lblUsername.setText(DataStore.currentUser.getUsername());
-        } else {
-            lblUsername.setText("Guest User");
-        }
+        var u = SessionContext.getCurrentUser();
+        lblUsername.setText(u != null ? u.getUsername() : "Guest");
     }
 }

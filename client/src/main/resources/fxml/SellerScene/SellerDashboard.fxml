@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
@@ -190,7 +191,29 @@
                                                         </Label>
                                                     </children>
                                                 </HBox>
-                                                <AnchorPane minHeight="200.0" minWidth="-Infinity" prefHeight="400.0" prefWidth="946.0" VBox.vgrow="ALWAYS" />
+                                                <AnchorPane minHeight="260.0" minWidth="-Infinity" prefHeight="320.0" prefWidth="946.0" VBox.vgrow="ALWAYS">
+                                                   <children>
+                                                      <Label layoutX="48.0" layoutY="14.0" text="Tạo phiên đấu giá mới" textFill="#438bcf">
+                                                         <font>
+                                                            <Font name="Montserrat Bold" size="18.0" />
+                                                         </font>
+                                                      </Label>
+                                                      <TextField fx:id="txtItemName" layoutX="48.0" layoutY="48.0" prefHeight="32.0" prefWidth="380.0" promptText="Tên sản phẩm" style="-fx-background-radius: 8; -fx-border-color: #438bcf; -fx-border-radius: 8;" />
+                                                      <TextField fx:id="txtItemDesc" layoutX="48.0" layoutY="92.0" prefHeight="32.0" prefWidth="520.0" promptText="Mô tả ngắn" style="-fx-background-radius: 8; -fx-border-color: #438bcf; -fx-border-radius: 8;" />
+                                                      <TextField fx:id="txtStartPrice" layoutX="48.0" layoutY="136.0" prefHeight="32.0" prefWidth="160.0" promptText="Giá khởi điểm" style="-fx-background-radius: 8; -fx-border-color: #438bcf; -fx-border-radius: 8;" />
+                                                      <TextField fx:id="txtDurationHours" layoutX="230.0" layoutY="136.0" prefHeight="32.0" prefWidth="140.0" promptText="Số giờ (VD 24)" style="-fx-background-radius: 8; -fx-border-color: #438bcf; -fx-border-radius: 8;" />
+                                                      <Button layoutX="48.0" layoutY="188.0" mnemonicParsing="false" onAction="#handleCreateAuction" prefHeight="36.0" prefWidth="140.0" style="-fx-background-color: #438bcf; -fx-background-radius: 20; -fx-text-fill: white;" text="Đăng phiên">
+                                                         <font>
+                                                            <Font name="Montserrat Bold" size="13.0" />
+                                                         </font>
+                                                      </Button>
+                                                      <Label fx:id="lblCreateAuctionMsg" layoutX="210.0" layoutY="194.0" prefHeight="60.0" prefWidth="520.0" textFill="#c62828" wrapText="true">
+                                                         <font>
+                                                            <Font size="12.0" />
+                                                         </font>
+                                                      </Label>
+                                                   </children>
+                                                </AnchorPane>
                                             </children>
                                         </VBox>
                                         <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="450.0" prefWidth="946.0">

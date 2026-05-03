@@ -1,5 +1,6 @@
 package com.auction.server.network;
 
+import com.auction.server.ServiceRegistry;
 import com.auction.server.service.AuctionService;
 import com.auction.server.service.BidService;
 import com.auction.server.service.UserService;
@@ -17,25 +18,38 @@ public class ServerProtocolHandler {
     private final BidService bidService;
 
     public ServerProtocolHandler() {
-        this.userService = new UserService();
-        this.auctionService = new AuctionService();
-        this.bidService = new BidService();
+        this(ServiceRegistry.USER_SERVICE, ServiceRegistry.AUCTION_SERVICE, ServiceRegistry.BID_SERVICE);
+    }
+
+    public ServerProtocolHandler(UserService userService, AuctionService auctionService, BidService bidService) {
+        this.userService = userService;
+        this.auctionService = auctionService;
+        this.bidService = bidService;
     }
 
     public Message handleMessage(Message message) {
         try {
-            return switch (message.getType()) {
+            Message response = switch (message.getType()) {
                 case LOGIN_REQUEST -> handleLoginRequest(message.getData());
                 case REGISTER_REQUEST -> handleRegisterRequest(message.getData());
                 case VIEW_AUCTIONS_REQUEST -> handleViewAuctions();
                 case CREATE_AUCTION_REQUEST -> handleCreateAuction(message.getData());
                 case PLACE_BID_REQUEST -> handlePlaceBid(message.getData());
                 case GET_BIDS_REQUEST -> handleGetBids(message.getData());
+                case LOGOUT_REQUEST -> new Message(MessageType.LOGOUT_RESPONSE, (Object) "OK");
                 default -> new Message(MessageType.ERROR, "Unknown message type");
             };
+            return tag(message, response);
         } catch (Exception e) {
-            return new Message(MessageType.ERROR, "Server error: " + e.getMessage());
+            return tag(message, new Message(MessageType.ERROR, "Server error: " + e.getMessage()));
         }
+    }
+
+    private static Message tag(Message request, Message response) {
+        if (request != null && request.getCorrelationId() != null && !request.getCorrelationId().isBlank()) {
+            response.setCorrelationId(request.getCorrelationId());
+        }
+        return response;
     }
 
     private Message handleLoginRequest(Object data) throws Exception {
@@ -72,6 +86,9 @@ public class ServerProtocolHandler {
         boolean success = auctionService.createAuction(auction);
 
         if (success) {
+            AuctionSession refreshed = auctionService.getSessionById(auction.getId());
+            AuctionSession payload = refreshed != null ? refreshed : auction;
+            ClientBroadcastHub.broadcast(new Message(MessageType.AUCTION_CREATED_PUSH, payload));
             return new Message(MessageType.CREATE_AUCTION_RESPONSE, auction);
         } else {
             return new Message(MessageType.CREATE_AUCTION_RESPONSE, "Failed to create auction");
@@ -97,6 +114,10 @@ public class ServerProtocolHandler {
         boolean success = bidService.placeBid(sessionId, bidderId, bidAmount);
 
         if (success) {
+            AuctionSession refreshed = auctionService.getSessionById(sessionId);
+            if (refreshed != null) {
+                ClientBroadcastHub.broadcast(new Message(MessageType.AUCTION_UPDATED_PUSH, refreshed));
+            }
             return new Message(MessageType.PLACE_BID_RESPONSE, (Object) "Bid placed successfully");
         } else {
             return new Message(MessageType.PLACE_BID_RESPONSE, "Failed to place bid");

@@ -43,7 +43,7 @@
                <children>
                   <Hyperlink layoutX="170.0" layoutY="82.0" text="forget password" textFill="#4e7dcf" />
                   <PasswordField fx:id="textPassword" layoutX="38.0" layoutY="57.0" prefHeight="25.0" prefWidth="200.0" promptText="Password" style="-fx-background-radius: 50;" />
-                  <TextField fx:id="textEmailaddress" layoutX="38.0" layoutY="24.0" prefHeight="25.0" prefWidth="200.0" promptText="Email" style="-fx-background-radius: 50;" />
+                  <TextField fx:id="textEmailaddress" layoutX="38.0" layoutY="24.0" prefHeight="25.0" prefWidth="200.0" promptText="Username" style="-fx-background-radius: 50;" />
                </children>
             </Pane>
             <Pane prefHeight="142.0" prefWidth="300.0" styleClass="title-login" VBox.vgrow="ALWAYS">

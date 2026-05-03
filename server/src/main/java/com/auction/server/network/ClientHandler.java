@@ -9,24 +9,39 @@ public class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private ObjectInputStream objectInputStream;
     private ObjectOutputStream objectOutputStream;
-    private final ServerProtocolHandler protocolHandler;
+    private final ServerProtocolHandler protocolHandler = new ServerProtocolHandler();
+    private final Object writeLock = new Object();
 
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
-        this.protocolHandler = new ServerProtocolHandler();
+    }
+
+    void deliverPush(Message push) {
+        try {
+            sendLocked(push);
+        } catch (IOException e) {
+            System.err.println("✗ Push failed for client: " + clientSocket.getInetAddress());
+        }
+    }
+
+    private void sendLocked(Message m) throws IOException {
+        synchronized (writeLock) {
+            objectOutputStream.writeObject(m);
+            objectOutputStream.flush();
+        }
     }
 
     @Override
     public void run() {
         try {
-            // Khởi tạo streams (OutputStream trước, rồi InputStream)
             objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
             objectOutputStream.flush();
             objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
 
             System.out.println("✓ Streams initialized for " + clientSocket.getInetAddress());
 
-            // Lắng nghe messages từ client
+            ClientBroadcastHub.register(this);
+
             while (true) {
                 Message message = (Message) objectInputStream.readObject();
 
@@ -34,12 +49,9 @@ public class ClientHandler implements Runnable {
 
                 System.out.println("→ Received from client: " + message.getType());
 
-                // Xử lý message
                 Message response = protocolHandler.handleMessage(message);
 
-                // Gửi response lại cho client
-                objectOutputStream.writeObject(response);
-                objectOutputStream.flush();
+                sendLocked(response);
 
                 System.out.println("← Sent to client: " + response.getType());
             }
@@ -48,6 +60,7 @@ public class ClientHandler implements Runnable {
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("✗ Error handling client: " + e.getMessage());
         } finally {
+            ClientBroadcastHub.unregister(this);
             closeResources();
         }
     }

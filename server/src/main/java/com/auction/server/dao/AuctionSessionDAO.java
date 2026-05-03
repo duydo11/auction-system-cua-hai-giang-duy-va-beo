@@ -15,6 +15,20 @@ import java.util.List;
 
 public class AuctionSessionDAO {
 
+    public int allocateNextSessionId() {
+        String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM auction_sessions";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("next_id");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 1;
+    }
+
     // Khoi tao phien dau gia
     public void saveSession(AuctionSession session) {
         String sql = "INSERT INTO auction_sessions (id, item_id, seller_id, winner_id, " +

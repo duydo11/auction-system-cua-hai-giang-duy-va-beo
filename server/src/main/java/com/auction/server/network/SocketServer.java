@@ -1,7 +1,9 @@
 package com.auction.server.network;
 
 import com.auction.server.config.DatabaseConfig;
-import java.io.*;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -25,9 +27,10 @@ public class SocketServer {
 
     public void start() {
         try {
-            serverSocket = new ServerSocket(port);
+            serverSocket = new ServerSocket();
+            serverSocket.bind(new InetSocketAddress(DatabaseConfig.getServerHost(), port));
             isRunning = true;
-            System.out.println("✓ Server started on port " + port);
+            System.out.println("✓ Listening TCP on " + DatabaseConfig.getServerHost() + ":" + port + " — clients dùng cùng port trong client.properties");
 
             while (isRunning) {
                 Socket clientSocket = serverSocket.accept();
@@ -37,6 +40,9 @@ public class SocketServer {
             }
         } catch (IOException e) {
             System.err.println("✗ Server error: " + e.getMessage());
+            if (e.getMessage() != null && e.getMessage().contains("Address already in use")) {
+                System.err.println("→ Cổng " + port + " đang bị chiếm: tắt tiến trình server khác hoặc đổi server.port + client.properties.");
+            }
         } finally {
             stop();
         }

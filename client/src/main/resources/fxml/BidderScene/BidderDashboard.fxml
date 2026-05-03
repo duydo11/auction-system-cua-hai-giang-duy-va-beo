@@ -192,7 +192,16 @@
                                           </Label>
                                        </children>
                                     </HBox>
-                                    <AnchorPane minHeight="200.0" minWidth="-Infinity" prefHeight="400.0" prefWidth="946.0" VBox.vgrow="ALWAYS" />
+                                    <VBox spacing="8.0" VBox.vgrow="ALWAYS">
+                                       <children>
+                                          <Label text="Phiên đang mở (realtime — không cần F5)" textFill="#344985">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="13.0" />
+                                             </font>
+                                          </Label>
+                                          <VBox fx:id="dashboardAuctionRows" spacing="6.0" prefHeight="360.0" prefWidth="930.0" />
+                                       </children>
+                                    </VBox>
                                  </children>
                               </VBox>
                               <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="450.0" prefWidth="946.0">

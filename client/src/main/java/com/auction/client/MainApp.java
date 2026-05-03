@@ -1,5 +1,6 @@
 package com.auction.client;
 
+import com.auction.client.network.NetworkCleanup;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -28,6 +29,15 @@ public class MainApp extends Application {
         } catch (IOException e) {
             System.err.println("Lỗi: Không tìm thấy file Login.fxml hoặc file FXML có lỗi cấu trúc.");
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void stop() throws Exception {
+        try {
+            NetworkCleanup.logoutClient();
+        } finally {
+            super.stop();
         }
     }
 

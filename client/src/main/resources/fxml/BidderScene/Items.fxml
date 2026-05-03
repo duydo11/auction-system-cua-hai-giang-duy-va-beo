@@ -195,6 +195,7 @@
                                                 </Label>
                                              </children>
                                           </HBox>
+                                          <VBox fx:id="auctionRowsOther" spacing="8.0" />
                                        </children>
                                     </VBox>
                                  </content>
@@ -222,6 +223,7 @@
                                                 </Label>
                                              </children>
                                           </HBox>
+                                          <VBox fx:id="auctionRowsVehicle" spacing="8.0" />
                                        </children>
                                     </VBox>
                                  </content>
@@ -249,6 +251,7 @@
                                                 </Label>
                                              </children>
                                           </HBox>
+                                          <VBox fx:id="auctionRowsElec" spacing="8.0" />
                                        </children>
                                     </VBox>
                                  </content>
@@ -276,6 +279,7 @@
                                                 </Label>
                                              </children>
                                           </HBox>
+                                          <VBox fx:id="auctionRowsArt" spacing="8.0" />
                                        </children>
                                     </VBox>
                                  </content>

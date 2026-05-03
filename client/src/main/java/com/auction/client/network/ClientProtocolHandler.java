@@ -49,6 +49,15 @@ public class ClientProtocolHandler {
         return response != null && response.isSuccess();
     }
 
+    /** @return {@code null} nếu đăng ký thành công, ngược lại là thông báo lỗi */
+    public String registerOrError(String username, String password, String email, String role) {
+        Message response = send(MessageType.REGISTER_REQUEST, new String[]{username, password, email, role});
+        if (response != null && response.isSuccess()) {
+            return null;
+        }
+        return lastError(response);
+    }
+
     @SuppressWarnings("unchecked")
     public List<AuctionSession> getActiveAuctions() {
         Message response = send(MessageType.VIEW_AUCTIONS_REQUEST, null);
@@ -70,12 +79,33 @@ public class ClientProtocolHandler {
         return response != null && response.isSuccess();
     }
 
+    /** @return {@code null} nếu tạo phiên thành công */
+    public String createAuctionOrError(AuctionSession auction) {
+        Message response = send(MessageType.CREATE_AUCTION_REQUEST, auction);
+        if (response != null && response.isSuccess()) {
+            return null;
+        }
+        return lastError(response);
+    }
+
     public boolean placeBid(int sessionId, int bidderId, double bidAmount) {
         Message response = send(
                 MessageType.PLACE_BID_REQUEST,
                 new String[]{String.valueOf(sessionId), String.valueOf(bidderId), String.valueOf(bidAmount)}
         );
         return response != null && response.isSuccess();
+    }
+
+    /** @return {@code null} nếu đặt giá thành công */
+    public String placeBidOrError(int sessionId, int bidderId, double bidAmount) {
+        Message response = send(
+                MessageType.PLACE_BID_REQUEST,
+                new String[]{String.valueOf(sessionId), String.valueOf(bidderId), String.valueOf(bidAmount)}
+        );
+        if (response != null && response.isSuccess()) {
+            return null;
+        }
+        return lastError(response);
     }
 
     @SuppressWarnings("unchecked")

@@ -12,6 +12,20 @@ import java.sql.SQLException;
 
 public class ItemDAO {
 
+    public int allocateNextItemId() {
+        String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM items";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("next_id");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 1;
+    }
+
     // tao item
     public void saveItem(Item item) {
         String sqlItem = "INSERT INTO items (id, name, description, seller_id) VALUES (?, ?, ?, ?)";
