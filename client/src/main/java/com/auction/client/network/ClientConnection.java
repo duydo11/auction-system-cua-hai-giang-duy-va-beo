@@ -12,6 +12,13 @@ public final class ClientConnection {
 
     private final String host;
     private final int port;
+
+    /**
+     * Bảo vệ lifecycle {@link SocketClient}: UI và luồng socket có thể gọi
+     * {@link #connect()}/{@link #disconnect()}/{@link #getSocketClient()}/{@link #isConnected()} xen kẽ.
+     */
+    private final Object connectionLock = new Object();
+
     private SocketClient socketClient;
 
     private ClientConnection() {
@@ -61,26 +68,34 @@ public final class ClientConnection {
     }
 
     public boolean connect() {
-        if (socketClient != null && socketClient.isConnected()) {
-            return true;
+        synchronized (connectionLock) {
+            if (socketClient != null && socketClient.isConnected()) {
+                return true;
+            }
+            socketClient = new SocketClient(host, port);
+            return socketClient.connect();
         }
-        socketClient = new SocketClient(host, port);
-        return socketClient.connect();
     }
 
     public SocketClient getSocketClient() {
-        return socketClient;
+        synchronized (connectionLock) {
+            return socketClient;
+        }
     }
 
     public void disconnect() {
-        if (socketClient != null) {
-            socketClient.disconnect();
-            socketClient = null;
+        synchronized (connectionLock) {
+            if (socketClient != null) {
+                socketClient.disconnect();
+                socketClient = null;
+            }
         }
     }
 
     public boolean isConnected() {
-        return socketClient != null && socketClient.isConnected();
+        synchronized (connectionLock) {
+            return socketClient != null && socketClient.isConnected();
+        }
     }
 
     public String getHost() {

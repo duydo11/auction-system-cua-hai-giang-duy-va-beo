@@ -10,10 +10,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,21 +61,6 @@ public class SocketClient {
                         + serverPort + " với server/src/main/resources/config.properties và client.properties? "
                         + "(3) Firewall/antivirus không chặn Java?");
             }
-            // #region agent log
-            try {
-                Path log = Paths.get(System.getProperty("user.dir")).normalize().resolve("debug-438ab6.log");
-                String msg = String.valueOf(e.getMessage()).replace("\\", "/").replace("\"", "'");
-                String line =
-                        "{\"sessionId\":\"438ab6\",\"hypothesisId\":\"CONNECT_REFUSED\",\"location\":\"SocketClient.connect\""
-                                + ",\"message\":\"socket connect failed\",\"data\":{\"host\":\"" + serverHost.replace("\"", "'")
-                                + "\",\"port\":"
-                                + serverPort + ",\"err\":\"" + msg + "\"},\"timestamp\":"
-                                + System.currentTimeMillis()
-                                + "}\n";
-                Files.writeString(log, line, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            } catch (Exception ignored) {
-            }
-            // #endregion
             return false;
         }
     }
