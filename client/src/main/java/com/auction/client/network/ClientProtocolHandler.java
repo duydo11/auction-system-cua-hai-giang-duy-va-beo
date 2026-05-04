@@ -14,6 +14,7 @@ import java.util.List;
  */
 public class ClientProtocolHandler {
     private final ClientConnection connection;
+    private volatile String lastTransportError;
 
     public ClientProtocolHandler() {
         this(ClientConnection.getInstance());
@@ -24,14 +25,38 @@ public class ClientProtocolHandler {
     }
 
     private Message send(MessageType type, Object payload) {
+        lastTransportError = null;
+        Message request = new Message(type, payload);
+        Message response = sendOnce(request);
+        if (response != null) {
+            return response;
+        }
+
+        // Retry once after reconnect to avoid transient socket drop breaking the UI flow.
+        connection.disconnect();
+        if (!connection.connect()) {
+            lastTransportError = "Không thể kết nối server " + connection.getHost() + ":" + connection.getPort();
+            System.err.println("✗ " + lastTransportError);
+            return null;
+        }
+        response = sendOnce(request);
+        if (response == null) {
+            lastTransportError = "Mất kết nối hoặc timeout khi gửi " + type;
+            System.err.println("✗ " + lastTransportError);
+        }
+        return response;
+    }
+
+    private Message sendOnce(Message request) {
         if (!connection.isConnected() && !connection.connect()) {
+            lastTransportError = "Server chưa sẵn sàng hoặc đang tắt.";
             return null;
         }
         SocketClient client = connection.getSocketClient();
         if (client == null) {
+            lastTransportError = "Socket client chưa khởi tạo.";
             return null;
         }
-        Message request = new Message(type, payload);
         return client.sendMessage(request);
     }
 
@@ -126,7 +151,7 @@ public class ClientProtocolHandler {
 
     public String lastError(Message response) {
         if (response == null) {
-            return "Không có phản hồi từ server (mất kết nối?)";
+            return lastTransportError != null ? lastTransportError : "Không có phản hồi từ server (mất kết nối?)";
         }
         if (response.getErrorMessage() != null) {
             return response.getErrorMessage();
@@ -135,5 +160,9 @@ public class ClientProtocolHandler {
             return String.valueOf(response.getData());
         }
         return "";
+    }
+
+    public String getLastTransportError() {
+        return lastTransportError;
     }
 }

@@ -30,6 +30,7 @@ public class ItemsController implements Initializable {
 
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
     private final Consumer<AuctionSession> realtimeListener = s -> reloadAuctionLists();
+    private String displayUsername = "Guest";
 
     @FXML
     private Label lblUsername;
@@ -62,7 +63,8 @@ public class ItemsController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         var u = SessionContext.getCurrentUser();
-        lblUsername.setText(u != null ? u.getUsername() : "Guest");
+        displayUsername = u != null ? u.getUsername() : "Guest";
+        lblUsername.setText(displayUsername);
         SceneRealtime.attachAuctionUpdates(lblUsername, realtimeListener);
         reloadAuctionLists();
     }
@@ -70,6 +72,11 @@ public class ItemsController implements Initializable {
     private void reloadAuctionLists() {
         clearRows();
         List<AuctionSession> auctions = protocol.getActiveAuctions();
+        String transportError = protocol.getLastTransportError();
+        lblUsername.setText(transportError == null ? displayUsername : displayUsername + " (offline)");
+        if (transportError != null) {
+            System.err.println("Items reload warning: " + transportError);
+        }
         Runnable refresh = this::reloadAuctionLists;
         for (AuctionSession session : auctions) {
             String type = session.getItem() != null ? session.getItem().getItemType() : "OTHER";

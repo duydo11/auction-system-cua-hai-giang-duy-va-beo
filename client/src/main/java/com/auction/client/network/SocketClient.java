@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
+import java.net.SocketTimeoutException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +24,8 @@ import java.util.concurrent.TimeoutException;
  */
 public class SocketClient {
     private static final long RPC_TIMEOUT_SEC = 60;
+    private static final int CONNECT_TIMEOUT_MS = 5000;
+    private static final int READ_TIMEOUT_MS = 15000;
 
     private final String serverHost;
     private final int serverPort;
@@ -41,7 +45,10 @@ public class SocketClient {
 
     public boolean connect() {
         try {
-            socket = new Socket(serverHost, serverPort);
+            socket = new Socket();
+            socket.connect(new InetSocketAddress(serverHost, serverPort), CONNECT_TIMEOUT_MS);
+            socket.setSoTimeout(READ_TIMEOUT_MS);
+            socket.setKeepAlive(true);
 
             objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
             objectOutputStream.flush();
@@ -74,8 +81,12 @@ public class SocketClient {
     private void readLoop() {
         try {
             while (!stopped && isConnected) {
-                Message incoming = (Message) objectInputStream.readObject();
-                dispatchIncoming(incoming);
+                try {
+                    Message incoming = (Message) objectInputStream.readObject();
+                    dispatchIncoming(incoming);
+                } catch (SocketTimeoutException e) {
+                    // Keep reader alive; timeout helps detect dead connections periodically.
+                }
             }
         } catch (EOFException e) {
             System.out.println("✓ Server closed connection");
@@ -84,8 +95,7 @@ public class SocketClient {
                 System.err.println("✗ Socket reader: " + e.getMessage());
             }
         } finally {
-            isConnected = false;
-            failAllPending(new IOException("Connection closed"));
+            handleConnectionLoss(new IOException("Connection closed by reader loop"));
         }
     }
 
@@ -109,7 +119,7 @@ public class SocketClient {
     }
 
     public Message sendMessage(Message message) {
-        if (!isConnected) {
+        if (!isConnected || objectOutputStream == null) {
             System.err.println("✗ Not connected to server");
             return null;
         }
@@ -136,10 +146,11 @@ public class SocketClient {
         } catch (IOException e) {
             pendingRequests.remove(cid);
             System.err.println("✗ Socket write failed: " + e.getMessage());
+            handleConnectionLoss(e);
             return null;
         } catch (TimeoutException e) {
             pendingRequests.remove(cid);
-            System.err.println("✗ RPC timeout");
+            System.err.println("✗ RPC timeout (" + RPC_TIMEOUT_SEC + "s) for: " + message.getType());
             return null;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -147,8 +158,28 @@ public class SocketClient {
             return null;
         } catch (ExecutionException e) {
             pendingRequests.remove(cid);
-            System.err.println("✗ RPC failed: " + e.getCause().getMessage());
+            Throwable cause = e.getCause();
+            System.err.println("✗ RPC failed: " + (cause != null ? cause.getMessage() : e.getMessage()));
             return null;
+        }
+    }
+
+    private void handleConnectionLoss(Exception reason) {
+        isConnected = false;
+        stopped = true;
+        failAllPending(new IOException("Connection lost", reason));
+        try {
+            if (objectInputStream != null) {
+                objectInputStream.close();
+            }
+            if (objectOutputStream != null) {
+                objectOutputStream.close();
+            }
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+        } catch (IOException closeError) {
+            System.err.println("✗ Error closing lost connection: " + closeError.getMessage());
         }
     }
 

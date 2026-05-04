@@ -77,7 +77,10 @@ public class LoginController {
             stage.setScene(new Scene(root));
             stage.show();
         } else {
-            ifError.setText("Sai tài khoản / mật khẩu hoặc không kết nối được server.");
+            String err = protocol.lastError(null);
+            ifError.setText((err == null || err.isBlank())
+                    ? "Sai tài khoản / mật khẩu hoặc không kết nối được server."
+                    : err);
         }
     }
 }
