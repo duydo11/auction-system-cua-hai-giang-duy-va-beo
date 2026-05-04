@@ -13,7 +13,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.ItemsController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.ItemsController">
     <children>
         <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
             <image>
@@ -196,7 +196,6 @@
                                                 </Label>
                                              </children>
                                           </HBox>
-                                          <VBox fx:id="auctionRowsOther" spacing="8.0" />
                                        </children>
                                     </VBox>
                                  </content>
@@ -224,7 +223,6 @@
                                                 </Label>
                                              </children>
                                           </HBox>
-                                          <VBox fx:id="auctionRowsVehicle" spacing="8.0" />
                                        </children>
                                     </VBox>
                                  </content>
@@ -252,7 +250,6 @@
                                                 </Label>
                                              </children>
                                           </HBox>
-                                          <VBox fx:id="auctionRowsElec" spacing="8.0" />
                                        </children>
                                     </VBox>
                                  </content>
@@ -280,7 +277,7 @@
                                                 </Label>
                                              </children>
                                           </HBox>
-                                          <VBox fx:id="auctionRowsArt" spacing="8.0" />
+                                          <FlowPane fx:id="containerArt" alignment="TOP_CENTER" hgap="10.0" prefHeight="473.0" prefWidth="932.0" vgap="10.0" />
                                        </children>
                                     </VBox>
                                  </content>

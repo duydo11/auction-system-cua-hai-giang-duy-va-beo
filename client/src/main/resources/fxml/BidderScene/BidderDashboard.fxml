@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" styleClass="product-card" stylesheets="@../../css/productcard.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.BidderDashboardController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" styleClass="product-card" stylesheets="@../../css/productcard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.BidderDashboardController">
    <children>
       <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
          <image>
@@ -192,16 +192,15 @@
                                           </Label>
                                        </children>
                                     </HBox>
-                                    <VBox spacing="8.0" VBox.vgrow="ALWAYS">
+                                    <AnchorPane minHeight="200.0" minWidth="-Infinity" prefHeight="400.0" prefWidth="946.0" VBox.vgrow="ALWAYS">
                                        <children>
-                                          <Label text="Phiên đang mở (realtime — không cần F5)" textFill="#344985">
-                                             <font>
-                                                <Font name="Montserrat Bold" size="13.0" />
-                                             </font>
-                                          </Label>
-                                          <VBox fx:id="dashboardAuctionRows" spacing="6.0" prefHeight="360.0" prefWidth="930.0" />
+                                          <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="970.0" vbarPolicy="NEVER">
+                                             <content>
+                                                <HBox fx:id="container1" alignment="CENTER_LEFT" prefHeight="198.0" prefWidth="1100.0" spacing="10.0" />
+                                             </content>
+                                          </ScrollPane>
                                        </children>
-                                    </VBox>
+                                    </AnchorPane>
                                  </children>
                               </VBox>
                               <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="450.0" prefWidth="946.0">
