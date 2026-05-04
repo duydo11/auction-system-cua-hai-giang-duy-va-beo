@@ -51,6 +51,7 @@ public class BidderDashboardController implements Initializable {
         if (auctions.isEmpty()) {
             dashboardAuctionRows.getChildren().add(new Label("Chưa có phiên đang mở — seller có thể đăng phiên mới."));
         }
+
     }
 
     @FXML

@@ -158,4 +158,24 @@ public class MyBidsController implements Initializable {
             btnTotalPane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color: #3a3386");
         }
     }
+
+    //HistoryCard
+    @FXML
+    private VBox containerTotal;
+    private void testLoadCards() {
+        try {
+            for (int i = 0; i < 4; i++) {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/HistoryCard.fxml"));
+                Node card = loader.load();
+                card.getStyleClass().add("product-card");
+                containerTotal.getChildren().add(card);
+            }
+        } catch (IOException e) {
+            System.out.println("Lỗi rồi: Không tìm thấy file");
+            e.printStackTrace();
+        }
+    }
+
+
+
 }

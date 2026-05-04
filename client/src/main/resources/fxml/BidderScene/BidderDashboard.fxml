@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.BidderDashboardController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" styleClass="product-card" stylesheets="@../../css/productcard.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.BidderDashboardController">
    <children>
       <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
          <image>
@@ -121,7 +121,7 @@
       </VBox>
       <VBox layoutX="250.0" layoutY="20.0" prefHeight="640.0" prefWidth="960.0" spacing="10.0">
          <children>
-            <VBox alignment="TOP_CENTER" prefHeight="680.0" prefWidth="980.0" spacing="10.0" style="-fx-background-color: white; -fx-background-radius: 25;">
+            <VBox alignment="TOP_CENTER" prefHeight="640.0" prefWidth="871.0" spacing="10.0" style="-fx-background-color: white; -fx-background-radius: 25;">
                <children>
                   <HBox alignment="BOTTOM_CENTER" prefHeight="50.0" prefWidth="960.0" spacing="10.0">
                      <children>
@@ -147,11 +147,11 @@
                         </ImageView>
                      </children>
                   </HBox>
-                  <ScrollPane maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="562.0" prefWidth="945.0" vbarPolicy="ALWAYS" vmax="3.0">
+                  <ScrollPane hbarPolicy="NEVER" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="562.0" prefWidth="945.0" vbarPolicy="NEVER" vmax="3.0">
                      <content>
-                        <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="664.0" prefWidth="946.0" spacing="5.0">
+                        <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="872.0" prefWidth="707.0" spacing="5.0">
                            <children>
-                              <AnchorPane prefHeight="202.0" prefWidth="934.0">
+                              <AnchorPane prefHeight="198.0" prefWidth="563.0">
                                  <children>
                                     <ImageView fitHeight="195.0" fitWidth="942.0" layoutX="3.0" layoutY="2.0" pickOnBounds="true">
                                        <image>
@@ -221,7 +221,18 @@
                                           </Label>
                                        </children>
                                     </HBox>
-                                    <AnchorPane minHeight="200.0" prefHeight="300.0" prefWidth="200.0" VBox.vgrow="ALWAYS" />
+                                    <AnchorPane minHeight="200.0" prefHeight="300.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
+                                       <children>
+                                          <AnchorPane minHeight="200.0" minWidth="-Infinity" prefHeight="400.0" prefWidth="946.0">
+                                             <children>
+                                                <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="970.0" vbarPolicy="NEVER">
+                                                   <content>
+                                                      <HBox fx:id="container2" alignment="CENTER_LEFT" prefHeight="197.0" prefWidth="1100.0" spacing="10.0" />
+                                                   </content>
+                                                </ScrollPane>
+                                             </children>
+                                          </AnchorPane>
+                                       </children></AnchorPane>
                                  </children>
                               </VBox>
                               <AnchorPane prefHeight="202.0" prefWidth="942.0">
