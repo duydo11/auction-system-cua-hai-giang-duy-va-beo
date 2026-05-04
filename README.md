@@ -1,7 +1,3 @@
-# Kế hoạch phân chia công việc BTL LTNC (Tuần 8-15)
-
-Tài liệu này được viết theo góc nhìn "từ đầu dự án chưa làm gì", mục tiêu là để cả nhóm thống nhất vai trò, đầu việc, mốc kiểm tra và quy tắc phối hợp trước khi code.
-
 ## 1) Mục tiêu chung của nhóm
 
 - Xây dựng hệ thống đấu giá online theo kiến trúc `client-server-shared`.
