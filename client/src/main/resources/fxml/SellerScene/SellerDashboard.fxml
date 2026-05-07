@@ -37,10 +37,10 @@
                <children>
                   <ImageView fitHeight="37.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                      <image>
-                        <Image url="@../../png/2.activebidsymbol.png" />
+                        <Image url="@../../png/2.listsymbol.png" />
                      </image>
                   </ImageView>
-                  <Label prefHeight="54.0" prefWidth="162.0" text="ACTIVE AUCTIONS" textFill="#438bcf">
+                  <Label prefHeight="54.0" prefWidth="162.0" text="MY LISTINGS " textFill="#438bcf">
                      <font>
                         <Font name="Montserrat Bold" size="15.0" />
                      </font>
@@ -51,10 +51,10 @@
                <children>
                   <ImageView fitHeight="37.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                      <image>
-                        <Image url="@../../png/2.listsymbol.png" />
+                        <Image url="@../../png/2.shipping.png" />
                      </image>
                   </ImageView>
-                  <Label prefHeight="54.0" prefWidth="162.0" text="MY LISTINGS " textFill="#438bcf">
+                  <Label prefHeight="54.0" prefWidth="162.0" text="SHIPPING &amp; ORDER" textFill="#438bcf">
                      <font>
                         <Font name="Montserrat Bold" size="15.0" />
                      </font>
