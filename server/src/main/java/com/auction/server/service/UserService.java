@@ -1,51 +1,37 @@
 package com.auction.server.service;
 
-import com.auction.server.dao.AuctionDAO;
-import com.auction.server.dao.BidDAO;
-import com.auction.shared.model.Auction;
-import com.auction.shared.model.Bid;
-import java.time.LocalDateTime;
-import java.util.List;
+import com.auction.server.dao.UserDAO;
+import com.auction.shared.model.user.Admin;
+import com.auction.shared.model.user.Bidder;
+import com.auction.shared.model.user.Seller;
+import com.auction.shared.model.user.User;
 
-public class BidService {
-    private final BidDAO bidDAO;
-    private final AuctionDAO auctionDAO;
+public class UserService {
+    private final UserDAO userDAO = new UserDAO();
 
-    public BidService() {
-        this.bidDAO = new BidDAO();
-        this.auctionDAO = new AuctionDAO();
+    public User loginUser(String username, String password) {
+        return userDAO.login(username, password);
     }
 
-    public boolean placeBid(int auctionId, int bidderId, double bidAmount) throws Exception {
-        Auction auction = auctionDAO.getAuctionById(auctionId);
-
-        // Kiểm tra auction có tồn tại và còn hoạt động
-        if (auction == null || !auction.getStatus().equals("ACTIVE")) {
+    public boolean registerUser(String username, String password, String email, String role) {
+        if (userDAO.existsByUsername(username)) {
             return false;
         }
-
-        // Kiểm tra bid amount lớn hơn current price
-        if (bidAmount <= auction.getCurrentPrice()) {
-            return false;
+        int id = userDAO.allocateNextUserId();
+        String r = role == null ? "BIDDER" : role.trim().toUpperCase();
+        User user;
+        switch (r) {
+            case "SELLER":
+                user = new Seller(id, username, password, email, 0.0);
+                break;
+            case "ADMIN":
+                user = new Admin(id, username, password, email, "STANDARD");
+                break;
+            default:
+                user = new Bidder(id, username, password, email, 0.0);
+                break;
         }
-
-        // Tạo bid mới
-        Bid bid = new Bid(auctionId, bidderId, bidAmount);
-        bidDAO.createBid(bid);
-
-        // Cập nhật auction
-        auction.setCurrentPrice(bidAmount);
-        auction.setTotalBids(auction.getTotalBids() + 1);
-        auctionDAO.updateAuction(auction);
-
+        userDAO.saveUser(user);
         return true;
-    }
-
-    public Bid getHighestBid(int auctionId) throws Exception {
-        return bidDAO.getHighestBidForAuction(auctionId);
-    }
-
-    public List<Bid> getBidHistory(int auctionId) throws Exception {
-        return bidDAO.getBidsByAuctionId(auctionId);
     }
 }

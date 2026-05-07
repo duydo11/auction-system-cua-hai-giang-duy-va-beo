@@ -16,6 +16,8 @@ public class Message implements Serializable {
     private String errorMessage;
     private boolean success;
     private String timestamp;
+    /** Ghép request/response RPC; push từ server để trống. */
+    private String correlationId;
 
     // Constructor for success
     public Message(MessageType type, Object data) {

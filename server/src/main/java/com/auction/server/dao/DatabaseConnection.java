@@ -1,53 +1,45 @@
 package com.auction.server.dao;
 
-import com.auction.server.config.DatabaseConfig;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DatabaseConnection {
-    private static DatabaseConnection instance;
-    private Connection connection;
+    private volatile static DatabaseConnection instance = null;
+    private static Connection connection;
 
-    private DatabaseConnection() {
+    // (Nhớ đổi lại mật khẩu thật của bạn nhé, lúc nãy mình nhắc rồi đấy!)
+    private static final String url = "jdbc:mysql://mysql-20b3bb5f-auction-database-5.c.aivencloud.com:21011/defaultdb?sslMode=REQUIRED";
+    private static final String name = "avnadmin";
+    private static final String password = "AVNS_YpT84-FOxKN3zAncQNp";
+
+    private DatabaseConnection(){
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=false&serverTimezone=UTC",
-                    DatabaseConfig.getDbHost(),
-                    DatabaseConfig.getDbPort(),
-                    DatabaseConfig.getDbName());
-
-            this.connection = DriverManager.getConnection(
-                    url,
-                    DatabaseConfig.getDbUser(),
-                    DatabaseConfig.getDbPassword()
-            );
-            System.out.println("✓ Database connected successfully");
+            connection = DriverManager.getConnection(url, name, password);
         } catch (ClassNotFoundException | SQLException e) {
-            System.err.println("✗ Database connection failed: " + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException("Lỗi kết nối cơ sở dữ liệu!");
         }
     }
 
-    public static synchronized DatabaseConnection getInstance() {
+    public static DatabaseConnection getInstance(){
+        // Sử dụng Double-checked locking cho Singleton an toàn hơn
         if (instance == null) {
-            instance = new DatabaseConnection();
+            synchronized (DatabaseConnection.class){
+                if (instance == null){
+                    instance = new DatabaseConnection();
+                }
+            }
         }
         return instance;
     }
 
-    public Connection getConnection() {
-        return connection;
-    }
-
-    public void closeConnection() {
-        if (connection != null) {
-            try {
-                connection.close();
-                System.out.println("✓ Database connection closed");
-            } catch (SQLException e) {
-                System.err.println("✗ Error closing database: " + e.getMessage());
-            }
+    // ĐÃ SỬA Ở ĐÂY: Đảm bảo connection không bao giờ bị null khi gọi
+    public static Connection getConnection(){
+        if (instance == null || connection == null) {
+            getInstance();
         }
+        return connection;
     }
 }

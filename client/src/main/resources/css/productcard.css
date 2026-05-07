@@ -1,0 +1,9 @@
+.product-card {
+    -fx-border-color: transparent;
+    -fx-border-radius: 15px;
+    -fx-background-radius: 15px;
+
+.product-card: hover {
+    -fx-border-color: #344385;
+    -fx-cursor: hand;
+}

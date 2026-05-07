@@ -23,6 +23,11 @@ public enum MessageType {
     GET_BIDS_REQUEST,
     GET_BIDS_RESPONSE,
 
+    /** Server → client: phiên đấu giá vừa cập nhật (sau bid). */
+    AUCTION_UPDATED_PUSH,
+    /** Server → client: phiên mới được tạo. */
+    AUCTION_CREATED_PUSH,
+
     // User
     GET_USER_INFO_REQUEST,
     GET_USER_INFO_RESPONSE,
