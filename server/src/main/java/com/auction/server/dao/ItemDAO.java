@@ -12,38 +12,56 @@ import java.sql.SQLException;
 
 public class ItemDAO {
 
+    public int allocateNextItemId() {
+        String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM items";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("next_id");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 1;
+    }
+
     // tao item
     public void saveItem(Item item) {
         String sqlItem = "INSERT INTO items (id, name, description, seller_id) VALUES (?, ?, ?, ?)";
-        Connection conn = DatabaseConnection.getInstance().getConnection();
+        Connection conn = DatabaseConnection.getConnection();
         try {
             conn.setAutoCommit(false);
             try (PreparedStatement psItem = conn.prepareStatement(sqlItem)) {
-                psItem.setString(1, item.getId());
+                psItem.setInt(1, item.getId());
                 psItem.setString(2, item.getName());
                 psItem.setString(3, item.getDescription());
                 // Seller chỉ cần lấy ID để làm khóa ngoại
-                psItem.setString(4, item.getSeller() != null ? item.getSeller().getId() : null);
+                if (item.getSeller() != null) {
+                    psItem.setInt(4, item.getSeller().getId());
+                } else {
+                    psItem.setNull(4, java.sql.Types.INTEGER);
+                }
                 psItem.executeUpdate();
 
                 if (item instanceof Vehicle) {
                     String sqlVehicle = "INSERT INTO vehicles (item_id, brand) VALUES (?, ?)";
                     try (PreparedStatement ps = conn.prepareStatement(sqlVehicle)) {
-                        ps.setString(1, item.getId());
+                        ps.setInt(1, item.getId());
                         ps.setString(2, ((Vehicle) item).getBrand());
                         ps.executeUpdate();
                     }
                 } else if (item instanceof Electronics) {
                     String sqlElec = "INSERT INTO electronics (item_id, warranty_months) VALUES (?, ?)";
                     try (PreparedStatement ps = conn.prepareStatement(sqlElec)) {
-                        ps.setString(1, item.getId());
+                        ps.setInt(1, item.getId());
                         ps.setInt(2, ((Electronics) item).getWarrantyMonths());
                         ps.executeUpdate();
                     }
                 } else if (item instanceof Art) {
                     String sqlArt = "INSERT INTO arts (item_id, author) VALUES (?, ?)";
                     try (PreparedStatement ps = conn.prepareStatement(sqlArt)) {
-                        ps.setString(1, item.getId());
+                        ps.setInt(1, item.getId());
                         ps.setString(2, ((Art) item).getAuthor());
                         ps.executeUpdate();
                     }
@@ -61,7 +79,7 @@ public class ItemDAO {
     }
 
     // Lay thong tin item, cung voi seller luon
-    public Item getItemById(String id) {
+    public Item getItemById(int id) {
         // Thêm i.seller_id vào câu SQL
         String sql = "SELECT i.id, i.name, i.description, i.seller_id, v.brand, e.warranty_months, a.author " +
                 "FROM items i " +
@@ -69,20 +87,21 @@ public class ItemDAO {
                 "LEFT JOIN electronics e ON i.id = e.item_id " +
                 "LEFT JOIN arts a ON i.id = a.item_id " +
                 "WHERE i.id = ?";
-        Connection conn = DatabaseConnection.getInstance().getConnection();
+        Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, id);
+            ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                String fetchedId = rs.getString("id");
+                int fetchedId = rs.getInt("id");
                 String name = rs.getString("name");
                 String desc = rs.getString("description");
-                String sellerId = rs.getString("seller_id");
+                int sellerId = rs.getInt("seller_id");
+                boolean hasSeller = !rs.wasNull();
 
 
                 // Goi sang user dao de lay full seller
                 UserDAO userDAO = new UserDAO();
-                User seller = userDAO.getUserById(sellerId);
+                User seller = hasSeller ? userDAO.getUserById(sellerId) : null;
 
                 // Trả về đúng Class con kèm full dữ liệu Seller
                 if (rs.getString("brand") != null) {
@@ -102,13 +121,13 @@ public class ItemDAO {
     //Cap nhat item
     public void updateItem(Item item) {
         String sqlItem = "UPDATE items SET name = ?, description = ? WHERE id = ?";
-        Connection conn = DatabaseConnection.getInstance().getConnection();
+        Connection conn = DatabaseConnection.getConnection();
         try {
             conn.setAutoCommit(false);
             try (PreparedStatement psItem = conn.prepareStatement(sqlItem)) {
                 psItem.setString(1, item.getName());
                 psItem.setString(2, item.getDescription());
-                psItem.setString(3, item.getId());
+                psItem.setInt(3, item.getId());
                 psItem.executeUpdate();
 
                 // Cập nhật tùy theo class con
@@ -116,21 +135,21 @@ public class ItemDAO {
                     String sql = "UPDATE vehicles SET brand = ? WHERE item_id = ?";
                     try (PreparedStatement ps = conn.prepareStatement(sql)) {
                         ps.setString(1, ((Vehicle) item).getBrand());
-                        ps.setString(2, item.getId());
+                        ps.setInt(2, item.getId());
                         ps.executeUpdate();
                     }
                 } else if (item instanceof Electronics) {
                     String sql = "UPDATE electronics SET warranty_months = ? WHERE item_id = ?";
                     try (PreparedStatement ps = conn.prepareStatement(sql)) {
                         ps.setInt(1, ((Electronics) item).getWarrantyMonths());
-                        ps.setString(2, item.getId());
+                        ps.setInt(2, item.getId());
                         ps.executeUpdate();
                     }
                 } else if (item instanceof Art) {
                     String sql = "UPDATE arts SET author = ? WHERE item_id = ?";
                     try (PreparedStatement ps = conn.prepareStatement(sql)) {
                         ps.setString(1, ((Art) item).getAuthor());
-                        ps.setString(2, item.getId());
+                        ps.setInt(2, item.getId());
                         ps.executeUpdate();
                     }
                 }
@@ -147,17 +166,17 @@ public class ItemDAO {
     }
 
     // Xoa item
-    public void deleteItem(String itemId) {
-        Connection conn = DatabaseConnection.getInstance().getConnection();
+    public void deleteItem(int itemId) {
+        Connection conn = DatabaseConnection.getConnection();
         try {
             conn.setAutoCommit(false);
             try {
-                conn.createStatement().executeUpdate("DELETE FROM vehicles WHERE item_id = '" + itemId + "'");
-                conn.createStatement().executeUpdate("DELETE FROM electronics WHERE item_id = '" + itemId + "'");
-                conn.createStatement().executeUpdate("DELETE FROM arts WHERE item_id = '" + itemId + "'");
+                conn.createStatement().executeUpdate("DELETE FROM vehicles WHERE item_id = " + itemId);
+                conn.createStatement().executeUpdate("DELETE FROM electronics WHERE item_id = " + itemId);
+                conn.createStatement().executeUpdate("DELETE FROM arts WHERE item_id = " + itemId);
 
                 PreparedStatement ps = conn.prepareStatement("DELETE FROM items WHERE id = ?");
-                ps.setString(1, itemId);
+                ps.setInt(1, itemId);
                 ps.executeUpdate();
                 conn.commit();
             } catch (SQLException e) {

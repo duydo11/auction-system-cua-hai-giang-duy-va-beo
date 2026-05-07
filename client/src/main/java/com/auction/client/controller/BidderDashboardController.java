@@ -1,6 +1,7 @@
 package com.auction.client.controller;
 
 import com.auction.client.MockData.DataStore;
+import com.auction.client.SessionContext;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -23,7 +24,9 @@ public class BidderDashboardController implements Initializable {
     private Label lblUsername;
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        if (DataStore.currentUser != null) {
+        if (SessionContext.getCurrentUser() != null) {
+            lblUsername.setText(SessionContext.getCurrentUser().getUsername());
+        } else if (DataStore.currentUser != null) {
             lblUsername.setText(DataStore.currentUser.getUsername());
         } else {
             lblUsername.setText("Guest User");

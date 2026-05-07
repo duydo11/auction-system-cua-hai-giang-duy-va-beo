@@ -1,6 +1,10 @@
 package com.auction.client.controller;
 
 import com.auction.client.MockData.DataStore;
+import com.auction.client.SessionContext;
+import com.auction.client.network.ClientProtocolHandler;
+import com.auction.shared.model.auction.AuctionSession;
+import com.auction.shared.model.auction.Bid;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -16,13 +20,15 @@ import javafx.stage.Stage;
 import javafx.event.ActionEvent;
 import java.io.IOException;
 import java.net.URL;
-import java.sql.SQLXML;
+import java.util.List;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
 public class MyBidsController implements Initializable{
+    private final ClientProtocolHandler protocol = new ClientProtocolHandler();
+
     public void initialize(URL location, ResourceBundle resources) {
-        testLoadCards(); //Test productcard
+        loadBidHistoryOrFallback();
     }
 
     //Đổi home
@@ -114,6 +120,29 @@ public class MyBidsController implements Initializable{
     //HistoryCard
     @FXML
     private VBox containerTotal;
+
+    private void loadBidHistoryOrFallback() {
+        containerTotal.getChildren().clear();
+        if (SessionContext.getCurrentUser() == null) {
+            testLoadCards();
+            return;
+        }
+        int myId = SessionContext.getCurrentUser().getId();
+        for (AuctionSession session : protocol.getActiveAuctions()) {
+            List<Bid> bids = protocol.getBidHistory(session.getId());
+            for (Bid bid : bids) {
+                if (bid.getBidder() != null && bid.getBidder().getId() == myId) {
+                    Label row = new Label("Phiên #" + session.getId() + " · " + bid.getAmount());
+                    row.setStyle("-fx-font-family: 'Montserrat'; -fx-font-size: 14;");
+                    containerTotal.getChildren().add(row);
+                }
+            }
+        }
+        if (containerTotal.getChildren().isEmpty()) {
+            testLoadCards();
+        }
+    }
+
     private void testLoadCards() {
         try {
             for (int i = 0; i < 4; i++) {

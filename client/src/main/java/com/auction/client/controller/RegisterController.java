@@ -1,41 +1,60 @@
 package com.auction.client.controller;
 
-import com.auction.client.MockData.UserSession;
+import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.network.NetworkCleanup;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-import com.auction.client.MockData.DataStore;
 
-import javax.sql.DataSource;
 import java.io.IOException;
+import java.net.URL;
+import java.util.Objects;
+import java.util.ResourceBundle;
 
-public class RegisterController {
+public class RegisterController implements Initializable {
 
-    @FXML //Liên kết signup đến login.fxml
+    private final ClientProtocolHandler protocol = new ClientProtocolHandler();
+
+    @FXML
+    private ComboBox<String> comboRole;
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        comboRole.getItems().setAll("BIDDER", "SELLER", "ADMIN");
+        comboRole.setValue("BIDDER");
+    }
+
+    private void showLoginScreen(Stage stage) throws IOException {
+        FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(getClass().getResource("/fxml/Login.fxml")));
+        Parent loginRoot = loader.load();
+        stage.setTitle("Hệ thống đấu giá - Đăng nhập");
+        stage.setScene(new Scene(loginRoot));
+        stage.setResizable(false);
+        stage.centerOnScreen();
+        stage.show();
+    }
+
+    @FXML
     private void handleSignInAction(ActionEvent event) {
         try {
-
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Login.fxml"));
-            Parent registerRoot = loader.load();
-
+            NetworkCleanup.logoutClient();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-
-            Scene registerScene = new Scene(registerRoot);
-            stage.setScene(registerScene);
-            stage.show();
-
+            showLoginScreen(stage);
         } catch (IOException e) {
             System.err.println("Không tìm thấy file Login.fxml! Kiểm tra lại đường dẫn.");
             e.printStackTrace();
         }
     }
 
-    //Khai báo biến
     @FXML
     private TextField textUsername;
     @FXML
@@ -47,28 +66,36 @@ public class RegisterController {
     @FXML
     private Label ifSuccess;
 
-    //Lấy dữ liệu người dùng, Đăng kí
     @FXML
     private void handleRegister(ActionEvent event) {
 
-        ifError.setText("");//Xóa thông báo lỗi cũ
+        ifError.setText("");
         ifSuccess.setText("");
-        boolean Error =  false;
 
-        String username = textUsername.getText();
-        String email = textEmailAddress.getText();
+        String username = textUsername.getText().trim();
+        String email = textEmailAddress.getText().trim();
         String password = textPassword.getText();
 
-        //Nếu người dùng để trống ô, thông báo lỗi
-        if(username.isEmpty() || email.isEmpty() || password.isEmpty()) {
-            Error = true;
-            ifError.setText("Please complete all fields!");
+        if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
+            ifError.setText("Điền đủ các ô.");
+            return;
         }
-        //Nếu thành công, lưu dữ liệu
-        if (!Error) {
-            ifSuccess.setText("Registration successful!");
-            UserSession newUser = new  UserSession(username, email, password);
-            DataStore.users.put(email, newUser);
+
+        String role = comboRole.getValue() != null ? comboRole.getValue() : "BIDDER";
+
+        String err = protocol.registerOrError(username, password, email, role);
+        if (err == null) {
+            ifSuccess.setText("Đăng ký thành công — chuyển sang đăng nhập.");
+            try {
+                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                showLoginScreen(stage);
+            } catch (IOException e) {
+                System.err.println("Không mở được Login.fxml sau đăng ký.");
+                e.printStackTrace();
+                ifError.setText("Đăng ký xong nhưng không load màn đăng nhập — bấm Sign in.");
+            }
+        } else {
+            ifError.setText(err.isEmpty() ? "Đăng ký thất bại." : err);
         }
     }
 }

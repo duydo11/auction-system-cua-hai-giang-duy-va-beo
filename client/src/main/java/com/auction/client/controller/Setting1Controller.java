@@ -1,6 +1,7 @@
 package com.auction.client.controller;
 
-import com.auction.client.MockData.DataStore;
+import com.auction.client.SessionContext;
+import com.auction.client.network.NetworkCleanup;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -15,7 +16,6 @@ import javafx.stage.Stage;
 import javafx.event.ActionEvent;
 import java.io.IOException;
 import java.net.URL;
-import java.sql.SQLXML;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
@@ -86,6 +86,7 @@ public class Setting1Controller implements Initializable {
     //Đổi login
     @FXML
     private void switchLogin(MouseEvent event) throws IOException {
+        NetworkCleanup.logoutClient();
         Parent root = FXMLLoader.load(getClass().getResource("/fxml/Login.fxml"));
         Scene scene = new Scene(root);
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
@@ -102,14 +103,15 @@ public class Setting1Controller implements Initializable {
     private Label lblEmail;
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        if (DataStore.currentUser != null) {
-            lblUsername.setText(DataStore.currentUser.getUsername());
-            lblUsername1.setText(DataStore.currentUser.getUsername());
-            lblEmail.setText(DataStore.currentUser.getEmail());
+        var u = SessionContext.getCurrentUser();
+        if (u != null) {
+            lblUsername.setText(u.getUsername());
+            lblUsername1.setText(u.getUsername());
+            lblEmail.setText(u.getEmail());
         } else {
-            lblUsername.setText("Guest User");
-            lblUsername1.setText("Guest User");
-            lblEmail.setText("Guest Email");
+            lblUsername.setText("Guest");
+            lblUsername1.setText("Guest");
+            lblEmail.setText("—");
         }
     }
 

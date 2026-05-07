@@ -1,7 +1,8 @@
 package com.auction.client.controller;
 
-import com.auction.client.MockData.DataStore;
-import com.auction.client.MockData.UserSession;
+import com.auction.client.SessionContext;
+import com.auction.client.network.ClientProtocolHandler;
+import com.auction.shared.model.user.User;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -12,10 +13,13 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+
 import java.io.IOException;
 
 public class LoginController {
-    //Nếu người dùng chưa có tài khoản, ấn đăng nhập
+
+    private final ClientProtocolHandler protocol = new ClientProtocolHandler();
+
     @FXML
     private void handleSignUpAction(ActionEvent event) {
         try {
@@ -33,7 +37,7 @@ public class LoginController {
             e.printStackTrace();
         }
     }
-    //Khai báo biến nhập vào
+
     @FXML
     private TextField textEmailaddress;
     @FXML
@@ -47,24 +51,36 @@ public class LoginController {
     private void handleLogin(ActionEvent event) throws IOException {
         ifError.setText("");
         ifSuccess.setText("");
-        String email = textEmailaddress.getText();
+
+        String username = textEmailaddress.getText().trim();
         String password = textPassword.getText();
 
-        if (DataStore.users.containsKey(email)) {
-            UserSession userSession = DataStore.users.get(email);
-            if (userSession.getPassword().equals(password)) {
-                ifSuccess.setText("Login successful");
+        if (username.isEmpty() || password.isEmpty()) {
+            ifError.setText("Nhập username và mật khẩu.");
+            return;
+        }
 
-            DataStore.currentUser = userSession;
+        User user = protocol.login(username, password);
+        if (user != null) {
+            SessionContext.setCurrentUser(user);
+            ifSuccess.setText("Đăng nhập thành công");
 
-            Parent root = FXMLLoader.load(getClass().getResource("/fxml/BidderScene/BidderDashboard.fxml"));
-            Stage stage = (Stage)((Node)event.getSource()).getScene().getWindow();
+            String role = user.getRoleName();
+            String fxmlPath = switch (role) {
+                case "SELLER" -> "/fxml/SellerScene/SellerDashboard.fxml";
+                case "ADMIN" -> "/fxml/BidderScene/BidderDashboard.fxml";
+                default -> "/fxml/BidderScene/BidderDashboard.fxml";
+            };
+
+            Parent root = FXMLLoader.load(getClass().getResource(fxmlPath));
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.show();
-            }
-        }
-        else {
-            ifError.setText("Login failed");
+        } else {
+            String err = protocol.lastError(null);
+            ifError.setText((err == null || err.isBlank())
+                    ? "Sai tài khoản / mật khẩu hoặc không kết nối được server."
+                    : err);
         }
     }
 }

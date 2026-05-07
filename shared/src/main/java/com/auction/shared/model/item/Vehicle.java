@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 public class Vehicle extends Item {
     private String brand;
-    public Vehicle(String id, String name, String description, User seller, String brand){
+    public Vehicle(int id, String name, String description, User seller, String brand){
         super(id, name, description, seller);
         this.brand = brand;
     }

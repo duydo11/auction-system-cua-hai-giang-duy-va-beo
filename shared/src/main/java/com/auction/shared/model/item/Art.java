@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 public class Art extends Item {
     private String author;
-    public Art(String id, String name, String description, User seller, String author){
+    public Art(int id, String name, String description, User seller, String author){
         super(id, name, description, seller);
         this.author = author;
     }

@@ -1,0 +1,45 @@
+package com.auction.shared.protocol;
+
+public enum MessageType {
+    // Authentication
+    LOGIN_REQUEST,
+    LOGIN_RESPONSE,
+    REGISTER_REQUEST,
+    REGISTER_RESPONSE,
+    LOGOUT_REQUEST,
+    LOGOUT_RESPONSE,
+
+    // Auction Operations
+    VIEW_AUCTIONS_REQUEST,
+    VIEW_AUCTIONS_RESPONSE,
+    CREATE_AUCTION_REQUEST,
+    CREATE_AUCTION_RESPONSE,
+    AUCTION_DETAILS_REQUEST,
+    AUCTION_DETAILS_RESPONSE,
+
+    // Bidding
+    PLACE_BID_REQUEST,
+    PLACE_BID_RESPONSE,
+    GET_BIDS_REQUEST,
+    GET_BIDS_RESPONSE,
+
+    /** Server → client: phiên đấu giá vừa cập nhật (sau bid). */
+    AUCTION_UPDATED_PUSH,
+    /** Server → client: phiên mới được tạo. */
+    AUCTION_CREATED_PUSH,
+
+    // User
+    GET_USER_INFO_REQUEST,
+    GET_USER_INFO_RESPONSE,
+    UPDATE_USER_REQUEST,
+    UPDATE_USER_RESPONSE,
+
+    // Category
+    GET_CATEGORIES_REQUEST,
+    GET_CATEGORIES_RESPONSE,
+
+    // Error & Acknowledgment
+    ERROR,
+    SUCCESS,
+    ACK
+}

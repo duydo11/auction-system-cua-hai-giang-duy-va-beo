@@ -1,6 +1,10 @@
 package com.auction.client.controller;
 
 import com.auction.client.MockData.DataStore;
+import com.auction.client.SessionContext;
+import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.ui.AuctionRowFactory;
+import com.auction.shared.model.auction.AuctionSession;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -16,22 +20,26 @@ import javafx.scene.layout.FlowPane;
 import javafx.stage.Stage;
 import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
 public class ItemsController implements Initializable {
+    private final ClientProtocolHandler protocol = new ClientProtocolHandler();
+
     //Hiển thị Username
     @FXML
     private Label lblUsername;
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        if (DataStore.currentUser != null) {
-            // Hiển thị Username đã lưu trong đối tượng currentUser
+        if (SessionContext.getCurrentUser() != null) {
+            lblUsername.setText(SessionContext.getCurrentUser().getUsername());
+        } else if (DataStore.currentUser != null) {
             lblUsername.setText(DataStore.currentUser.getUsername());
         } else {
             lblUsername.setText("Guest User");
         }
-        testLoadCards();
+        reloadAuctionsOrFallback();
     }
 
     //Đổi seller
@@ -170,9 +178,22 @@ public class ItemsController implements Initializable {
     @FXML
     private FlowPane containerArt;
 
+    private void reloadAuctionsOrFallback() {
+        containerArt.getChildren().clear();
+        List<AuctionSession> auctions = protocol.getActiveAuctions();
+        if (auctions.isEmpty()) {
+            testLoadCards();
+            return;
+        }
+        Runnable refresh = this::reloadAuctionsOrFallback;
+        for (AuctionSession session : auctions) {
+            containerArt.getChildren().add(AuctionRowFactory.bidRow(session, protocol, refresh));
+        }
+    }
+
     private void testLoadCards() {
         try {
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 6; i++) {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/ProductCard.fxml"));
                 Node card = loader.load();
                 containerArt.getChildren().add(card);

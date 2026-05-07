@@ -19,7 +19,7 @@ public class AuctionSession extends Entity {
     private LocalDateTime startTime, endTime;
     private List<Bid> bids;
 
-    public AuctionSession(String id,
+    public AuctionSession(int id,
                           User seller,
                           Item item, double startingPrice,
                           LocalDateTime startTime,
