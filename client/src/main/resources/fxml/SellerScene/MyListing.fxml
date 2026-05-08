@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
@@ -8,7 +9,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.SellerDashboardController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.SellerScene.MyListingController">
     <children>
         <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
             <image>
@@ -120,10 +121,56 @@
                 <VBox alignment="TOP_CENTER" prefHeight="680.0" prefWidth="980.0" spacing="10.0" style="-fx-background-color: white; -fx-background-radius: 25;">
                <children>
                   <AnchorPane prefHeight="22.0" prefWidth="960.0" />
-                  <HBox prefHeight="58.0" prefWidth="960.0" />
+                  <HBox prefHeight="50.0" prefWidth="960.0">
+                     <children>
+                        <AnchorPane prefHeight="74.0" prefWidth="702.0" />
+                        <HBox fx:id="AddProduct" alignment="CENTER_LEFT" onMouseClicked="#handleAddproduct" prefHeight="53.0" prefWidth="216.0" spacing="5.0" style="-fx-background-color: #438bcf; -fx-border-radius: 15; -fx-background-radius: 15;">
+                           <children>
+                              <AnchorPane prefHeight="58.0" prefWidth="47.0">
+                                 <children>
+                                    <ImageView fitHeight="35.0" fitWidth="35.0" layoutX="8.0" layoutY="8.0" pickOnBounds="true" smooth="false">
+                                       <image>
+                                          <Image url="@../../png/1.daucong.png" />
+                                       </image>
+                                    </ImageView>
+                                 </children>
+                              </AnchorPane>
+                              <Label prefHeight="57.0" prefWidth="165.0" text="Add new product" textFill="WHITE">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="16.0" />
+                                 </font>
+                              </Label>
+                           </children>
+                        </HBox>
+                     </children></HBox>
+                  <VBox prefHeight="528.0" prefWidth="960.0">
+                     <children>
+                        <HBox prefHeight="35.0" prefWidth="960.0" spacing="10.0">
+                           <children>
+                              <AnchorPane prefHeight="35.0" prefWidth="32.0" />
+                              <ImageView fitHeight="35.0" fitWidth="43.0" pickOnBounds="true" preserveRatio="true">
+                                 <image>
+                                    <Image url="@../../png/2.product.png" />
+                                 </image>
+                              </ImageView>
+                              <Label prefHeight="42.0" prefWidth="264.0" text="Product Manage" textFill="#438bcf">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="18.0" />
+                                 </font>
+                              </Label>
+                           </children>
+                        </HBox>
+                        <ScrollPane hbarPolicy="NEVER" hmax="0.0" prefHeight="494.0" prefWidth="960.0" vbarPolicy="NEVER" vmax="3.0">
+                           <content>
+                              <VBox prefHeight="556.0" prefWidth="944.0" />
+                           </content>
+                        </ScrollPane>
+                     </children>
+                  </VBox>
                </children>
                 </VBox>
             </children>
         </VBox>
+      <HBox fx:id="overlayPane" opacity="0.42" prefHeight="680.0" prefWidth="1238.0" style="-fx-background-color: black;" visible="false" />
     </children>
 </AnchorPane>

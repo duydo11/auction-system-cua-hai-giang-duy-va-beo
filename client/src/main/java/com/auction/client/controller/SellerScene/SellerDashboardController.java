@@ -1,7 +1,8 @@
-package com.auction.client.controller;
+package com.auction.client.controller.SellerScene;
 
 import com.auction.client.SessionContext;
 import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.util.SceneNavigator;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.item.Electronics;
 import com.auction.shared.model.user.Seller;
@@ -47,6 +48,7 @@ public class SellerDashboardController implements Initializable {
         lblUsername.setText(u != null ? u.getUsername() : "Guest");
     }
 
+    /*: CreateAuction - Data thật (Giang chưa check)
     @FXML
     private void handleCreateAuction(ActionEvent event) {
         lblCreateAuctionMsg.setText("");
@@ -97,27 +99,11 @@ public class SellerDashboardController implements Initializable {
         } else {
             lblCreateAuctionMsg.setText(err);
         }
-    }
+    } */
 
+    //Đổi bidder
     @FXML
     public void switchBidderDB(MouseEvent mouseEvent) {
-        try {
-            Parent sellerView = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/BidderScene/BidderDashboard.fxml")));
-
-            Stage stage = (Stage) ((Node) mouseEvent.getSource()).getScene().getWindow();
-
-            Scene scene = new Scene(sellerView);
-            stage.setScene(scene);
-            stage.centerOnScreen();
-
-            stage.show();
-
-        } catch (IOException e) {
-            System.err.println("Lỗi: Không tìm thấy file /fxml/BidderDashboard.fxml");
-            e.printStackTrace();
-        } catch (NullPointerException e) {
-            System.err.println("Lỗi: Đường dẫn file FXML bị sai (Null)");
-            e.printStackTrace();
-        }
+        SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "bidder home");
     }
 }

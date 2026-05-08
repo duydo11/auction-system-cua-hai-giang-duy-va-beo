@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
@@ -11,7 +10,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.SellerDashboardController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.SellerScene.SellerDashboardController">
     <children>
         <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
             <image>
@@ -146,11 +145,11 @@
                                 </ImageView>
                             </children>
                         </HBox>
-                        <ScrollPane maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="562.0" prefWidth="945.0" vbarPolicy="ALWAYS" vmax="3.0">
+                        <ScrollPane hbarPolicy="NEVER" hmax="0.0" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="562.0" prefWidth="993.0" vbarPolicy="NEVER" vmax="4.0">
                             <content>
-                                <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="664.0" prefWidth="946.0" spacing="5.0">
+                                <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="664.0" prefWidth="927.0" spacing="5.0">
                                     <children>
-                                        <AnchorPane prefHeight="202.0" prefWidth="934.0">
+                                        <AnchorPane prefHeight="198.0" prefWidth="926.0">
                                             <children>
                                                 <ImageView fitHeight="195.0" fitWidth="942.0" layoutX="3.0" layoutY="2.0" pickOnBounds="true">
                                                     <image>
@@ -191,29 +190,15 @@
                                                         </Label>
                                                     </children>
                                                 </HBox>
-                                                <AnchorPane minHeight="260.0" minWidth="-Infinity" prefHeight="320.0" prefWidth="946.0" VBox.vgrow="ALWAYS">
-                                                   <children>
-                                                      <Label layoutX="48.0" layoutY="14.0" text="Tạo phiên đấu giá mới" textFill="#438bcf">
-                                                         <font>
-                                                            <Font name="Montserrat Bold" size="18.0" />
-                                                         </font>
-                                                      </Label>
-                                                      <TextField fx:id="txtItemName" layoutX="48.0" layoutY="48.0" prefHeight="32.0" prefWidth="380.0" promptText="Tên sản phẩm" style="-fx-background-radius: 8; -fx-border-color: #438bcf; -fx-border-radius: 8;" />
-                                                      <TextField fx:id="txtItemDesc" layoutX="48.0" layoutY="92.0" prefHeight="32.0" prefWidth="520.0" promptText="Mô tả ngắn" style="-fx-background-radius: 8; -fx-border-color: #438bcf; -fx-border-radius: 8;" />
-                                                      <TextField fx:id="txtStartPrice" layoutX="48.0" layoutY="136.0" prefHeight="32.0" prefWidth="160.0" promptText="Giá khởi điểm" style="-fx-background-radius: 8; -fx-border-color: #438bcf; -fx-border-radius: 8;" />
-                                                      <TextField fx:id="txtDurationHours" layoutX="230.0" layoutY="136.0" prefHeight="32.0" prefWidth="140.0" promptText="Số giờ (VD 24)" style="-fx-background-radius: 8; -fx-border-color: #438bcf; -fx-border-radius: 8;" />
-                                                      <Button layoutX="48.0" layoutY="188.0" mnemonicParsing="false" onAction="#handleCreateAuction" prefHeight="36.0" prefWidth="140.0" style="-fx-background-color: #438bcf; -fx-background-radius: 20; -fx-text-fill: white;" text="Đăng phiên">
-                                                         <font>
-                                                            <Font name="Montserrat Bold" size="13.0" />
-                                                         </font>
-                                                      </Button>
-                                                      <Label fx:id="lblCreateAuctionMsg" layoutX="210.0" layoutY="194.0" prefHeight="60.0" prefWidth="520.0" textFill="#c62828" wrapText="true">
-                                                         <font>
-                                                            <Font size="12.0" />
-                                                         </font>
-                                                      </Label>
-                                                   </children>
-                                                </AnchorPane>
+                                    <AnchorPane prefHeight="200.0" prefWidth="200.0">
+                                       <children>
+                                          <ScrollPane prefHeight="200.0" prefWidth="982.0">
+                                             <content>
+                                                <HBox prefHeight="199.0" prefWidth="965.0" />
+                                             </content>
+                                          </ScrollPane>
+                                       </children>
+                                    </AnchorPane>
                                             </children>
                                         </VBox>
                                         <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="450.0" prefWidth="946.0">
@@ -233,10 +218,17 @@
                                                         </Label>
                                                     </children>
                                                 </HBox>
-                                                <AnchorPane minHeight="200.0" prefHeight="300.0" prefWidth="200.0" VBox.vgrow="ALWAYS" />
+                                              <AnchorPane prefHeight="200.0" prefWidth="200.0">
+                                       <children>
+                                          <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="982.0" vbarPolicy="NEVER">
+                                             <content>
+                                                <HBox prefHeight="199.0" prefWidth="965.0" />
+                                             </content>
+                                          </ScrollPane>
+                                       </children>
+                                    </AnchorPane>
                                             </children>
                                         </VBox>
-                                        <AnchorPane prefHeight="200.0" prefWidth="200.0" />
                                     </children>
                                 </VBox>
                             </content>
