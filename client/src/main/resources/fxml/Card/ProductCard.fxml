@@ -10,13 +10,13 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="180.0" prefWidth="250.0" style="-fx-background-radius: 15; -fx-border-radius: 15;" styleClass="product-card" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="180.0" prefWidth="250.0" style="-fx-background-radius: 15; -fx-border-radius: 15;" styleClass="product-card" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
    <children>
       <AnchorPane prefHeight="43.0" prefWidth="250.0" />
       <AnchorPane prefHeight="87.0" prefWidth="232.0">
          <children>
             <Region prefHeight="107.0" prefWidth="250.0" />
-            <Label alignment="CENTER" layoutX="198.0" layoutY="3.0" prefHeight="22.0" prefWidth="51.0" style="-fx-background-color: #e0e0e0; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #0f0f0f;" text="STATUS">
+            <Label alignment="CENTER" layoutX="191.0" layoutY="3.0" prefHeight="22.0" prefWidth="51.0" style="-fx-background-color: #e0e0e0; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #0f0f0f;" text="STATUS">
                <font>
                   <Font name="Montserrat Bold" size="10.0" />
                </font>
@@ -27,12 +27,25 @@
          <children>
             <HBox prefHeight="31.0" prefWidth="250.0">
                <children>
-                  <AnchorPane prefHeight="30.0" prefWidth="22.0" />
-                  <Label prefHeight="29.0" prefWidth="251.0" text="Product name (Details)">
+                  <AnchorPane prefHeight="30.0" prefWidth="38.0" />
+                  <Label prefHeight="30.0" prefWidth="219.0" text="Product name (Details)">
                      <font>
                         <Font name="Montserrat Bold" size="12.0" />
                      </font>
                   </Label>
+                  <AnchorPane prefHeight="34.0" prefWidth="72.0">
+                     <children>
+                        <HBox alignment="CENTER" layoutX="9.0" layoutY="3.0" prefHeight="22.0" prefWidth="28.0" style="-fx-background-radius: 15; -fx-background-color: white; -fx-border-color: black; -fx-border-radius: 15;">
+                           <children>
+                              <Label alignment="CENTER" text="O">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="12.0" />
+                                 </font>
+                              </Label>
+                           </children>
+                        </HBox>
+                     </children>
+                  </AnchorPane>
                </children>
             </HBox>
             <HBox prefHeight="39.0" prefWidth="400.0">
@@ -43,7 +56,7 @@
                         <Image url="@../../png/3.money.png" />
                      </image>
                   </ImageView>
-                  <Label prefHeight="22.0" prefWidth="112.0" text="000.000">
+                  <Label prefHeight="22.0" prefWidth="122.0" text="000.000.000.0">
                      <font>
                         <Font name="Montserrat Medium" size="14.0" />
                      </font>

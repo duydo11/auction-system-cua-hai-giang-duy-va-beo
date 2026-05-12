@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="175.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+    <children>
+        <HBox prefHeight="175.0" prefWidth="400.0">
+            <children>
+                <AnchorPane prefHeight="150.0" prefWidth="27.0" />
+                <VBox alignment="TOP_CENTER" prefHeight="150.0" prefWidth="340.0" spacing="5.0">
+                    <children>
+                        <HBox alignment="BOTTOM_LEFT" prefHeight="52.0" prefWidth="340.0" spacing="5.0">
+                            <children>
+                                <ImageView fitHeight="37.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@../../png/3.withdraw.png" />
+                                    </image>
+                                </ImageView>
+                                <Label prefHeight="37.0" prefWidth="164.0" text="Withdraw">
+                                    <font>
+                                        <Font name="Montserrat Bold" size="18.0" />
+                                    </font>
+                                </Label>
+                            </children>
+                        </HBox>
+                        <TextField prefHeight="34.0" prefWidth="329.0" promptText="Please enter the amount you want to withdraw." style="-fx-background-radius: 10;">
+                            <font>
+                                <Font name="Montserrat Medium" size="12.0" />
+                            </font>
+                        </TextField>
+                  <HBox alignment="CENTER" prefHeight="22.0" prefWidth="340.0">
+                     <children>
+                        <Label alignment="CENTER" prefHeight="18.0" prefWidth="309.0" textFill="#d71d1d">
+                           <font>
+                              <Font name="Montserrat Medium" size="12.0" />
+                           </font>
+                        </Label>
+                     </children>
+                  </HBox>
+                        <AnchorPane prefHeight="27.0" prefWidth="329.0">
+                            <children>
+                                <HBox alignment="CENTER" layoutX="213.0" layoutY="4.0" prefHeight="34.0" prefWidth="126.0" style="-fx-background-color: black; -fx-background-radius: 20;">
+                                    <children>
+                                        <Label text="confirm" textFill="WHITE">
+                                            <font>
+                                                <Font name="Montserrat Bold" size="14.0" />
+                                            </font>
+                                        </Label>
+                                    </children>
+                                </HBox>
+                            </children>
+                        </AnchorPane>
+                    </children>
+                </VBox>
+            </children>
+        </HBox>
+    </children>
+</AnchorPane>

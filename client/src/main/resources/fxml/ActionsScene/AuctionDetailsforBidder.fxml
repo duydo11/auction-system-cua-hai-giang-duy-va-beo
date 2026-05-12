@@ -1,0 +1,436 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="700.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <ScrollPane hbarPolicy="NEVER" hmax="0.0" prefHeight="600.0" prefWidth="700.0" vbarPolicy="ALWAYS" vvalue="1.0">
+         <content>
+            <AnchorPane prefHeight="689.0" prefWidth="1000.0" style="-fx-background-color: #f0f0f0;">
+               <children>
+                  <VBox layoutX="20.0" layoutY="25.0" prefHeight="2100.0" prefWidth="648.0" spacing="15.0">
+                     <children>
+                        <VBox prefHeight="682.0" prefWidth="648.0" style="-fx-background-color: white; -fx-background-radius: 5;">
+                           <children>
+                              <AnchorPane prefHeight="380.0" prefWidth="648.0">
+                                 <children>
+                                    <ImageView fitHeight="380.0" fitWidth="648.0" pickOnBounds="true">
+                                       <image>
+                                          <Image url="@../../png/1.ProductImage.png" />
+                                       </image>
+                                    </ImageView>
+                                    <Label alignment="CENTER" layoutX="542.0" layoutY="8.0" prefHeight="37.0" prefWidth="92.0" style="-fx-background-color: #e0e0e0; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #0f0f0f;" text="STATUS">
+                                       <font>
+                                          <Font name="Montserrat Bold" size="14.0" />
+                                       </font>
+                                    </Label>
+                                 </children>
+                              </AnchorPane>
+                              <HBox prefHeight="66.0" prefWidth="648.0">
+                                 <children>
+                                    <AnchorPane prefHeight="46.0" prefWidth="34.0" />
+                                    <Label prefHeight="62.0" prefWidth="594.0" text="Product name">
+                                       <font>
+                                          <Font name="Montserrat Bold" size="18.0" />
+                                       </font>
+                                    </Label>
+                                 </children>
+                              </HBox>
+                              <VBox prefHeight="153.0" prefWidth="651.0">
+                                 <children>
+                                    <HBox prefHeight="38.0" prefWidth="648.0">
+                                       <children>
+                                          <AnchorPane prefHeight="46.0" prefWidth="34.0" />
+                                          <Label prefHeight="38.0" prefWidth="594.0" text="Product details">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="16.0" />
+                                             </font>
+                                          </Label>
+                                       </children>
+                                    </HBox>
+                                    <HBox prefHeight="118.0" prefWidth="648.0">
+                                       <children>
+                                          <AnchorPane prefHeight="46.0" prefWidth="34.0" />
+                                          <Label alignment="TOP_LEFT" contentDisplay="TEXT_ONLY" prefHeight="95.0" prefWidth="594.0" text="description  .................................................................................................................... ....................................................................... ......................................................................" wrapText="true">
+                                             <font>
+                                                <Font name="Montserrat Medium" size="16.0" />
+                                             </font>
+                                          </Label>
+                                       </children>
+                                    </HBox>
+                                 </children>
+                              </VBox>
+                              <VBox prefHeight="86.0" prefWidth="624.0">
+                                 <children>
+                                    <HBox prefHeight="20.0" prefWidth="648.0">
+                                       <children>
+                                          <AnchorPane prefHeight="46.0" prefWidth="34.0" />
+                                          <Label prefHeight="14.0" prefWidth="594.0" text="Seller">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="16.0" />
+                                             </font>
+                                          </Label>
+                                       </children>
+                                    </HBox>
+                                    <HBox prefHeight="31.0" prefWidth="617.0">
+                                       <children>
+                                          <AnchorPane prefHeight="46.0" prefWidth="34.0" />
+                                          <Label alignment="TOP_LEFT" contentDisplay="TEXT_ONLY" prefHeight="32.0" prefWidth="594.0" text="Duy Giang Hải Hoàn" wrapText="true">
+                                             <font>
+                                                <Font name="Montserrat Medium" size="16.0" />
+                                             </font>
+                                          </Label>
+                                       </children>
+                                    </HBox>
+                                 </children>
+                              </VBox>
+                           </children>
+                        </VBox>
+                        <HBox prefHeight="281.0" prefWidth="648.0" style="-fx-background-color: white; -fx-background-radius: 5;">
+                           <children>
+                              <AnchorPane prefHeight="183.0" prefWidth="34.0" />
+                              <VBox prefHeight="262.0" prefWidth="590.0">
+                                 <children>
+                                    <HBox alignment="BOTTOM_LEFT" prefHeight="34.0" prefWidth="589.0">
+                                       <children>
+                                          <Label prefHeight="28.0" prefWidth="230.0" text="Place Bid">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="16.0" />
+                                             </font>
+                                          </Label>
+                                       </children>
+                                    </HBox>
+                                    <VBox prefHeight="81.0" prefWidth="606.0" spacing="3.0">
+                                       <children>
+                                          <HBox prefHeight="21.0" prefWidth="606.0">
+                                             <children>
+                                                <Label text="Bid Amount">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="12.0" />
+                                                   </font>
+                                                </Label>
+                                             </children>
+                                          </HBox>
+                                          <HBox prefHeight="40.0" prefWidth="606.0">
+                                             <children>
+                                                <TextField prefHeight="35.0" prefWidth="462.0" style="-fx-background-radius: 10;">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="14.0" />
+                                                   </font>
+                                                </TextField>
+                                                <AnchorPane prefHeight="26.0" prefWidth="131.0">
+                                                   <children>
+                                                      <HBox alignment="CENTER" layoutX="6.0" layoutY="1.0" prefHeight="34.0" prefWidth="132.0" style="-fx-background-color: #4d62c9; -fx-background-radius: 10; -fx-border-color: #3b4a94; -fx-border-radius: 10;">
+                                                         <children>
+                                                            <Label text="Place Bid Now" textFill="WHITE">
+                                                               <font>
+                                                                  <Font name="Montserrat Bold" size="13.0" />
+                                                               </font>
+                                                            </Label>
+                                                         </children>
+                                                      </HBox>
+                                                   </children>
+                                                </AnchorPane>
+                                             </children>
+                                          </HBox>
+                                          <HBox prefHeight="15.0" prefWidth="606.0" spacing="3.0">
+                                             <children>
+                                                <Label text=" Current price:" textFill="#666363">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="12.0" />
+                                                   </font>
+                                                </Label>
+                                                <Label prefHeight="15.0" prefWidth="388.0" text="000.000.000" textFill="#666363">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="12.0" />
+                                                   </font>
+                                                </Label>
+                                             </children>
+                                          </HBox>
+                                       </children>
+                                    </VBox>
+                                    <HBox alignment="CENTER_RIGHT" prefHeight="30.0" prefWidth="606.0">
+                                       <children>
+                                          <CheckBox mnemonicParsing="false" prefHeight="27.0" prefWidth="107.0" text="Auto-bid">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="12.0" />
+                                             </font>
+                                          </CheckBox>
+                                       </children>
+                                    </HBox>
+                                    <VBox disable="true" prefHeight="140.0" prefWidth="606.0">
+                                       <children>
+                                          <VBox prefHeight="70.0" prefWidth="606.0">
+                                             <children>
+                                                <HBox prefHeight="23.0" prefWidth="606.0">
+                                                   <children>
+                                                      <Label prefHeight="23.0" prefWidth="190.0" text="Maximum Bid">
+                                                         <font>
+                                                            <Font name="Montserrat Medium" size="12.0" />
+                                                         </font>
+                                                      </Label>
+                                                   </children>
+                                                </HBox>
+                                                <TextField prefHeight="35.0" prefWidth="541.0" promptText="Enter max bid amount" style="-fx-background-radius: 10;">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="14.0" />
+                                                   </font>
+                                                </TextField>
+                                             </children>
+                                          </VBox>
+                                          <VBox prefHeight="70.0" prefWidth="589.0">
+                                             <children>
+                                                <HBox prefHeight="23.0" prefWidth="606.0">
+                                                   <children>
+                                                      <Label prefHeight="23.0" prefWidth="190.0" text="Bid Increment">
+                                                         <font>
+                                                            <Font name="Montserrat Medium" size="12.0" />
+                                                         </font>
+                                                      </Label>
+                                                   </children>
+                                                </HBox>
+                                                <TextField prefHeight="35.0" prefWidth="462.0" promptText="Enter increment amount" style="-fx-background-radius: 10;">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="14.0" />
+                                                   </font>
+                                                </TextField>
+                                             </children>
+                                          </VBox>
+                                       </children>
+                                    </VBox>
+                                 </children>
+                              </VBox>
+                              <AnchorPane prefHeight="262.0" prefWidth="28.0" />
+                           </children>
+                        </HBox>
+                        <HBox alignment="CENTER" prefHeight="200.0" prefWidth="648.0" spacing="20.0" style="-fx-background-color: white; -fx-background-radius: 5;">
+                           <children>
+                              <AnchorPane prefHeight="181.0" prefWidth="648.0">
+                                 <children>
+                                    <VBox layoutX="346.0" layoutY="12.0" prefHeight="76.0" prefWidth="276.0" style="-fx-background-color: #7a88cf; -fx-background-radius: 10; -fx-border-color: #626c9e; -fx-border-radius: 10;">
+                                       <children>
+                                          <AnchorPane prefHeight="10.0" prefWidth="274.0" />
+                                          <HBox prefHeight="21.0" prefWidth="274.0" spacing="5.0">
+                                             <children>
+                                                <AnchorPane prefHeight="22.0" prefWidth="12.0" />
+                                                <ImageView fitHeight="24.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true">
+                                                   <image>
+                                                      <Image url="@../../png/1.crbid.png" />
+                                                   </image>
+                                                </ImageView>
+                                                <Label prefHeight="27.0" prefWidth="119.0" text="Current bid">
+                                                   <font>
+                                                      <Font name="Montserrat Bold" size="14.0" />
+                                                   </font>
+                                                </Label>
+                                             </children>
+                                          </HBox>
+                                          <HBox prefHeight="42.0" prefWidth="274.0">
+                                             <children>
+                                                <AnchorPane prefHeight="42.0" prefWidth="18.0" />
+                                                <Label prefHeight="35.0" prefWidth="236.0" text="000.000.000">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="18.0" />
+                                                   </font>
+                                                </Label>
+                                             </children>
+                                          </HBox>
+                                       </children>
+                                    </VBox>
+                                    <VBox layoutX="29.0" layoutY="12.0" prefHeight="76.0" prefWidth="276.0" style="-fx-background-color: #c2e2fc; -fx-background-radius: 10; -fx-border-color: #869cad; -fx-border-radius: 10;">
+                                       <children>
+                                          <AnchorPane prefHeight="10.0" prefWidth="274.0" />
+                                          <HBox prefHeight="28.0" prefWidth="274.0" spacing="5.0">
+                                             <children>
+                                                <AnchorPane prefHeight="28.0" prefWidth="31.0">
+                                                   <children>
+                                                      <ImageView fitHeight="22.0" fitWidth="18.0" layoutX="17.0" layoutY="5.0" pickOnBounds="true" preserveRatio="true">
+                                                         <image>
+                                                            <Image url="@../../png/3.money.png" />
+                                                         </image>
+                                                      </ImageView>
+                                                   </children>
+                                                </AnchorPane>
+                                                <Label prefHeight="30.0" prefWidth="119.0" text="Opening bid">
+                                                   <font>
+                                                      <Font name="Montserrat Bold" size="14.0" />
+                                                   </font>
+                                                </Label>
+                                             </children>
+                                          </HBox>
+                                          <HBox prefHeight="42.0" prefWidth="274.0">
+                                             <children>
+                                                <AnchorPane prefHeight="42.0" prefWidth="18.0" />
+                                                <Label prefHeight="35.0" prefWidth="236.0" text="000.000.000">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="18.0" />
+                                                   </font>
+                                                </Label>
+                                             </children>
+                                          </HBox>
+                                       </children>
+                                    </VBox>
+                                    <VBox layoutX="29.0" layoutY="110.0" prefHeight="76.0" prefWidth="276.0" style="-fx-background-color: #e89ea5; -fx-background-radius: 10; -fx-border-color: #ab4f57; -fx-border-radius: 10;">
+                                       <children>
+                                          <AnchorPane prefHeight="10.0" prefWidth="274.0" />
+                                          <HBox prefHeight="21.0" prefWidth="274.0" spacing="5.0">
+                                             <children>
+                                                <AnchorPane prefHeight="22.0" prefWidth="12.0" />
+                                                <ImageView fitHeight="24.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true">
+                                                   <image>
+                                                      <Image url="@../../png/3.clock.png" />
+                                                   </image>
+                                                </ImageView>
+                                                <Label prefHeight="24.0" prefWidth="169.0" text="Time remaining">
+                                                   <font>
+                                                      <Font name="Montserrat Bold" size="14.0" />
+                                                   </font>
+                                                </Label>
+                                             </children>
+                                          </HBox>
+                                          <HBox prefHeight="42.0" prefWidth="274.0">
+                                             <children>
+                                                <AnchorPane prefHeight="42.0" prefWidth="18.0" />
+                                                <Label prefHeight="35.0" prefWidth="38.0" text="000">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="18.0" />
+                                                   </font>
+                                                </Label>
+                                                <Label alignment="CENTER" prefHeight="34.0" prefWidth="7.0" text=":">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="18.0" />
+                                                   </font>
+                                                </Label>
+                                                <Label prefHeight="35.0" prefWidth="25.0" text="00">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="18.0" />
+                                                   </font>
+                                                </Label>
+                                                <Label alignment="CENTER" prefHeight="34.0" prefWidth="7.0" text=":">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="18.0" />
+                                                   </font>
+                                                </Label>
+                                                <Label prefHeight="35.0" prefWidth="25.0" text="00">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="18.0" />
+                                                   </font>
+                                                </Label>
+                                             </children>
+                                          </HBox>
+                                       </children>
+                                    </VBox>
+                                    <VBox layoutX="346.0" layoutY="110.0" prefHeight="76.0" prefWidth="276.0" style="-fx-background-color: #fcfc95; -fx-background-radius: 10; -fx-border-color: #baba45; -fx-border-radius: 10;">
+                                       <children>
+                                          <AnchorPane prefHeight="10.0" prefWidth="274.0" />
+                                          <HBox prefHeight="21.0" prefWidth="274.0" spacing="5.0">
+                                             <children>
+                                                <AnchorPane prefHeight="22.0" prefWidth="12.0" />
+                                                <ImageView fitHeight="24.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true">
+                                                   <image>
+                                                      <Image url="@../../png/3.bids.png" />
+                                                   </image>
+                                                </ImageView>
+                                                <Label prefHeight="27.0" prefWidth="119.0" text="Bids">
+                                                   <font>
+                                                      <Font name="Montserrat Bold" size="14.0" />
+                                                   </font>
+                                                </Label>
+                                             </children>
+                                          </HBox>
+                                          <HBox prefHeight="42.0" prefWidth="274.0">
+                                             <children>
+                                                <AnchorPane prefHeight="42.0" prefWidth="18.0" />
+                                                <Label prefHeight="35.0" prefWidth="236.0" text="0">
+                                                   <font>
+                                                      <Font name="Montserrat Medium" size="18.0" />
+                                                   </font>
+                                                </Label>
+                                             </children>
+                                          </HBox>
+                                       </children>
+                                    </VBox>
+                                 </children>
+                              </AnchorPane>
+                           </children>
+                        </HBox>
+                        <HBox prefHeight="388.0" prefWidth="648.0" style="-fx-background-color: white; -fx-background-radius: 5;">
+                           <children>
+                              <AnchorPane prefHeight="388.0" prefWidth="12.0" />
+                              <VBox prefHeight="388.0" prefWidth="598.0">
+                                 <children>
+                                    <HBox prefHeight="37.0" prefWidth="598.0">
+                                       <children>
+                                          <AnchorPane prefHeight="31.0" prefWidth="19.0" />
+                                          <Label alignment="BOTTOM_LEFT" prefHeight="49.0" prefWidth="434.0" text="Price History">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="16.0" />
+                                             </font>
+                                          </Label>
+                                       </children>
+                                    </HBox>
+                                    <LineChart prefHeight="362.0" prefWidth="582.0">
+                                      <xAxis>
+                                        <CategoryAxis label="Time" side="BOTTOM">
+                                             <tickLabelFont>
+                                                <Font name="Montserrat Medium" size="10.0" />
+                                             </tickLabelFont>
+                                          </CategoryAxis>
+                                      </xAxis>
+                                      <yAxis>
+                                        <NumberAxis label="Amount" prefHeight="295.0" prefWidth="52.0" side="LEFT" />
+                                      </yAxis>
+                                    </LineChart>
+                                 </children>
+                              </VBox>
+                           </children>
+                        </HBox>
+                        <HBox prefHeight="462.0" prefWidth="648.0" style="-fx-background-color: white; -fx-background-radius: 5;">
+                           <children>
+                              <AnchorPane prefHeight="370.0" prefWidth="34.0" />
+                              <VBox prefHeight="462.0" prefWidth="586.0" spacing="5.0">
+                                 <children>
+                                    <AnchorPane prefHeight="16.0" prefWidth="594.0" />
+                                    <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="454.0" spacing="5.0">
+                                       <children>
+                                          <ImageView fitHeight="32.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true">
+                                             <image>
+                                                <Image url="@../../png/3.bids.png" />
+                                             </image>
+                                          </ImageView>
+                                          <Label prefHeight="54.0" prefWidth="321.0" text="Bids History">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="16.0" />
+                                             </font>
+                                          </Label>
+                                       </children>
+                                    </HBox>
+                                    <ScrollPane hbarPolicy="NEVER" hmax="0.0" prefHeight="409.0" prefWidth="586.0" vbarPolicy="NEVER">
+                                       <content>
+                                          <VBox prefHeight="428.0" prefWidth="582.0" />
+                                       </content>
+                                    </ScrollPane>
+                                 </children>
+                              </VBox>
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+               </children>
+            </AnchorPane>
+         </content>
+      </ScrollPane>
+   </children>
+</AnchorPane>

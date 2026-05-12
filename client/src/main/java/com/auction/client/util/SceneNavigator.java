@@ -20,7 +20,7 @@ public class SceneNavigator {
     //Seller
     public static final String SELLER_DASHBOARD = "/fxml/SellerScene/SellerDashboard.fxml";
     public static final String MY_LISTING = "/fxml/SellerScene/MyListing.fxml";
-    public static final String ADD_PRODUCT = "/fxml/SellerScene/AddProductDialog.fxml";
+    public static final String ADD_PRODUCT = "/fxml/ActionsScene/AddProductDialog.fxml";
 
     private static Stage mainStage;
     public static void setStage(Stage stage) {

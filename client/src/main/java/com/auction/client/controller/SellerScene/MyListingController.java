@@ -1,17 +1,9 @@
 package com.auction.client.controller.SellerScene;
 
-import com.auction.client.SessionContext;
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.client.util.SceneNavigator;
-import com.auction.shared.model.auction.AuctionSession;
-import com.auction.shared.model.item.Electronics;
-import com.auction.shared.model.user.Seller;
-import com.auction.shared.model.user.User;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.fxml.Initializable;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -22,10 +14,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.net.URL;
-import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.ResourceBundle;
 
 public class MyListingController {
 
@@ -112,7 +100,7 @@ public class MyListingController {
 
     public void handleAddproduct(MouseEvent mouseEvent) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/SellerScene/AddProductDialog.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ActionsScene/AddProductDialog.fxml"));
             Parent root = loader.load();
 
             Stage dialogStage = new Stage();
