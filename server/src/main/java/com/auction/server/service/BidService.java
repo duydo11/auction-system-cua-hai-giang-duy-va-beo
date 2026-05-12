@@ -18,9 +18,23 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BidService {
     private static final ConcurrentHashMap<Integer, Object> SESSION_BID_LOCKS = new ConcurrentHashMap<>();
 
-    private final AuctionSessionDAO auctionSessionDAO = new AuctionSessionDAO();
-    private final BidDAO bidDAO = new BidDAO();
-    private final UserDAO userDAO = new UserDAO();
+    private final AuctionSessionDAO auctionSessionDAO;
+    private final BidDAO bidDAO;
+    private final UserDAO userDAO;
+
+    /** Constructor mặc định — dùng trong production */
+    public BidService() {
+        this.auctionSessionDAO = new AuctionSessionDAO();
+        this.bidDAO = new BidDAO();
+        this.userDAO = new UserDAO();
+    }
+
+    /** Constructor cho test — cho phép inject mock DAO */
+    public BidService(AuctionSessionDAO auctionSessionDAO, BidDAO bidDAO, UserDAO userDAO) {
+        this.auctionSessionDAO = auctionSessionDAO;
+        this.bidDAO = bidDAO;
+        this.userDAO = userDAO;
+    }
 
     private static Object lockForSession(int sessionId) {
         return SESSION_BID_LOCKS.computeIfAbsent(sessionId, id -> new Object());

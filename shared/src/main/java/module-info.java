@@ -7,6 +7,5 @@ module com.auction.shared {
     exports com.auction.shared.model.auction;
     exports com.auction.shared.model.item;
     exports com.auction.shared.model.user;
-    exports com.auction.shared.network;
     exports com.auction.shared.protocol;
 }

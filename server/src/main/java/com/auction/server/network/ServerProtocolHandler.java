@@ -5,14 +5,20 @@ import com.auction.server.service.AuctionService;
 import com.auction.server.service.BidService;
 import com.auction.server.service.UserService;
 import com.auction.shared.model.auction.AuctionSession;
+import com.auction.shared.model.auction.AutoBidConfig;
 import com.auction.shared.model.auction.Bid;
+import com.auction.shared.model.item.Item;
 import com.auction.shared.model.user.User;
 import com.auction.shared.protocol.Message;
 import com.auction.shared.protocol.MessageType;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ServerProtocolHandler {
+    private static final Logger logger = Logger.getLogger(ServerProtocolHandler.class.getName());
+
     private final UserService userService;
     private final AuctionService auctionService;
     private final BidService bidService;
@@ -30,17 +36,36 @@ public class ServerProtocolHandler {
     public Message handleMessage(Message message) {
         try {
             Message response = switch (message.getType()) {
+                // Auth
                 case LOGIN_REQUEST -> handleLoginRequest(message.getData());
                 case REGISTER_REQUEST -> handleRegisterRequest(message.getData());
+                case LOGOUT_REQUEST -> new Message(MessageType.LOGOUT_RESPONSE, (Object) "OK");
+
+                // Auction
                 case VIEW_AUCTIONS_REQUEST -> handleViewAuctions();
                 case CREATE_AUCTION_REQUEST -> handleCreateAuction(message.getData());
+
+                // Bidding
                 case PLACE_BID_REQUEST -> handlePlaceBid(message.getData());
                 case GET_BIDS_REQUEST -> handleGetBids(message.getData());
-                case LOGOUT_REQUEST -> new Message(MessageType.LOGOUT_RESPONSE, (Object) "OK");
-                default -> new Message(MessageType.ERROR, "Unknown message type");
+
+                // Item Management
+                case UPDATE_ITEM_REQUEST -> handleUpdateItem(message.getData());
+                case DELETE_ITEM_REQUEST -> handleDeleteItem(message.getData());
+
+                // Auto-Bidding
+                case REGISTER_AUTO_BID_REQUEST -> handleRegisterAutoBid(message.getData());
+                case CANCEL_AUTO_BID_REQUEST -> handleCancelAutoBid(message.getData());
+
+                // Admin
+                case BAN_USER_REQUEST -> handleBanUser(message.getData());
+                case GET_ALL_USERS_REQUEST -> handleGetAllUsers();
+
+                default -> new Message(MessageType.ERROR, "Unknown message type: " + message.getType());
             };
             return tag(message, response);
         } catch (Exception e) {
+            logger.log(Level.WARNING, "Lỗi xử lý message " + message.getType(), e);
             return tag(message, new Message(MessageType.ERROR, "Server error: " + e.getMessage()));
         }
     }
@@ -51,6 +76,10 @@ public class ServerProtocolHandler {
         }
         return response;
     }
+
+    // ========================
+    // Auth handlers
+    // ========================
 
     private Message handleLoginRequest(Object data) throws Exception {
         String[] credentials = (String[]) data;
@@ -76,6 +105,10 @@ public class ServerProtocolHandler {
         }
     }
 
+    // ========================
+    // Auction handlers
+    // ========================
+
     private Message handleViewAuctions() throws Exception {
         List<AuctionSession> auctions = auctionService.getActiveAuctions();
         return new Message(MessageType.VIEW_AUCTIONS_RESPONSE, auctions);
@@ -94,6 +127,10 @@ public class ServerProtocolHandler {
             return new Message(MessageType.CREATE_AUCTION_RESPONSE, "Failed to create auction");
         }
     }
+
+    // ========================
+    // Bidding handlers
+    // ========================
 
     private Message handlePlaceBid(Object data) throws Exception {
         int sessionId;
@@ -120,7 +157,7 @@ public class ServerProtocolHandler {
             }
             return new Message(MessageType.PLACE_BID_RESPONSE, (Object) "Bid placed successfully");
         } else {
-            return new Message(MessageType.PLACE_BID_RESPONSE, "Failed to place bid");
+            return new Message(MessageType.PLACE_BID_RESPONSE, "Bid too low or session closed");
         }
     }
 
@@ -129,4 +166,79 @@ public class ServerProtocolHandler {
         List<Bid> bids = bidService.getBidHistory(sessionId);
         return new Message(MessageType.GET_BIDS_RESPONSE, bids);
     }
+
+    // ========================
+    // Item Management handlers
+    // ========================
+
+    private Message handleUpdateItem(Object data) throws Exception {
+        Item item = (Item) data;
+        boolean success = auctionService.updateItem(item);
+        if (success) {
+            logger.info("Item updated: " + item.getId());
+            return new Message(MessageType.UPDATE_ITEM_RESPONSE, (Object) "Item updated successfully");
+        } else {
+            return new Message(MessageType.UPDATE_ITEM_RESPONSE, "Failed to update item");
+        }
+    }
+
+    private Message handleDeleteItem(Object data) throws Exception {
+        int itemId = Integer.parseInt(String.valueOf(data).trim());
+        boolean success = auctionService.deleteItem(itemId);
+        if (success) {
+            logger.info("Item deleted: " + itemId);
+            return new Message(MessageType.DELETE_ITEM_RESPONSE, (Object) "Item deleted successfully");
+        } else {
+            return new Message(MessageType.DELETE_ITEM_RESPONSE, "Failed to delete item");
+        }
+    }
+
+    // ========================
+    // Auto-Bidding handlers
+    // ========================
+
+    private Message handleRegisterAutoBid(Object data) throws Exception {
+        AutoBidConfig config = (AutoBidConfig) data;
+        // TODO: Khi Hải hoàn thành AutoBidService → gọi autoBidService.registerAutoBid(config)
+        logger.info("Auto-bid registered: bidderId=" + config.getBidderId() + 
+                    ", sessionId=" + config.getSessionId() + 
+                    ", maxBid=" + config.getMaxBid());
+        return new Message(MessageType.REGISTER_AUTO_BID_RESPONSE, (Object) "Auto-bid registered");
+    }
+
+    private Message handleCancelAutoBid(Object data) throws Exception {
+        int[] ids;
+        if (data instanceof int[] arr && arr.length >= 2) {
+            ids = arr;
+        } else if (data instanceof String[] arr && arr.length >= 2) {
+            ids = new int[]{Integer.parseInt(arr[0].trim()), Integer.parseInt(arr[1].trim())};
+        } else {
+            throw new IllegalArgumentException("CANCEL_AUTO_BID expects int[2] or String[2]: [sessionId, bidderId]");
+        }
+        // TODO: Khi Hải hoàn thành AutoBidService → gọi autoBidService.cancelAutoBid(ids[0], ids[1])
+        logger.info("Auto-bid cancelled: sessionId=" + ids[0] + ", bidderId=" + ids[1]);
+        return new Message(MessageType.CANCEL_AUTO_BID_RESPONSE, (Object) "Auto-bid cancelled");
+    }
+
+    // ========================
+    // Admin handlers
+    // ========================
+
+    private Message handleBanUser(Object data) throws Exception {
+        int userId = Integer.parseInt(String.valueOf(data).trim());
+        boolean success = userService.banUser(userId);
+        if (success) {
+            logger.info("User banned: " + userId);
+            return new Message(MessageType.BAN_USER_RESPONSE, (Object) "User banned successfully");
+        } else {
+            return new Message(MessageType.BAN_USER_RESPONSE, "Failed to ban user");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Message handleGetAllUsers() throws Exception {
+        List<User> users = userService.getAllUsers();
+        return new Message(MessageType.GET_ALL_USERS_RESPONSE, users);
+    }
 }
+

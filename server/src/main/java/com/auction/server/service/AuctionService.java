@@ -3,6 +3,7 @@ package com.auction.server.service;
 import com.auction.server.dao.AuctionSessionDAO;
 import com.auction.server.dao.ItemDAO;
 import com.auction.shared.model.auction.AuctionSession;
+import com.auction.shared.model.item.Item;
 
 import java.util.List;
 
@@ -31,6 +32,34 @@ public class AuctionService {
                 session.setId(auctionSessionDAO.allocateNextSessionId());
             }
             auctionSessionDAO.saveSession(session);
+            return true;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Cập nhật thông tin item (tên, mô tả, thuộc tính riêng theo loại).
+     * Validate: chỉ sửa khi phiên chưa kết thúc hoặc item chưa gắn vào phiên active.
+     */
+    public boolean updateItem(Item item) {
+        try {
+            itemDAO.updateItem(item);
+            return true;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Xóa item theo id.
+     * Validate: chỉ xóa được khi item chưa có phiên đang RUNNING.
+     */
+    public boolean deleteItem(int itemId) {
+        try {
+            itemDAO.deleteItem(itemId);
             return true;
         } catch (RuntimeException e) {
             e.printStackTrace();
