@@ -18,6 +18,7 @@ public class AuctionSession extends Entity {
     private double startingPrice, currentPrice;
     private LocalDateTime startTime, endTime;
     private List<Bid> bids;
+    private AuctionStatus status;
 
     public AuctionSession(int id,
                           User seller,
@@ -33,6 +34,7 @@ public class AuctionSession extends Entity {
         this.startTime = startTime;
         this.endTime = endTime;
         this.bids = new ArrayList<>();
+        this.status = AuctionStatus.OPEN;
     }
 
     public void updateCurrentPrice(Bid bid) {
@@ -43,6 +45,10 @@ public class AuctionSession extends Entity {
                 this.currentPrice = bid.getAmount();
                 this.winner = bid.getBidder();
                 bids.add(bid);
+                // Tự động chuyển sang RUNNING khi có bid đầu tiên
+                if (this.status == AuctionStatus.OPEN) {
+                    this.status = AuctionStatus.RUNNING;
+                }
                 System.out.println("Updated price successfully, new price is: " + bid.getAmount());
             } else {
                 System.out.println("Invalid bid");
@@ -52,10 +58,17 @@ public class AuctionSession extends Entity {
         }
     }
 
+    /**
+     * Kiểm tra phiên có đang hoạt động không.
+     * Dùng kết hợp status + thời gian.
+     */
     public boolean isActive() {
         LocalDateTime now = LocalDateTime.now();
-        return now.isAfter(startTime) && now.isBefore(endTime);
+        boolean timeValid = now.isAfter(startTime) && now.isBefore(endTime);
+        // Phiên active khi: thời gian hợp lệ VÀ chưa FINISHED/PAID/CANCELED
+        return timeValid && (status == AuctionStatus.OPEN || status == AuctionStatus.RUNNING);
     }
 
 }
+
 
