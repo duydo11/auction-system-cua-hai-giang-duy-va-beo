@@ -2,6 +2,7 @@ package com.auction.server.network;
 
 import com.auction.server.ServiceRegistry;
 import com.auction.server.service.AuctionService;
+import com.auction.server.service.AutoBidService;
 import com.auction.server.service.BidService;
 import com.auction.server.service.UserService;
 import com.auction.shared.model.auction.AuctionSession;
@@ -22,15 +23,17 @@ public class ServerProtocolHandler {
     private final UserService userService;
     private final AuctionService auctionService;
     private final BidService bidService;
+    private final AutoBidService autoBidService;
 
     public ServerProtocolHandler() {
-        this(ServiceRegistry.USER_SERVICE, ServiceRegistry.AUCTION_SERVICE, ServiceRegistry.BID_SERVICE);
+        this(ServiceRegistry.USER_SERVICE, ServiceRegistry.AUCTION_SERVICE, ServiceRegistry.BID_SERVICE, ServiceRegistry.AUTO_BID_SERVICE);
     }
 
-    public ServerProtocolHandler(UserService userService, AuctionService auctionService, BidService bidService) {
+    public ServerProtocolHandler(UserService userService, AuctionService auctionService, BidService bidService, AutoBidService autoBidService) {
         this.userService = userService;
         this.auctionService = auctionService;
         this.bidService = bidService;
+        this.autoBidService = autoBidService;
     }
 
     public Message handleMessage(Message message) {
@@ -199,11 +202,15 @@ public class ServerProtocolHandler {
 
     private Message handleRegisterAutoBid(Object data) throws Exception {
         AutoBidConfig config = (AutoBidConfig) data;
-        // TODO: Khi Hải hoàn thành AutoBidService → gọi autoBidService.registerAutoBid(config)
-        logger.info("Auto-bid registered: bidderId=" + config.getBidderId() + 
-                    ", sessionId=" + config.getSessionId() + 
-                    ", maxBid=" + config.getMaxBid());
-        return new Message(MessageType.REGISTER_AUTO_BID_RESPONSE, (Object) "Auto-bid registered");
+        boolean success = autoBidService.registerAutoBid(config);
+        if (success) {
+            logger.info("Auto-bid registered: bidderId=" + config.getBidderId() + 
+                        ", sessionId=" + config.getSessionId() + 
+                        ", maxBid=" + config.getMaxBid());
+            return new Message(MessageType.REGISTER_AUTO_BID_RESPONSE, (Object) "Auto-bid registered");
+        } else {
+            return new Message(MessageType.REGISTER_AUTO_BID_RESPONSE, "Failed to register auto-bid");
+        }
     }
 
     private Message handleCancelAutoBid(Object data) throws Exception {
@@ -216,8 +223,13 @@ public class ServerProtocolHandler {
             throw new IllegalArgumentException("CANCEL_AUTO_BID expects int[2] or String[2]: [sessionId, bidderId]");
         }
         // TODO: Khi Hải hoàn thành AutoBidService → gọi autoBidService.cancelAutoBid(ids[0], ids[1])
-        logger.info("Auto-bid cancelled: sessionId=" + ids[0] + ", bidderId=" + ids[1]);
-        return new Message(MessageType.CANCEL_AUTO_BID_RESPONSE, (Object) "Auto-bid cancelled");
+        boolean success = autoBidService.cancelAutoBid(ids[0], ids[1]);
+        if (success) {
+            logger.info("Auto-bid cancelled: sessionId=" + ids[0] + ", bidderId=" + ids[1]);
+            return new Message(MessageType.CANCEL_AUTO_BID_RESPONSE, (Object) "Auto-bid cancelled");
+        } else {
+            return new Message(MessageType.CANCEL_AUTO_BID_RESPONSE, "Failed to cancel auto-bid");
+        }
     }
 
     // ========================
