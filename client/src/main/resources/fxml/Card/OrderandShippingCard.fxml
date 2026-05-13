@@ -9,7 +9,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<HBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="150.0" prefWidth="900.0" spacing="2.0" style="-fx-background-radius: 15; -fx-border-radius: 15; -fx-background-color: white;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+<HBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="150.0" prefWidth="900.0" spacing="2.0" style="-fx-background-radius: 15; -fx-border-radius: 15; -fx-background-color: white;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.Card.OrderShippingCardController">
     <children>
         <AnchorPane prefHeight="150.0" prefWidth="22.0" />
         <ImageView fitHeight="150.0" fitWidth="195.0" pickOnBounds="true" preserveRatio="true" />

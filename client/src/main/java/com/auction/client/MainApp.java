@@ -19,7 +19,7 @@ public class MainApp extends Application {
         Font.loadFont(getClass().getResourceAsStream("/fonts/Montserrat-Regular.ttf"), 14);
         Font.loadFont(getClass().getResourceAsStream("/fonts/PlaywriteIE-Regular.ttf"), 14);
         SceneNavigator.setStage(primaryStage); // Lưu stage lại
-        SceneNavigator.loadScene(SceneNavigator.MY_LISTING, "Đăng nhập hệ thống");
+        SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "Đăng nhập hệ thống");
     }
 
     @Override

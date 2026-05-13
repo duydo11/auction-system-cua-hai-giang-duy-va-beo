@@ -10,7 +10,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="180.0" prefWidth="250.0" style="-fx-background-radius: 15; -fx-border-radius: 15;" styleClass="product-card" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="180.0" prefWidth="250.0" style="-fx-background-radius: 15; -fx-border-radius: 15;" styleClass="product-card" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.Card.ProductCardController">
    <children>
       <AnchorPane prefHeight="43.0" prefWidth="250.0" />
       <AnchorPane prefHeight="87.0" prefWidth="232.0">
@@ -23,7 +23,7 @@
             </Label>
          </children>
       </AnchorPane>
-      <VBox prefHeight="106.0" prefWidth="400.0" style="-fx-background-color: #ebebeb;">
+      <VBox prefHeight="106.0" prefWidth="250.0" style="-fx-background-color: #ebebeb; -fx-background-radius: 15; -fx-border-radius: 15;">
          <children>
             <HBox prefHeight="31.0" prefWidth="250.0">
                <children>

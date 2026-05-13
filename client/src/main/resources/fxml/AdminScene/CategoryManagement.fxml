@@ -1,16 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.image.Image?>
-<?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" styleClass="product-card" stylesheets="@../../css/productcard.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.BidderScene.BidderDashboardController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" styleClass="product-card" stylesheets="@../../css/productcard.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AdminScene.CategoryManagementController">
     <children>
         <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
             <image>
@@ -19,7 +14,7 @@
         </ImageView>
         <VBox alignment="CENTER" layoutX="14.0" prefHeight="680.0" prefWidth="256.0" spacing="10.0">
             <children>
-                <HBox alignment="CENTER_LEFT" opacity="0.7" prefHeight="48.0" prefWidth="230.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox fx:id="btnHome" alignment="CENTER_LEFT" onMouseClicked="#switchHome" opacity="0.7" prefHeight="48.0" prefWidth="230.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <AnchorPane prefHeight="48.0" prefWidth="14.0" />
                         <ImageView fitHeight="40.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
@@ -34,7 +29,7 @@
                         </Label>
                     </children>
                 </HBox>
-                <HBox fx:id="btnMybids" alignment="CENTER_LEFT" onMouseClicked="#switchMyBids" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox fx:id="btnUser" alignment="CENTER_LEFT" onMouseClicked="#switchUser" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <AnchorPane prefHeight="48.0" prefWidth="14.0" />
                         <ImageView fitHeight="40.0" fitWidth="39.0" pickOnBounds="true" preserveRatio="true">
@@ -49,7 +44,7 @@
                         </Label>
                     </children>
                 </HBox>
-                <HBox fx:id="btnItems" alignment="CENTER" onMouseClicked="#switchItems" opacity="0.9" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox alignment="CENTER" opacity="0.9" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <AnchorPane prefHeight="48.0" prefWidth="14.0" />
                         <ImageView fitHeight="46.0" fitWidth="46.0" pickOnBounds="true" preserveRatio="true">
@@ -64,7 +59,7 @@
                         </Label>
                     </children>
                 </HBox>
-                <HBox fx:id="btnSettings" alignment="CENTER_LEFT" onMouseClicked="#switchSettingsPane" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox fx:id="btnLogout" alignment="CENTER_LEFT" onMouseClicked="#switchLogout" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <AnchorPane prefHeight="48.0" prefWidth="14.0" />
                         <ImageView fitHeight="34.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
@@ -72,7 +67,7 @@
                                 <Image url="@../../png/4.logout.png" />
                             </image>
                         </ImageView>
-                        <Label prefHeight="54.0" prefWidth="162.0" text="SETTINGS" textFill="#ff1109">
+                        <Label prefHeight="54.0" prefWidth="162.0" text="LOGOUT" textFill="#ff1109">
                             <font>
                                 <Font name="Montserrat Bold" size="15.0" />
                             </font>
