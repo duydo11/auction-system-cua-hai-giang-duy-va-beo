@@ -106,8 +106,7 @@ class AutoBidServiceTest {
 
     @Test
     void testProcessAutoBids_noConfigs_returnsFalse() {
-        when(auctionSessionDAO.getSessionById(10)).thenReturn(activeSession);
-
+        // Không có auto-bid configs → processAutoBids trả false
         boolean result = autoBidService.processAutoBids(10, 150.0);
 
         assertFalse(result, "Không có auto-bid configs → processAutoBids trả false");

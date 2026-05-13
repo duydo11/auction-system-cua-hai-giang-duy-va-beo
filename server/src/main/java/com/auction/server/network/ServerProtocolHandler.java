@@ -247,7 +247,6 @@ public class ServerProtocolHandler {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private Message handleGetAllUsers() throws Exception {
         List<User> users = userService.getAllUsers();
         return new Message(MessageType.GET_ALL_USERS_RESPONSE, users);

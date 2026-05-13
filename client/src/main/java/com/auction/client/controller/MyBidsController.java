@@ -1,6 +1,5 @@
 package com.auction.client.controller;
 
-import com.auction.client.MockData.DataStore;
 import com.auction.client.SessionContext;
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.shared.model.auction.AuctionSession;

@@ -3,9 +3,11 @@ package com.auction.server.dao;
 import com.auction.shared.model.user.Admin;
 import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.User;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("integration")
 public class UserDAOTest {
 
     // ==========================================
