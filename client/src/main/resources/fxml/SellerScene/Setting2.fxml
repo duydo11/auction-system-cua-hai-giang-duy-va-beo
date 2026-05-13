@@ -9,7 +9,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.SellerScene.MyListingController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.SellerScene.Setting2Controller">
     <children>
         <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
             <image>
@@ -18,7 +18,7 @@
         </ImageView>
         <VBox alignment="CENTER" layoutX="14.0" prefHeight="680.0" prefWidth="230.0" spacing="10.0">
             <children>
-                <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox fx:id="btnHome" alignment="CENTER" onMouseClicked="#switchHomePane" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <ImageView fitHeight="31.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
                             <image>
@@ -32,7 +32,7 @@
                         </Label>
                     </children>
                 </HBox>
-                <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox fx:id="btnMylisting" alignment="CENTER" onMouseClicked="#switchMylisting" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <ImageView fitHeight="37.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                             <image>
@@ -46,7 +46,7 @@
                         </Label>
                     </children>
                 </HBox>
-                <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox fx:id="btnSetting" alignment="CENTER" onMouseClicked="#switchShipping" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <ImageView fitHeight="37.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                             <image>
@@ -60,7 +60,7 @@
                         </Label>
                     </children>
                 </HBox>
-                <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox fx:id="btnShipping" alignment="CENTER" onMouseClicked="#switchWallet" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <ImageView fitHeight="37.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                             <image>

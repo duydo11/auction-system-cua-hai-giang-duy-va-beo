@@ -10,7 +10,9 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -19,6 +21,8 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 
 public class Wallet1Controller implements Initializable {
+    @FXML
+    private HBox overlayPane;
 
     //Đổi home
     @FXML
@@ -84,6 +88,48 @@ public class Wallet1Controller implements Initializable {
             }
         } catch (IOException e) {
             System.out.println("Lỗi rồi: Không tìm thấy file CardItems.fxml");
+            e.printStackTrace();
+        }
+    }
+    public void handleDeposit(MouseEvent mouseEvent) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ActionsScene/DepositAction.fxml"));
+            Parent root = loader.load();
+
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Đăng sản phẩm mới");
+
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.setResizable(false);
+            overlayPane.setVisible(true);
+
+            Scene scene = new Scene(root);
+            dialogStage.setScene(scene);
+            dialogStage.showAndWait();
+            overlayPane.setVisible(false);// Dừng mọi thứ ở trang chính cho đến khi Dialog này đóng
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public void handleWithdraw(MouseEvent mouseEvent) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ActionsScene/WithdrawAction.fxml"));
+            Parent root = loader.load();
+
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Đăng sản phẩm mới");
+
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.setResizable(false);
+            overlayPane.setVisible(true);
+
+            Scene scene = new Scene(root);
+            dialogStage.setScene(scene);
+            dialogStage.showAndWait();
+            overlayPane.setVisible(false);// Dừng mọi thứ ở trang chính cho đến khi Dialog này đóng
+
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

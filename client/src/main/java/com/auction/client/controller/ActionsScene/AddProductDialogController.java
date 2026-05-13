@@ -1,4 +1,4 @@
-package com.auction.client.controller.SellerScene;
+package com.auction.client.controller.ActionsScene;
 
 import com.auction.client.SessionContext;
 import com.auction.client.network.ClientProtocolHandler;

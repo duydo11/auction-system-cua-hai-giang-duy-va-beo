@@ -106,4 +106,18 @@ public class SellerDashboardController implements Initializable {
     public void switchBidderDB(MouseEvent mouseEvent) {
         SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "bidder home");
     }
+    public void switchShipping(MouseEvent mouseEvent) {
+        SceneNavigator.loadScene(SceneNavigator.SHIPPING, "shipping home");
+    }
+
+    public void switchWallet(MouseEvent mouseEvent) {
+        SceneNavigator.loadScene(SceneNavigator.WALLET2, "wallet home");
+    }
+
+    public void switchSetting(MouseEvent mouseEvent) {
+        SceneNavigator.loadScene(SceneNavigator.SETTING2, "setting home");
+    }
+    public void switchMylisting(MouseEvent mouseEvent) {
+        SceneNavigator.loadScene(SceneNavigator.MY_LISTING, "shipping home");
+    }
 }

@@ -97,6 +97,21 @@ public class MyListingController {
     public void switchBidderDB(MouseEvent mouseEvent) {
         SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "bidder home");
     }
+    public void switchShipping(MouseEvent mouseEvent) {
+        SceneNavigator.loadScene(SceneNavigator.SHIPPING, "shipping home");
+    }
+    public void switchHomePane(MouseEvent mouseEvent) {
+        SceneNavigator.loadScene(SceneNavigator.SELLER_DASHBOARD, "seller home");
+    }
+    public void switchWallet(MouseEvent mouseEvent) {
+        SceneNavigator.loadScene(SceneNavigator.WALLET2, "wallet home");
+    }
+
+    public void switchSetting(MouseEvent mouseEvent) {
+        SceneNavigator.loadScene(SceneNavigator.SETTING2, "setting home");
+    }
+
+
 
     public void handleAddproduct(MouseEvent mouseEvent) {
         try {
@@ -119,4 +134,7 @@ public class MyListingController {
             e.printStackTrace();
         }
     }
+
+
+
 }

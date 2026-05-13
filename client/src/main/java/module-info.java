@@ -10,4 +10,5 @@ module com.auction.client {
     exports com.auction.client;
     opens com.auction.client.controller.BidderScene to javafx.fxml;
     opens com.auction.client.controller.SellerScene to javafx.fxml;
+    opens com.auction.client.controller.ActionsScene to javafx.fxml;
 }

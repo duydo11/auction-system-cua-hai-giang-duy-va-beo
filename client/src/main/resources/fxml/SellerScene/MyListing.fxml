@@ -18,7 +18,7 @@
         </ImageView>
         <VBox alignment="CENTER" layoutX="14.0" prefHeight="680.0" prefWidth="230.0" spacing="10.0">
             <children>
-                <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox fx:id="btnHome" alignment="CENTER" onMouseClicked="#switchHomePane" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <ImageView fitHeight="31.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
                             <image>
@@ -46,7 +46,7 @@
                         </Label>
                     </children>
                 </HBox>
-                <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox fx:id="btnShipping" alignment="CENTER" onMouseClicked="#switchShipping" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <ImageView fitHeight="37.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                             <image>
@@ -60,7 +60,7 @@
                         </Label>
                     </children>
                 </HBox>
-                <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox fx:id="btnWallet" alignment="CENTER" onMouseClicked="#switchWallet" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <ImageView fitHeight="37.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                             <image>
@@ -74,7 +74,7 @@
                         </Label>
                     </children>
                 </HBox>
-                <HBox alignment="CENTER" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                <HBox fx:id="btnSetting" alignment="CENTER" onMouseClicked="#switchSetting" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
                     <children>
                         <ImageView fitHeight="35.0" fitWidth="35.0" pickOnBounds="true" preserveRatio="true">
                             <image>

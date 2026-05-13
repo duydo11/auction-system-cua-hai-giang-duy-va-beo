@@ -20,7 +20,19 @@ public class SceneNavigator {
     //Seller
     public static final String SELLER_DASHBOARD = "/fxml/SellerScene/SellerDashboard.fxml";
     public static final String MY_LISTING = "/fxml/SellerScene/MyListing.fxml";
+    public static final String SHIPPING = "/fxml/SellerScene/ShippingOrder.fxml";
+    public static final String SETTING2 = "/fxml/SellerScene/Setting2.fxml";
+    public static final String WALLET2 = "/fxml/SellerScene/Wallet2.fxml";
+
+    //Action
     public static final String ADD_PRODUCT = "/fxml/ActionsScene/AddProductDialog.fxml";
+    public static final String WITHDRAW = "/fxml/ActionsScene/WithdrawAction.fxml";
+    public static final String DEPOSIT = "/fxml/ActionsScene/DepositAction.fxml";
+
+    //Admin
+    public static final String ADMIN_DASHBOARD = "/fxml/AdminScene/AdminDashboard.fxml";
+    public static final String C_MANAGEMENT = "/fxml/AdminScene/CategoryManagement.fxml";
+    public static final String U_MANAGEMENT = "/fxml/AdminScene/UserManagement.fxml";
 
     private static Stage mainStage;
     public static void setStage(Stage stage) {
