@@ -1,289 +1,235 @@
-## 1) Mục tiêu chung của nhóm
+# 🏛️ Online Auction System
 
-- Xây dựng hệ thống đấu giá online theo kiến trúc `client-server-shared`.
-- Đảm bảo các chức năng bắt buộc: quản lý user, tạo phiên đấu giá, đặt giá, realtime update, xử lý lỗi, unit test, CI.
-- Đảm bảo từng thành viên hiểu toàn bộ luồng chính để đi bảo vệ không bị đứt mạch.
+<div align="center">
 
-## 2) Thành viên và trách nhiệm bản chất
+![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk)
+![JavaFX](https://img.shields.io/badge/JavaFX-21-blue?style=for-the-badge&logo=java)
+![Maven](https://img.shields.io/badge/Maven-3.9-red?style=for-the-badge&logo=apachemaven)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-blue?style=for-the-badge&logo=mysql)
+![CI](https://img.shields.io/badge/CI-GitHub_Actions-black?style=for-the-badge&logo=githubactions)
 
-| Thành viên | Vai trò bản chất | Mục tiêu kỹ thuật chính |
-|---|---|---|
-| Hải | Cái Não (Backend Logic) | Viết và giữ "luật chơi" đấu giá đúng nghiệp vụ |
-| Giang | Gương mặt (Frontend) | Làm UI/UX JavaFX rõ ràng, thao tác mượt, dễ demo |
-| Hoàng | Cánh tay (Networking) | Kết nối UI và logic qua socket ổn định, ít lỗi |
-| Duy | Cảnh sát (Concurrency & Quality) | Chống race condition, test và CI xanh |
+**Hệ thống đấu giá trực tuyến theo kiến trúc Client-Server**  
+*Bài tập lớn — Lập trình nâng cao*
 
----
-
-## 3) Phân rã công việc chi tiết theo từng thành viên
-
-## 3.1 Hải - Backend Logic (Cái Não)
-
-### Trách nhiệm cốt lõi
-- Thiết kế model domain: `User`, `Item`, `AuctionSession`, `Bid`.
-- Thiết kế rule nghiệp vụ đấu giá để các bên khác bám theo.
-- Định nghĩa rõ đầu vào/đầu ra của các API nghiệp vụ cho Hoàng và Giang.
-
-### Deliverables bắt buộc
-- Bộ hàm nghiệp vụ:
-  - `checkValidBid(...)`
-  - `updateWinner(...)`
-  - `closeAuctionIfExpired(...)`
-- Bộ lỗi nghiệp vụ rõ ràng:
-  - bid thấp hơn giá hiện tại
-  - phiên đã đóng
-  - user không đúng role
-- Mapping chuẩn sang response cho tầng networking.
-
-### Việc theo tuần (8-15)
-- Tuần 8:
-  - Chốt domain model, chuẩn hóa ràng buộc dữ liệu.
-  - Viết rule đấu giá và custom exception cơ bản.
-- Tuần 9:
-  - Bàn giao contract nghiệp vụ cho Hoàng (message type + payload mẫu).
-  - Viết tài liệu rule bằng markdown ngắn.
-- Tuần 10:
-  - Tích hợp với server service/DAO.
-  - Đảm bảo rule giữ nguyên khi kết nối socket vào.
-- Tuần 11-12:
-  - Sửa bug edge cases khi nhiều client thao tác.
-  - Chốt luồng đóng phiên và xác định winner.
-- Tuần 13-14:
-  - Refactor nhẹ, giảm code lặp.
-  - Hỗ trợ Duy viết test case nghiệp vụ.
-- Tuần 15:
-  - Chuẩn bị phần thuyết minh "vì sao luật nghiệp vụ viết như vậy".
-
-### Bàn giao cho đồng đội
-- Cho Hoàng:
-  - Danh sách case thành công/thất bại và thông điệp lỗi tương ứng.
-- Cho Giang:
-  - Danh sách thông báo cần hiển thị cho người dùng.
-- Cho Duy:
-  - Danh sách case critical để viết test.
+</div>
 
 ---
 
-## 3.2 Giang - Frontend JavaFX (Gương mặt)
+## 📖 Giới thiệu
 
-### Trách nhiệm cốt lõi
-- Thiết kế UI bằng SceneBuilder/FXML.
-- Viết controller nhận input, validate cơ bản, gọi xuống networking.
-- Hiển thị dữ liệu và lỗi rõ ràng cho user.
-
-### Deliverables bắt buộc
-- Màn hình chính:
-  - Login/Register
-  - Bidder Dashboard, Items, My Bids
-  - Seller Dashboard
-- Card hiển thị sản phẩm/lịch sử bid có thể gắn dữ liệu thật.
-- Điều hướng scene ổn định, không crash khi thiếu dữ liệu.
-
-### Việc theo tuần (8-15)
-- Tuần 8:
-  - Dựng skeleton giao diện và navigation.
-  - Chốt style cơ bản, không sa đà animation.
-- Tuần 9:
-  - Làm form input và validate tối thiểu.
-  - Dùng dữ liệu mock để test flow màn hình.
-- Tuần 10:
-  - Tích hợp call protocol của Hoàng.
-  - Chuyển từ mock sang data thật từng màn.
-- Tuần 11-12:
-  - Bổ sung trạng thái lỗi thân thiện: offline, timeout, input sai.
-  - Đảm bảo màn không trắng khi server lỗi.
-- Tuần 13-14:
-  - Polish UI, sửa spacing/font/icon cho demo.
-  - Đồng bộ text thông báo với rule từ Hải.
-- Tuần 15:
-  - Chuẩn bị demo thao tác 1 vòng end-to-end.
-
-### Bàn giao cho đồng đội
-- Cho Hoàng:
-  - Danh sách field/input mỗi request cần gửi.
-- Cho Hải:
-  - Các case user thao tác thực tế để kiểm tra rule.
-- Cho Duy:
-  - Danh sách screen cần test tay trước khi merge.
+Hệ thống đấu giá trực tuyến cho phép nhiều người dùng cùng tham gia cạnh tranh giá để mua một sản phẩm trong khoảng thời gian xác định. Hệ thống hỗ trợ ba vai trò: **Bidder** (người mua), **Seller** (người bán), **Admin** (quản trị), giao tiếp qua **TCP Socket** với giao thức Message tùy chỉnh.
 
 ---
 
-## 3.3 Hoàng - Networking Socket (Cánh tay)
+## ✨ Tính năng
 
-### Trách nhiệm cốt lõi
-- Xây dựng luồng giao tiếp `SocketClient <-> SocketServer`.
-- Chuẩn hóa request/response object (`Message`, `MessageType`).
-- Đảm bảo lỗi mạng không làm app chết im lặng.
+### Bắt buộc
+- 🔐 **Đăng ký / Đăng nhập** — 3 vai trò (Bidder, Seller, Admin)
+- 📦 **Quản lý sản phẩm** — Thêm / sửa / xóa (Electronics, Art, Vehicle)
+- 🔨 **Đặt giá** — Validate bid, cập nhật giá realtime
+- ⏰ **Tự động đóng phiên** — Scheduler tự kết thúc khi hết thời gian
+- ⚠️ **Xử lý ngoại lệ** — Custom exceptions rõ ràng
+- 🖥️ **Giao diện JavaFX** — 3 dashboard theo vai trò
 
-### Deliverables bắt buộc
-- `SocketServer` nhận nhiều client.
-- `SocketClient` có timeout/read loop ổn định.
-- `ClientProtocolHandler` để controller dùng dễ.
-- Cơ chế xử lý lỗi tối thiểu:
-  - timeout
-  - mất kết nối
-  - retry nhẹ (nếu cần)
-
-### Việc theo tuần (8-15)
-- Tuần 8:
-  - Chốt protocol message và danh sách `MessageType`.
-  - Viết skeleton client/server socket.
-- Tuần 9:
-  - Kết nối login/register/create/place bid end-to-end.
-  - Bàn giao API gọi cho Giang.
-- Tuần 10:
-  - Thêm correlationId, phân luồng response/push.
-  - Tích hợp realtime update cho màn đấu giá.
-- Tuần 11-12:
-  - Harden runtime: timeout, fail-fast, log lỗi.
-  - Giảm treo UI khi server unavailable.
-- Tuần 13-14:
-  - Rà socket edge cases, giữ log gọn dễ debug.
-  - Tối ưu mức cơ bản, không over-engineer reconnect.
-- Tuần 15:
-  - Chuẩn bị thuyết minh luồng "request -> server -> response/push".
-
-### Bàn giao cho đồng đội
-- Cho Giang:
-  - Hàm protocol cụ thể cho từng thao tác UI.
-- Cho Hải:
-  - Cách đóng gói payload để service xử lý đúng.
-- Cho Duy:
-  - Danh sách lỗi mạng cần test regression.
+### Nâng cao
+- 🤖 **Auto-Bidding** — Đấu giá tự động với `maxBid` và `increment`
+- 🔒 **Concurrent Bidding** — Lock per-session, 50-thread stress test
+- 🛡️ **Anti-sniping** — Tự động gia hạn +60s nếu có bid trong 30s cuối
+- 📡 **Realtime Push** — Observer pattern, broadcast tới tất cả client
 
 ---
 
-## 3.4 Duy - Concurrency, Test, CI (Cảnh sát)
+## 🏗️ Kiến trúc hệ thống
 
-### Trách nhiệm cốt lõi
-- Đảm bảo đặt giá đồng thời không sai dữ liệu.
-- Xây unit test cho logic quan trọng.
-- Duy trì pipeline CI chạy build/test ổn định.
+```
+┌─────────────────────────────────────────────────────────┐
+│                      CLIENT (JavaFX)                     │
+│  Login → Dashboard → Bid → View Auctions                │
+│  MVC: FXML (View) + Controller + ClientProtocolHandler   │
+└───────────────────────┬─────────────────────────────────┘
+                        │ TCP Socket (Message Protocol)
+┌───────────────────────▼─────────────────────────────────┐
+│                      SERVER                              │
+│  ServerProtocolHandler → Service → DAO → MySQL           │
+│  ClientBroadcastHub (push realtime)                      │
+└───────────────────────┬─────────────────────────────────┘
+                        │ JDBC
+┌───────────────────────▼─────────────────────────────────┐
+│           MySQL Database (Aiven Cloud)                   │
+│  users / items / auction_sessions / bids                 │
+└─────────────────────────────────────────────────────────┘
+```
 
-### Deliverables bắt buộc
-- Critical section cho đặt giá đồng thời (`synchronized` hoặc lock hợp lý).
-- Unit test cho case quan trọng:
-  - bid hợp lệ
-  - bid không hợp lệ
-  - phiên đóng
-  - đồng thời nhiều bidder
-- GitHub Actions chạy:
-  - compile
-  - test
-
-### Việc theo tuần (8-15)
-- Tuần 8:
-  - Xác định điểm race condition trong luồng bid.
-- Tuần 9:
-  - Bổ sung lock/sync tối thiểu, không phá kiến trúc.
-  - Tạo test skeleton.
-- Tuần 10:
-  - Viết test cho rule nghiệp vụ chính từ Hải.
-  - Thiết lập workflow CI cơ bản.
-- Tuần 11-12:
-  - Chạy test đồng thời nhiều vòng, fix flaky test.
-  - Thêm check cho lỗi phổ biến.
-- Tuần 13-14:
-  - Dọn test data, làm báo cáo test ngắn.
-  - Kiểm tra merge conflict định kỳ.
-- Tuần 15:
-  - Chuẩn bị phần trình bày "chất lượng code và độ tin cậy".
-
-### Bàn giao cho đồng đội
-- Cho cả nhóm:
-  - checklist trước merge (build, test, chạy tay).
-- Cho Hải/Hoàng:
-  - báo lỗi concurrency/network có thể tái hiện.
-- Cho Giang:
-  - checklist UI regression ngắn.
+### Module structure
+```
+auction-system/
+├── shared/          # Dùng chung: Model, MessageType, Exception
+│   ├── model/       # Entity, User, Item, AuctionSession, Bid
+│   ├── protocol/    # Message, MessageType (14 types)
+│   └── exception/   # Custom exceptions (5 loại)
+├── server/          # Backend
+│   ├── service/     # BidService, AuctionService, AutoBidService...
+│   ├── dao/         # DAO layer → MySQL
+│   └── network/     # ServerProtocolHandler, ClientBroadcastHub
+└── client/          # Frontend JavaFX
+    ├── controller/  # BidderScene, SellerScene, AdminScene
+    └── network/     # ClientProtocolHandler, SocketClient
+```
 
 ---
 
-## 4) Quy tắc phối hợp nhóm (bắt buộc)
+## ⚙️ Design Patterns
 
-## 4.1 Quy tắc branch/PR
-- Mỗi người làm trên branch riêng: `hai`, `giang`, `hoang`, `duy`.
-- Không push thẳng `main`.
-- Mọi merge đi qua PR, có ít nhất 1 người review.
-
-## 4.2 Quy tắc commit
-- Commit nhỏ theo tính năng, message rõ nghĩa.
-- Không dồn 1 commit lớn cuối kỳ.
-- Mỗi commit phải build được ở mức tối thiểu.
-
-## 4.3 Quy tắc bàn giao
-- Mỗi task xong phải ghi:
-  - file đã sửa
-  - ảnh hưởng module nào
-  - cách test nhanh
-- Không bàn giao kiểu "xong rồi nhưng chưa biết chạy".
-
-## 4.4 Quy tắc xử lý conflict
-- Conflict UI: Giang quyết định chính, hỏi thêm Hoàng nếu có call network.
-- Conflict logic: Hải quyết định chính, Duy review test.
-- Conflict socket/protocol: Hoàng quyết định chính, Hải xác nhận nghiệp vụ.
+| Pattern | Vị trí | Mô tả |
+|---------|--------|-------|
+| **Singleton** | `ServiceRegistry`, `ClientConnection` | Quản lý kết nối |
+| **Factory Method** | `ItemFactory` | Tạo Electronics / Art / Vehicle |
+| **Observer** | `RealtimeAuctionBus`, `ClientBroadcastHub` | Realtime price update |
+| **Strategy** | `AutoBidService` (PriorityQueue) | Xử lý auto-bid theo priority |
 
 ---
 
-## 5) Kế hoạch tích hợp theo mốc
+## 👥 Thành viên & Phân công
 
-- Mốc A (cuối tuần 9): chạy được login/register qua socket.
-- Mốc B (cuối tuần 10): tạo phiên + đặt giá + xem danh sách.
-- Mốc C (cuối tuần 12): realtime + concurrency cơ bản + test chạy.
-- Mốc D (cuối tuần 14): demo ổn định, README hoàn chỉnh.
-- Mốc E (tuần 15): rehearsal thuyết trình + demo cuối.
+| Thành viên | Vai trò | Nhiệm vụ chính | Chi tiết |
+|------------|---------|----------------|---------|
+| **Hải** | Backend Logic | Domain Model & Business Rules | Thiết kế `User`, `Item`, `AuctionSession`, `Bid`; viết rule nghiệp vụ `checkValidBid`, `updateWinner`, `closeAuctionIfExpired`; custom exceptions |
+| **Duy** | QA & Concurrency | Testing + CI/CD + Concurrency | Viết 41 unit tests (JUnit 5 + Mockito); lock per-session chống race condition; stress test 50 threads; CI/CD GitHub Actions (3 OS) |
+| **Hoàng** | Networking | Socket Protocol | Xây dựng TCP socket client/server; chuẩn hóa 14 MessageTypes; `ClientProtocolHandler` (14 methods); `ClientBroadcastHub` (realtime push) |
+| **Giang** | Frontend UI | JavaFX Interface | Thiết kế 42 controller + 50+ FXML; 3 dashboard (Bidder, Seller, Admin); card components; scene navigation |
+
+### 📊 Chi tiết nhiệm vụ
+
+<details>
+<summary><b>Hải — Backend Logic (Cái não)</b></summary>
+
+- Thiết kế cây kế thừa: `Entity → User → Bidder/Seller/Admin`, `Entity → Item → Electronics/Art/Vehicle`
+- Thiết kế `AuctionSession` với state machine: `OPEN → RUNNING → FINISHED → CANCELED`
+- Viết rule đấu giá: `updateCurrentPrice()`, `isActive()`, `closeAuctionIfExpired()`
+- Implement `AuctionScheduler` — tự động đóng phiên theo timer
+- Implement `AutoBidService` — xử lý auto-bid với PriorityQueue
+- Thiết kế 5 custom exceptions: `BidTooLowException`, `AuctionClosedException`, `UnauthorizedRoleException`, `InvalidDataException`, `AuctionException`
+- Viết DAO layer: `UserDAO`, `ItemDAO`, `AuctionSessionDAO`, `BidDAO`
+
+</details>
+
+<details>
+<summary><b>Duy — QA & Concurrency (Cảnh sát)</b></summary>
+
+- Thiết kế lock per-session (`ConcurrentHashMap<Integer, Object>`) trong `BidService`
+- Viết 41 unit tests: `BidServiceTest`, `UserServiceTest`, `AutoBidServiceTest`, `AntiSnipingTest`, `ExceptionHandlingTest`
+- Viết `ConcurrencyStressTest` — 50 threads đặt giá đồng thời trên 5 phiên
+- Setup H2 in-memory DB cho CI (không cần MySQL thật)
+- Cấu hình GitHub Actions: matrix 3 OS (Ubuntu, Windows, macOS), auto compile + test
+- Fix Java 21 + Mockito 5.12.0 compatibility
+- Viết `module-info.java` cho client + server
+
+</details>
+
+<details>
+<summary><b>Hoàng — Networking (Cánh tay)</b></summary>
+
+- Thiết kế TCP socket: `SocketServer` đa luồng, `SocketClient` có retry
+- Chuẩn hóa giao thức: `Message` + 14 `MessageType` (auth, auction, bid, admin, push)
+- Implement `ClientProtocolHandler` với 14 phương thức: `login`, `register`, `getActiveAuctions`, `placeBid`, `registerAutoBid`, `cancelAutoBid`, `banUser`, `getAllUsers`...
+- Implement `ServerProtocolHandler` xử lý 14 loại request
+- Implement `ClientBroadcastHub` — push realtime tới tất cả client: `PRICE_UPDATE_PUSH`, `AUCTION_EXTENDED_PUSH`, `BID_PLACED_PUSH`
+
+</details>
+
+<details>
+<summary><b>Giang — Frontend UI (Gương mặt)</b></summary>
+
+- Thiết kế 42 JavaFX controller tổ chức theo scene: `BidderScene/`, `SellerScene/`, `AdminScene/`, `ActionsScene/`, `Card/`
+- Thiết kế 50+ FXML layout với SceneBuilder
+- Implement 3 dashboard chính: `BidderDashboard`, `SellerDashboard`, `AdminDashboard`
+- Card components: `ProductCard`, `HistoryCard`, `TransHisCard`
+- Action dialogs: `AddProductDialog`, `AuctionDetailsForBidder`, `DepositAction`, `WithdrawAction`
+- Scene navigation: `SceneNavigator` utility
+- Login/Register với validation
+
+</details>
 
 ---
 
-## 6) Checklist "Definition of Done" cho từng tính năng
+## 🚀 Hướng dẫn chạy
 
-Một tính năng chỉ được coi là xong khi đủ 6 điều:
+### Yêu cầu
+- Java 21 (Eclipse Temurin)
+- Maven 3.9+
+- MySQL 8.0 (hoặc dùng Aiven cloud DB đã config sẵn)
 
-1. Code chạy được trên máy local.
-2. Không crash khi nhập dữ liệu xấu.
-3. Lỗi hiển thị đủ để user hiểu.
-4. Có test hoặc manual test steps đính kèm.
-5. Được ít nhất 1 thành viên khác review.
-6. Merge không làm hỏng luồng cũ.
+### Bước 1: Clone & Build
+```bash
+git clone https://github.com/duydo11/auction-system-cua-hai-giang-duy-va-beo.git
+cd auction-system
+mvn clean compile
+```
 
----
+### Bước 2: Chạy Server
+```bash
+cd server
+mvn exec:java -Dexec.mainClass="com.auction.server.ServerMain"
+```
 
-## 7) Rủi ro chính và phương án dự phòng
+### Bước 3: Chạy Client
+```bash
+cd client
+mvn javafx:run
+```
 
-- Rủi ro 1: Lệch contract giữa UI và network.
-  - Giảm thiểu: chốt payload mẫu sớm, dùng chung tài liệu message.
-- Rủi ro 2: Đua tiến độ UI khiến logic chưa ổn.
-  - Giảm thiểu: ưu tiên luồng chạy được trước, polish sau.
-- Rủi ro 3: Race condition lúc đặt giá đồng thời.
-  - Giảm thiểu: lock tại critical path + test concurrency.
-- Rủi ro 4: Demo fail vì môi trường.
-  - Giảm thiểu: chuẩn bị script chạy nhanh và dữ liệu seed.
-
----
-
-## 8) Kịch bản họp nhóm mỗi tuần (gợi ý)
-
-Mỗi buổi 30-45 phút, theo thứ tự:
-
-1. Mỗi người báo 3 ý:
-   - Đã làm gì
-   - Đang vướng gì
-   - Cần ai hỗ trợ
-2. Chốt task tuần tới theo đúng vai trò.
-3. Chốt mốc tích hợp giữa 2 module.
-4. Ghi biên bản ngắn vào tài liệu nhóm.
+### Chạy Unit Tests
+```bash
+mvn test
+# 41 tests, 100% pass (không cần MySQL)
+```
 
 ---
 
-## 9) Tuyên bố phạm vi để đi chấm điểm
+## 🧪 Testing
 
-Nhóm ưu tiên:
-- Chạy end-to-end ổn định.
-- Demo mượt luồng chính.
-- Giải thích rõ lý do thiết kế.
-- Thành thật về giới hạn hiện tại.
+| Test Suite | Tests | Coverage |
+|------------|-------|---------|
+| `BidServiceTest` | 8 | Bid validation, price update |
+| `UserServiceTest` | 12 | Login, register, roles |
+| `AutoBidServiceTest` | 8 | Auto-bid register, cancel, process |
+| `AntiSnipingTest` | 4 | 30s window, +60s extension |
+| `ExceptionHandlingTest` | 8 | Custom exceptions |
+| `ConcurrencyStressTest` | 2 | 50 threads × 500 bids |
+| **Total** | **41** | **100% pass** |
 
-Nhóm không ưu tiên:
-- Tính năng nâng cao chưa chắc chắn.
-- Refactor lớn sát deadline.
-- Tối ưu sớm gây rủi ro.
+CI/CD: GitHub Actions chạy tự động trên **Ubuntu + Windows + macOS** khi push/PR.
+
+---
+
+## 📂 Cấu trúc Database
+
+```sql
+users           -- id, username, password, email
+├── bidders     -- user_id, account_balance
+├── sellers     -- user_id, rating
+└── admins      -- user_id, access_level
+
+items           -- id, name, description, seller_id
+├── electronics -- item_id, warranty_months
+├── arts        -- item_id, author
+└── vehicles    -- item_id, brand
+
+auction_sessions -- id, item_id, seller_id, winner_id, starting_price, current_price, start_time, end_time
+bids             -- id, bidder_id, auction_session_id, amount, time
+```
+
+---
+
+## 📄 Tài liệu
+
+- [`docs/api.md`](docs/api.md) — API Protocol documentation
+- [`docs/database.md`](docs/database.md) — Database schema
+- [`docs/design.md`](docs/design.md) — Design decisions
+- [`docs/diagrams/`](docs/diagrams/) — 12 UML diagrams (PlantUML)
+
+---
+
+## 📜 License
+
+MIT License — Bài tập lớn Lập trình nâng cao
