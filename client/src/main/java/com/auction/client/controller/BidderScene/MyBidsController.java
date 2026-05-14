@@ -1,7 +1,8 @@
-package com.auction.client.controller;
+package com.auction.client.controller.BidderScene;
 
 import com.auction.client.SessionContext;
 import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.util.SceneNavigator;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.Bid;
 import javafx.fxml.FXML;
@@ -33,63 +34,31 @@ public class MyBidsController implements Initializable{
     //Đổi home
     @FXML
     private void switchHomePane(MouseEvent event) throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("/fxml/BidderScene/BidderDashboard.fxml"));
-        Scene scene = new Scene(root);
-        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-        stage.setScene(scene);
-        stage.show();
+        SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "Home");
     }
 
     //Đổi seller
     @FXML
     public void switchSellerDB(MouseEvent mouseEvent) throws IOException {
-        // 1. Load file giao diện Seller
-        Parent sellerView = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/SellerScene/SellerDashboard.fxml")));
-        Stage stage = (Stage) ((Node) mouseEvent.getSource()).getScene().getWindow();
-        Scene scene = new Scene(sellerView);
-        stage.setScene(scene);
-        stage.centerOnScreen();
-        stage.show();
+        SceneNavigator.loadScene(SceneNavigator.SELLER_DASHBOARD, "seller dashboard");
     }
 
     //Đổi items
     @FXML
     public void switchItems(MouseEvent mouseEvent) {
-        try {
-            // 1. Load file giao diện Items
-            Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/BidderScene/Items.fxml")));
-            Stage stage = (Stage) ((Node) mouseEvent.getSource()).getScene().getWindow();
-            Scene scene = new Scene(root);
-            stage.setScene(scene);
-            stage.centerOnScreen();
-            stage.show();
-        } catch (IOException e) {
-            System.err.println("Lỗi: Không tìm thấy file");
-            e.printStackTrace();
-        } catch (NullPointerException e) {
-            System.err.println("Lỗi: Đường dẫn file FXML bị sai (Null)");
-            e.printStackTrace();
-        }
+        SceneNavigator.loadScene(SceneNavigator.ITEMS, "items");
     }
 
     //Đổi wallet
     @FXML
     private void switchWalletPane(MouseEvent event) throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("/fxml/BidderScene/Wallet1.fxml"));
-        Scene scene = new Scene(root);
-        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-        stage.setScene(scene);
-        stage.show();
+        SceneNavigator.loadScene(SceneNavigator.WALLET1, "wallet");
     }
 
     //Đổi Settings
     @FXML
     private void switchSettingsPane(MouseEvent event) throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("/fxml/BidderScene/Setting1.fxml"));
-        Scene scene = new Scene(root);
-        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-        stage.setScene(scene);
-        stage.show();
+        SceneNavigator.loadScene(SceneNavigator.SETTING1, "Setting");
     }
 
 

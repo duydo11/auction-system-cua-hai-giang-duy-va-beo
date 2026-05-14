@@ -2,6 +2,7 @@ package com.auction.client.controller;
 
 import com.auction.client.SessionContext;
 import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.util.SceneNavigator;
 import com.auction.shared.model.user.User;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -22,20 +23,7 @@ public class LoginController {
 
     @FXML
     private void handleSignUpAction(ActionEvent event) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Register.fxml"));
-            Parent registerRoot = loader.load();
-
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-
-            Scene registerScene = new Scene(registerRoot);
-            stage.setScene(registerScene);
-            stage.show();
-
-        } catch (IOException e) {
-            System.err.println("Không tìm thấy file Register.fxml! Kiểm tra lại đường dẫn.");
-            e.printStackTrace();
-        }
+        SceneNavigator.loadScene(SceneNavigator.REGISTER, "register");
     }
 
     @FXML
@@ -65,17 +53,8 @@ public class LoginController {
             SessionContext.setCurrentUser(user);
             ifSuccess.setText("Đăng nhập thành công");
 
-            String role = user.getRoleName();
-            String fxmlPath = switch (role) {
-                case "SELLER" -> "/fxml/SellerScene/SellerDashboard.fxml";
-                case "ADMIN" -> "/fxml/BidderScene/BidderDashboard.fxml";
-                default -> "/fxml/BidderScene/BidderDashboard.fxml";
-            };
-
-            Parent root = FXMLLoader.load(getClass().getResource(fxmlPath));
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.show();
+            //Đăng nhập mặc định là bidder_dashboard
+            SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "BIDDER_HOME");
         } else {
             String err = protocol.lastError(null);
             ifError.setText((err == null || err.isBlank())

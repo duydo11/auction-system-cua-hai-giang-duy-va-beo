@@ -55,12 +55,12 @@ public class ClientProtocolHandler {
 
     private Message sendOnce(Message request) {
         if (!connection.isConnected() && !connection.connect()) {
-            lastTransportError = "Server chưa sẵn sàng hoặc đang tắt.";
+            lastTransportError = "Server is not ready or is currently offline.";
             return null;
         }
         SocketClient client = connection.getSocketClient();
         if (client == null) {
-            lastTransportError = "Socket client chưa khởi tạo.";
+            lastTransportError = "Socket client has not been initialized.";
             return null;
         }
         return client.sendMessage(request);
@@ -85,8 +85,8 @@ public class ClientProtocolHandler {
     }
 
     /** @return {@code null} nếu đăng ký thành công, ngược lại là thông báo lỗi */
-    public String registerOrError(String username, String password, String email, String role) {
-        Message response = send(MessageType.REGISTER_REQUEST, new String[]{username, password, email, role});
+    public String registerOrError(String username, String password, String email) {
+        Message response = send(MessageType.REGISTER_REQUEST, new String[]{username, password, email});
         if (response != null && response.isSuccess()) {
             return null;
         }
@@ -270,7 +270,7 @@ public class ClientProtocolHandler {
 
     public String lastError(Message response) {
         if (response == null) {
-            return lastTransportError != null ? lastTransportError : "Không có phản hồi từ server (mất kết nối?)";
+            return lastTransportError != null ? lastTransportError : "No response from server (connection lost?)";
         }
         if (response.getErrorMessage() != null) {
             return response.getErrorMessage();
