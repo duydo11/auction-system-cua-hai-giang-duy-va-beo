@@ -4,11 +4,13 @@ import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.Bid;
 import com.auction.shared.model.item.Art;
 import com.auction.shared.model.user.Bidder;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("integration")
 public class BidDAOTest {
 
     @Test

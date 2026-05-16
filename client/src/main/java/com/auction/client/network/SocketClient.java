@@ -18,11 +18,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Một luồng đọc liên tục: phản hồi RPC theo {@code correlationId}, push realtime giao cho {@link RealtimeAuctionBus}.
  */
 public class SocketClient {
+    private static final Logger logger = Logger.getLogger(SocketClient.class.getName());
     private static final long RPC_TIMEOUT_SEC = 60;
     private static final int CONNECT_TIMEOUT_MS = 5000;
     private static final int READ_TIMEOUT_MS = 15000;
@@ -58,15 +61,14 @@ public class SocketClient {
             stopped = false;
             startReader();
 
-            System.out.println("✓ Connected to server: " + serverHost + ":" + serverPort);
+            logger.info("Connected to server: " + serverHost + ":" + serverPort);
             return true;
         } catch (IOException e) {
-            System.err.println("✗ Failed to connect to server: " + e.getMessage());
+            logger.warning("Failed to connect to server: " + e.getMessage());
             if (e instanceof ConnectException
                     || (e.getMessage() != null && e.getMessage().toLowerCase().contains("connection refused"))) {
-                System.err.println("→ Kiểm tra: (1) Đã Run ServerMain / SocketServer và thấy \"Listening TCP\"? (2) Đồng port "
-                        + serverPort + " với server/src/main/resources/config.properties và client.properties? "
-                        + "(3) Firewall/antivirus không chặn Java?");
+                logger.warning("Kiểm tra: (1) Đã Run ServerMain / SocketServer? (2) Đúng port "
+                        + serverPort + "? (3) Firewall không chặn Java?");
             }
             return false;
         }
@@ -89,10 +91,10 @@ public class SocketClient {
                 }
             }
         } catch (EOFException e) {
-            System.out.println("✓ Server closed connection");
+            logger.info("Server closed connection");
         } catch (IOException | ClassNotFoundException e) {
             if (!stopped) {
-                System.err.println("✗ Socket reader: " + e.getMessage());
+                logger.log(Level.WARNING, "Socket reader error", e);
             }
         } finally {
             handleConnectionLoss(new IOException("Connection closed by reader loop"));
@@ -101,14 +103,19 @@ public class SocketClient {
 
     private void dispatchIncoming(Message m) {
         String cid = m.getCorrelationId();
-        if (cid != null && !cid.isBlank()) {
+        if (cid != null && !cid.trim().isEmpty()) {
             CompletableFuture<Message> fut = pendingRequests.remove(cid);
             if (fut != null) {
                 fut.complete(m);
                 return;
             }
         }
-        if (m.getType() == MessageType.AUCTION_UPDATED_PUSH || m.getType() == MessageType.AUCTION_CREATED_PUSH) {
+        // Server push → dispatch to RealtimeAuctionBus
+        MessageType type = m.getType();
+        if (type == MessageType.AUCTION_UPDATED_PUSH
+                || type == MessageType.AUCTION_CREATED_PUSH
+                || type == MessageType.CLOSE_AUCTION_PUSH
+                || type == MessageType.AUCTION_EXTENDED_PUSH) {
             RealtimeAuctionBus.dispatch(m);
         }
     }
@@ -120,12 +127,12 @@ public class SocketClient {
 
     public Message sendMessage(Message message) {
         if (!isConnected || objectOutputStream == null) {
-            System.err.println("✗ Not connected to server");
+            logger.warning("Not connected to server");
             return null;
         }
 
         String cid = message.getCorrelationId();
-        if (cid == null || cid.isBlank()) {
+        if (cid == null || cid.trim().isEmpty()) {
             cid = UUID.randomUUID().toString();
             message.setCorrelationId(cid);
         }
@@ -135,22 +142,22 @@ public class SocketClient {
 
         try {
             synchronized (writeLock) {
-                System.out.println("→ Sending to server: " + message.getType());
+                logger.fine("Sending to server: " + message.getType());
                 objectOutputStream.writeObject(message);
                 objectOutputStream.flush();
             }
 
             Message response = fut.get(RPC_TIMEOUT_SEC, TimeUnit.SECONDS);
-            System.out.println("← Received from server: " + response.getType());
+            logger.fine("Response received: " + response.getType());
             return response;
         } catch (IOException e) {
             pendingRequests.remove(cid);
-            System.err.println("✗ Socket write failed: " + e.getMessage());
+            logger.log(Level.WARNING, "Socket write failed: " + e.getMessage(), e);
             handleConnectionLoss(e);
             return null;
         } catch (TimeoutException e) {
             pendingRequests.remove(cid);
-            System.err.println("✗ RPC timeout (" + RPC_TIMEOUT_SEC + "s) for: " + message.getType());
+            logger.warning("RPC timeout (" + RPC_TIMEOUT_SEC + "s) for: " + message.getType());
             return null;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -159,7 +166,7 @@ public class SocketClient {
         } catch (ExecutionException e) {
             pendingRequests.remove(cid);
             Throwable cause = e.getCause();
-            System.err.println("✗ RPC failed: " + (cause != null ? cause.getMessage() : e.getMessage()));
+            logger.warning("RPC failed: " + (cause != null ? cause.getMessage() : e.getMessage()));
             return null;
         }
     }
@@ -179,7 +186,7 @@ public class SocketClient {
                 socket.close();
             }
         } catch (IOException closeError) {
-            System.err.println("✗ Error closing lost connection: " + closeError.getMessage());
+            logger.log(Level.FINE, "Error closing lost connection", closeError);
         }
     }
 
@@ -193,9 +200,9 @@ public class SocketClient {
             if (socket != null && !socket.isClosed()) {
                 socket.close();
             }
-            System.out.println("✓ Disconnected from server");
+            logger.info("Disconnected from server");
         } catch (IOException e) {
-            System.err.println("✗ Error disconnecting: " + e.getMessage());
+            logger.log(Level.FINE, "Error disconnecting", e);
         }
     }
 

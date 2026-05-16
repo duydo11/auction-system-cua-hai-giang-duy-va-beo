@@ -1,18 +1,24 @@
 package com.auction.client.network;
 
 import com.auction.shared.model.auction.AuctionSession;
+import com.auction.shared.model.auction.AutoBidConfig;
 import com.auction.shared.model.auction.Bid;
+import com.auction.shared.model.item.Item;
 import com.auction.shared.model.user.User;
 import com.auction.shared.protocol.Message;
 import com.auction.shared.protocol.MessageType;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * RPC qua socket ({@link Message}): dùng cho JavaFX / controller.
  */
 public class ClientProtocolHandler {
+    private static final Logger logger = Logger.getLogger(ClientProtocolHandler.class.getName());
+
     private final ClientConnection connection;
     private volatile String lastTransportError;
 
@@ -36,29 +42,33 @@ public class ClientProtocolHandler {
         connection.disconnect();
         if (!connection.connect()) {
             lastTransportError = "Không thể kết nối server " + connection.getHost() + ":" + connection.getPort();
-            System.err.println("✗ " + lastTransportError);
+            logger.warning("✗ " + lastTransportError);
             return null;
         }
         response = sendOnce(request);
         if (response == null) {
             lastTransportError = "Mất kết nối hoặc timeout khi gửi " + type;
-            System.err.println("✗ " + lastTransportError);
+            logger.warning("✗ " + lastTransportError);
         }
         return response;
     }
 
     private Message sendOnce(Message request) {
         if (!connection.isConnected() && !connection.connect()) {
-            lastTransportError = "Server chưa sẵn sàng hoặc đang tắt.";
+            lastTransportError = "Server is not ready or is currently offline.";
             return null;
         }
         SocketClient client = connection.getSocketClient();
         if (client == null) {
-            lastTransportError = "Socket client chưa khởi tạo.";
+            lastTransportError = "Socket client has not been initialized.";
             return null;
         }
         return client.sendMessage(request);
     }
+
+    // ========================
+    // Auth methods
+    // ========================
 
     public User login(String username, String password) {
         Message response = send(MessageType.LOGIN_REQUEST, new String[]{username, password});
@@ -75,13 +85,17 @@ public class ClientProtocolHandler {
     }
 
     /** @return {@code null} nếu đăng ký thành công, ngược lại là thông báo lỗi */
-    public String registerOrError(String username, String password, String email, String role) {
-        Message response = send(MessageType.REGISTER_REQUEST, new String[]{username, password, email, role});
+    public String registerOrError(String username, String password, String email) {
+        Message response = send(MessageType.REGISTER_REQUEST, new String[]{username, password, email});
         if (response != null && response.isSuccess()) {
             return null;
         }
         return lastError(response);
     }
+
+    // ========================
+    // Auction methods
+    // ========================
 
     @SuppressWarnings("unchecked")
     public List<AuctionSession> getActiveAuctions() {
@@ -112,6 +126,10 @@ public class ClientProtocolHandler {
         }
         return lastError(response);
     }
+
+    // ========================
+    // Bidding methods
+    // ========================
 
     public boolean placeBid(int sessionId, int bidderId, double bidAmount) {
         Message response = send(
@@ -149,9 +167,110 @@ public class ClientProtocolHandler {
         return Collections.emptyList();
     }
 
+    // ========================
+    // Item Management methods
+    // ========================
+
+    /**
+     * Sửa thông tin item.
+     * @return true nếu thành công
+     */
+    public boolean updateItem(Item item) {
+        Message response = send(MessageType.UPDATE_ITEM_REQUEST, item);
+        return response != null && response.isSuccess();
+    }
+
+    /**
+     * Sửa thông tin item.
+     * @return null nếu thành công, error message nếu thất bại
+     */
+    public String updateItemOrError(Item item) {
+        Message response = send(MessageType.UPDATE_ITEM_REQUEST, item);
+        if (response != null && response.isSuccess()) return null;
+        return lastError(response);
+    }
+
+    /**
+     * Xóa item theo id.
+     * @return true nếu thành công
+     */
+    public boolean deleteItem(int itemId) {
+        Message response = send(MessageType.DELETE_ITEM_REQUEST, String.valueOf(itemId));
+        return response != null && response.isSuccess();
+    }
+
+    /**
+     * Xóa item theo id.
+     * @return null nếu thành công, error message nếu thất bại
+     */
+    public String deleteItemOrError(int itemId) {
+        Message response = send(MessageType.DELETE_ITEM_REQUEST, String.valueOf(itemId));
+        if (response != null && response.isSuccess()) return null;
+        return lastError(response);
+    }
+
+    // ========================
+    // Auto-Bidding methods
+    // ========================
+
+    /**
+     * Đăng ký auto-bid cho một phiên.
+     * @return true nếu thành công
+     */
+    public boolean registerAutoBid(AutoBidConfig config) {
+        Message response = send(MessageType.REGISTER_AUTO_BID_REQUEST, config);
+        return response != null && response.isSuccess();
+    }
+
+    /**
+     * Hủy auto-bid.
+     * @return true nếu thành công
+     */
+    public boolean cancelAutoBid(int sessionId, int bidderId) {
+        Message response = send(
+                MessageType.CANCEL_AUTO_BID_REQUEST,
+                new int[]{sessionId, bidderId}
+        );
+        return response != null && response.isSuccess();
+    }
+
+    // ========================
+    // Admin methods
+    // ========================
+
+    /**
+     * Ban user (chỉ admin).
+     * @return true nếu thành công
+     */
+    public boolean banUser(int userId) {
+        Message response = send(MessageType.BAN_USER_REQUEST, String.valueOf(userId));
+        return response != null && response.isSuccess();
+    }
+
+    /**
+     * Lấy danh sách tất cả user (chỉ admin).
+     * @return danh sách user, empty list nếu thất bại
+     */
+    @SuppressWarnings("unchecked")
+    public List<User> getAllUsers() {
+        Message response = send(MessageType.GET_ALL_USERS_REQUEST, null);
+        if (response == null || !response.isSuccess()) {
+            return Collections.emptyList();
+        }
+        Object data = response.getData();
+        if (data instanceof List<?> list && !list.isEmpty() && list.get(0) instanceof User) {
+            return (List<User>) data;
+        }
+        return Collections.emptyList();
+    }
+
+    // ========================
+    // Utilities
+    // ========================
+
     public String lastError(Message response) {
         if (response == null) {
-            return lastTransportError != null ? lastTransportError : "Không có phản hồi từ server (mất kết nối?)";
+            return lastTransportError != null ? lastTransportError : "No response from server (connection lost?)";
         }
         if (response.getErrorMessage() != null) {
             return response.getErrorMessage();

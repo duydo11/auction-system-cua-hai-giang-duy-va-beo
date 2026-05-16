@@ -9,7 +9,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.Wallet1Controller">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.BidderScene.Wallet1Controller">
     <children>
         <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
             <image>
@@ -193,7 +193,7 @@
                                     </HBox>
                                     <HBox alignment="CENTER" layoutX="15.0" layoutY="229.0" prefHeight="60.0" prefWidth="900.0" spacing="100.0">
                                        <children>
-                                          <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="5.0" style="-fx-background-color: #586db8; -fx-background-radius: 10;">
+                                          <HBox fx:id="btnDeposit" alignment="CENTER_LEFT" onMouseClicked="#handleDeposit" prefHeight="100.0" prefWidth="200.0" spacing="5.0" style="-fx-background-color: #586db8; -fx-background-radius: 10;">
                                              <children>
                                                 <AnchorPane prefHeight="60.0" prefWidth="15.0" />
                                                 <ImageView fitHeight="30.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true">
@@ -208,7 +208,7 @@
                                                 </Label>
                                              </children>
                                           </HBox>
-                                          <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="5.0" style="-fx-background-color: #586db8; -fx-background-radius: 10;">
+                                          <HBox fx:id="btnWithdraw" alignment="CENTER_LEFT" onMouseClicked="#handleWithdraw" prefHeight="100.0" prefWidth="200.0" spacing="5.0" style="-fx-background-color: #586db8; -fx-background-radius: 10;">
                                              <children>
                                                 <AnchorPane prefHeight="60.0" prefWidth="15.0" />
                                                 <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
@@ -270,5 +270,6 @@
                 </VBox>
             </children>
         </VBox>
+      <HBox fx:id="overlayPane" opacity="0.42" prefHeight="680.0" prefWidth="1230.0" style="-fx-background-color: black;" visible="false" />
     </children>
 </AnchorPane>

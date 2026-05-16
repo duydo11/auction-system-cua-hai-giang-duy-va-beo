@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" styleClass="product-card" stylesheets="@../../css/productcard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.BidderDashboardController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" styleClass="product-card" stylesheets="@../../css/productcard.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.BidderScene.BidderDashboardController">
    <children>
       <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
          <image>
@@ -140,14 +140,14 @@
                               <Font name="Montserrat Bold" size="16.0" />
                            </font>
                         </Label>
-                        <ImageView fx:id="lblSettings" fitHeight="42.0" fitWidth="49.0" onMouseClicked="#switchSettingsPane1" pickOnBounds="true" preserveRatio="true">
+                        <ImageView fx:id="lblSettings" fitHeight="42.0" fitWidth="49.0" onMouseClicked="#switchSettingsPane" pickOnBounds="true" preserveRatio="true">
                            <image>
                               <Image url="@../../png/user button.png" />
                            </image>
                         </ImageView>
                      </children>
                   </HBox>
-                  <ScrollPane hbarPolicy="NEVER" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="562.0" prefWidth="945.0" vbarPolicy="NEVER" vmax="3.0">
+                  <ScrollPane hbarPolicy="NEVER" hmax="0.0" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="562.0" prefWidth="945.0" vbarPolicy="NEVER" vmax="3.0">
                      <content>
                         <VBox maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="872.0" prefWidth="707.0" spacing="5.0">
                            <children>

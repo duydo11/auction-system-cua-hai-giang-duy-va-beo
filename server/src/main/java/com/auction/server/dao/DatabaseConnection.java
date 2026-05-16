@@ -7,6 +7,9 @@ import java.sql.SQLException;
 public class DatabaseConnection {
     private volatile static DatabaseConnection instance = null;
     private static Connection connection;
+    
+    // Test connection cho H2 in-memory DB
+    private static Connection testConnection = null;
 
     // (Nhớ đổi lại mật khẩu thật của bạn nhé, lúc nãy mình nhắc rồi đấy!)
     private static final String url = "jdbc:mysql://mysql-20b3bb5f-auction-database-5.c.aivencloud.com:21011/defaultdb?sslMode=REQUIRED";
@@ -37,9 +40,30 @@ public class DatabaseConnection {
 
     // ĐÃ SỬA Ở ĐÂY: Đảm bảo connection không bao giờ bị null khi gọi
     public static Connection getConnection(){
+        // Nếu có test connection → dùng test connection (H2)
+        if (testConnection != null) {
+            return testConnection;
+        }
+        
+        // Nếu không → dùng production connection (MySQL)
         if (instance == null || connection == null) {
             getInstance();
         }
         return connection;
     }
+    
+    /**
+     * Dùng cho test — inject H2 in-memory connection
+     */
+    public static void setTestConnection(Connection conn) {
+        testConnection = conn;
+    }
+    
+    /**
+     * Dùng cho test — xóa test connection sau khi test xong
+     */
+    public static void clearTestConnection() {
+        testConnection = null;
+    }
 }
+

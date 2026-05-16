@@ -2,9 +2,9 @@ name: Java CI/CD Pipeline with Maven
 
 on:
   push:
-    branches: [ "main", "develop", "hoan", "giang" ]
+    branches: [ "main", "develop","donluy", "hoan", "giang" ]
   pull_request:
-    branches: [ "main", "develop", "hoan", "giang" ]
+    branches: [ "main", "develop","donluy", "hoan", "giang" ]
 
 jobs:
   build-and-test:

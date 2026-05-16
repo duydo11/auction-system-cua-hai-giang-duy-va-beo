@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" styleClass="product-card" stylesheets="@../../css/productcard.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AdminScene.AdminDashboardController">
+    <children>
+        <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
+            <image>
+                <Image url="@../../png/download7.jpg" />
+            </image>
+        </ImageView>
+        <VBox alignment="CENTER" layoutX="14.0" prefHeight="680.0" prefWidth="256.0" spacing="10.0">
+            <children>
+                <HBox alignment="CENTER_LEFT" opacity="0.9" prefHeight="48.0" prefWidth="230.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                    <children>
+                  <AnchorPane prefHeight="48.0" prefWidth="14.0" />
+                        <ImageView fitHeight="40.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
+                            <image>
+                                <Image url="@../../png/4.thongke.png" />
+                            </image>
+                        </ImageView>
+                        <Label prefHeight="54.0" prefWidth="162.0" text="STATISTICS ">
+                            <font>
+                                <Font name="Montserrat Bold" size="14.0" />
+                            </font>
+                        </Label>
+                    </children>
+                </HBox>
+                <HBox fx:id="btnUser" alignment="CENTER_LEFT" onMouseClicked="#switchUser" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                    <children>
+                  <AnchorPane prefHeight="48.0" prefWidth="14.0" />
+                        <ImageView fitHeight="40.0" fitWidth="39.0" pickOnBounds="true" preserveRatio="true">
+                            <image>
+                                <Image url="@../../png/userrr.png" />
+                            </image>
+                        </ImageView>
+                        <Label prefHeight="48.0" prefWidth="169.0" text="USER MANAGEMENT">
+                            <font>
+                                <Font name="Montserrat Bold" size="14.0" />
+                            </font>
+                        </Label>
+                    </children>
+                </HBox>
+                <HBox fx:id="btnCategory" alignment="CENTER" onMouseClicked="#switchCategory" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                    <children>
+                  <AnchorPane prefHeight="48.0" prefWidth="14.0" />
+                        <ImageView fitHeight="46.0" fitWidth="46.0" pickOnBounds="true" preserveRatio="true">
+                            <image>
+                                <Image url="@../../png/3.product.png" />
+                            </image>
+                        </ImageView>
+                        <Label prefHeight="48.0" prefWidth="206.0" text="CATEGORY MANAGEMENT">
+                            <font>
+                                <Font name="Montserrat Bold" size="14.0" />
+                            </font>
+                        </Label>
+                    </children>
+                </HBox>
+                <HBox fx:id="btnLogout" alignment="CENTER_LEFT" onMouseClicked="#switchLogout" opacity="0.7" prefHeight="48.0" prefWidth="220.0" style="-fx-background-color: white; -fx-background-radius: 15;">
+                    <children>
+                  <AnchorPane prefHeight="48.0" prefWidth="14.0" />
+                        <ImageView fitHeight="34.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
+                            <image>
+                                <Image url="@../../png/4.logout.png" />
+                            </image>
+                        </ImageView>
+                        <Label prefHeight="54.0" prefWidth="162.0" text="LOGOUT" textFill="#ff1109">
+                            <font>
+                                <Font name="Montserrat Bold" size="15.0" />
+                            </font>
+                        </Label>
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+        <VBox layoutX="284.0" layoutY="20.0" prefHeight="640.0" prefWidth="926.0" spacing="10.0">
+            <children>
+                <VBox alignment="CENTER" prefHeight="640.0" prefWidth="871.0" spacing="10.0" style="-fx-background-color: white; -fx-background-radius: 25;">
+               <children>
+                  <AnchorPane prefHeight="596.0" prefWidth="926.0">
+                     <children>
+                        <VBox layoutX="51.0" layoutY="11.0" prefHeight="574.0" prefWidth="824.0" spacing="10.0">
+                           <children>
+                              <HBox alignment="BOTTOM_LEFT" prefHeight="88.0" prefWidth="824.0" spacing="5.0">
+                                 <children>
+                                    <AnchorPane prefHeight="40.0" prefWidth="24.0" />
+                                    <ImageView fitHeight="50.0" fitWidth="48.0" pickOnBounds="true" preserveRatio="true">
+                                       <image>
+                                          <Image url="@../../png/4.thongke.png" />
+                                       </image>
+                                    </ImageView>
+                                    <Label prefHeight="43.0" prefWidth="162.0" text="STATISTICS ">
+                                       <font>
+                                          <Font name="Montserrat Bold" size="18.0" />
+                                       </font>
+                                    </Label>
+                                 </children>
+                              </HBox>
+                              <AnchorPane prefHeight="521.0" prefWidth="871.0">
+                                 <children>
+                                    <HBox layoutX="29.0" layoutY="14.0" opacity="0.9" prefHeight="90.0" prefWidth="770.0" style="-fx-background-radius: 15; -fx-border-color: #691010; -fx-border-radius: 15; -fx-background-color: #cf6161;">
+                                       <children>
+                                          <AnchorPane prefHeight="88.0" prefWidth="56.0" />
+                                          <Label prefHeight="89.0" prefWidth="150.0" text="Total Users:">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="24.0" />
+                                             </font>
+                                          </Label>
+                                          <Label alignment="CENTER_RIGHT" prefHeight="89.0" prefWidth="497.0" text="1">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="24.0" />
+                                             </font>
+                                          </Label>
+                                          <AnchorPane prefHeight="88.0" prefWidth="62.0" />
+                                       </children>
+                                    </HBox>
+                                    <HBox layoutX="29.0" layoutY="122.0" opacity="0.9" prefHeight="90.0" prefWidth="770.0" style="-fx-background-radius: 15; -fx-border-color: #185716; -fx-border-radius: 15; -fx-background-color: #85cf82;">
+                                       <children>
+                                          <AnchorPane prefHeight="88.0" prefWidth="56.0" />
+                                          <Label prefHeight="89.0" prefWidth="189.0" text="Total Auctions:">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="24.0" />
+                                             </font>
+                                          </Label>
+                                          <Label alignment="CENTER_RIGHT" prefHeight="89.0" prefWidth="466.0" text="0">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="24.0" />
+                                             </font>
+                                          </Label>
+                                          <AnchorPane prefHeight="88.0" prefWidth="62.0" />
+                                       </children>
+                                    </HBox>
+                                    <HBox layoutX="29.0" layoutY="236.0" opacity="0.9" prefHeight="90.0" prefWidth="770.0" style="-fx-background-radius: 15; -fx-border-color: #8f850e; -fx-border-radius: 15; -fx-background-color: #ebe48d;">
+                                       <children>
+                                          <AnchorPane prefHeight="88.0" prefWidth="56.0" />
+                                          <Label prefHeight="89.0" prefWidth="195.0" text="Total Revenue:">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="24.0" />
+                                             </font>
+                                          </Label>
+                                          <Label alignment="CENTER_RIGHT" prefHeight="89.0" prefWidth="470.0" text="000.000.000.000">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="24.0" />
+                                             </font>
+                                          </Label>
+                                          <AnchorPane prefHeight="88.0" prefWidth="62.0" />
+                                       </children>
+                                    </HBox>
+                                    <HBox layoutX="29.0" layoutY="353.0" opacity="0.9" prefHeight="90.0" prefWidth="770.0" style="-fx-background-radius: 15; -fx-border-color: black; -fx-border-radius: 15; -fx-background-color: #96aed4;">
+                                       <children>
+                                          <AnchorPane prefHeight="88.0" prefWidth="56.0" />
+                                          <Label prefHeight="89.0" prefWidth="243.0" text="Pending Requests:">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="24.0" />
+                                             </font>
+                                          </Label>
+                                          <Label alignment="CENTER_RIGHT" prefHeight="89.0" prefWidth="422.0" text="0">
+                                             <font>
+                                                <Font name="Montserrat Bold" size="24.0" />
+                                             </font>
+                                          </Label>
+                                          <AnchorPane prefHeight="88.0" prefWidth="62.0" />
+                                       </children>
+                                    </HBox>
+                                 </children>
+                              </AnchorPane>
+                           </children>
+                        </VBox>
+                     </children>
+                  </AnchorPane>
+               </children>
+                </VBox>
+            </children>
+        </VBox>
+    </children>
+</AnchorPane>

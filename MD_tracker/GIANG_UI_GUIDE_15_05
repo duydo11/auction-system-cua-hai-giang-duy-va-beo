@@ -1,0 +1,398 @@
+# 📘 Hướng dẫn cho Giang - UI Data Binding & Backend Integration
+
+## 🎯 Mục đích
+File này giải thích cách kết nối UI (FXML + Controller) với Backend (Database + Services).
+
+---
+
+## ❓ Trả lời các câu hỏi của Giang
+
+### 1. **"Đã thanh toán" có cần UI không?
+
+**Trả lời**: ❌ **KHÔNG CẦN** cho project sinh viên này.
+
+**Lý do**:
+- Đây là project mô phỏng, không có payment gateway thật
+- `AuctionStatus.PAID` chỉ là trạng thái logic trong code
+- Chỉ cần hiển thị trạng thái: OPEN, RUNNING, FINISHED, CANCELED
+- Không cần màn hình thanh toán, không cần tích hợp Momo/VNPay
+
+**Gợi ý hiển thị**:
+```java
+// Trong ProductCard, chỉ cần show status
+switch (session.getStatus()) {
+    case OPEN -> lblStatus.setText("Chưa bắt đầu");
+    case RUNNING -> lblStatus.setText("Đang đấu giá");
+    case FINISHED -> lblStatus.setText("Đã kết thúc");
+    case CANCELED -> lblStatus.setText("Đã hủy");
+}
+```
+
+---
+
+### 2. **Anti-sniping: 30s cuối, không cần nút extension**
+
+**Trả lời**: ✅ **ĐÚNG** — Anti-sniping tự động, không cần nút bấm.
+
+**Cách hoạt động**:
+- Backend tự động kiểm tra: nếu bid trong **30s cuối** → gia hạn **+60s**
+- Code trong `BidService.java` line 84-104:
+  ```java
+  private void checkAndExtendForAntiSnipe(AuctionSession session) {
+      long secondsRemaining = ChronoUnit.SECONDS.between(now, endTime);
+      if (secondsRemaining >= 0 && secondsRemaining <= 30) {
+          session.setEndTime(endTime.plusSeconds(60));
+          // Broadcast AUCTION_EXTENDED_PUSH
+      }
+  }
+  ```
+
+**UI chỉ cần**:
+1. **Hiển thị cảnh báo** khi còn < 5 phút:
+   ```java
+   if (timeRemaining < 300) {
+       lblWarning.setText("⚠️ Sắp kết thúc!");
+       lblWarning.setStyle("-fx-text-fill: red;");
+   }
+   ```
+
+2. **Lắng nghe push message** `AUCTION_EXTENDED_PUSH`:
+   ```java
+   // Trong RealtimeAuctionBus
+   if (msg.getType() == MessageType.AUCTION_EXTENDED_PUSH) {
+       AuctionSession updated = (AuctionSession) msg.getData();
+       showNotification("⏰ Phiên #" + updated.getId() + " gia hạn thêm 60s");
+       updateEndTime(updated.getId(), updated.getEndTime());
+   }
+   ```
+
+**Không cần**:
+- ❌ Nút "Gia hạn" (tự động rồi)
+- ❌ Input "extension_sec" (fix cứng 60s)
+
+---
+
+### 3. **`checkAndExtendForAntiSnipe()` và `AUCTION_EXTENDED_PUSH` làm gì?**
+
+**Trả lời**:
+
+#### `checkAndExtendForAntiSnipe()` (Backend)
+- **Vị trí**: `BidService.java` line 84
+- **Chức năng**: Kiểm tra sau mỗi bid, nếu bid trong 30s cuối → gia hạn +60s
+- **Khi nào gọi**: Tự động sau mỗi `placeBid()` thành công
+- **Giang không cần làm gì** — backend tự xử lý
+
+#### `AUCTION_EXTENDED_PUSH` (Push notification)
+- **Vị trí**: `MessageType.java`
+- **Chức năng**: Server broadcast cho tất cả client đang xem phiên đó
+- **Payload**: `AuctionSession` với `endTime` mới
+- **Giang cần làm**: Lắng nghe message này và update UI countdown timer
+
+**Code mẫu cho Giang**:
+```java
+// File: RealtimeAuctionBus.java (đã có sẵn)
+public void onMessage(Message msg) {
+    if (msg.getType() == MessageType.AUCTION_EXTENDED_PUSH) {
+        AuctionSession session = (AuctionSession) msg.getData();
+        
+        // Update countdown timer trên UI
+        Platform.runLater(() -> {
+            updateAuctionEndTime(session.getId(), session.getEndTime());
+            showToast("⏰ Phiên #" + session.getId() + " gia hạn +60s");
+        });
+    }
+}
+```
+
+---
+
+## 🔗 Mapping: UI Form Fields → Database
+
+### Ví dụ: AddProductDialog (Thêm sản phẩm)
+
+| UI Field (FXML fx:id) | Controller Variable | Java Model | Database Table | Database Column |
+|----------------------|---------------------|------------|----------------|-----------------|
+| `txtProductName` | `txtProductName.getText()` | `Item.name` | `items` | `name` |
+| `txtProductDetails` | `txtProductDetails.getText()` | `Item.description` | `items` | `description` |
+| `txtStartingPrice` | `txtStartingPrice.getText()` | `AuctionSession.startingPrice` | `auction_sessions` | `starting_price` |
+| `dpStartDate` + `cbStartHour` | `combineDateTime(...)` | `AuctionSession.startTime` | `auction_sessions` | `start_time` |
+| `dpEndDate` + `cbEndHour` | `combineDateTime(...)` | `AuctionSession.endTime` | `auction_sessions` | `end_time` |
+| `cbCategory` | `cbCategory.getValue()` | `Item` subclass | `electronics` / `arts` / `vehicles` | (subclass table) |
+
+### Luồng dữ liệu:
+
+```
+UI Input (FXML)
+    ↓
+Controller (Java)
+    ↓ txtProductName.getText()
+Java Model (Item, AuctionSession)
+    ↓ protocol.createAuctionOrError(session)
+Network (Socket)
+    ↓
+Server (AuctionService)
+    ↓ itemDAO.saveItem(item)
+Database (MySQL)
+    ↓ INSERT INTO items (name, description, seller_id)
+```
+
+---
+
+## 📝 Hướng dẫn Data Binding cho từng màn hình
+
+### 1. **BidderDashboard** — Hiển thị danh sách phiên đấu giá
+
+**File**: `BidderDashboardController.java`
+
+**Bước 1**: Load data từ backend
+```java
+@FXML
+private VBox containerAuctions; // Container chứa ProductCard
+
+private ClientProtocolHandler protocol = new ClientProtocolHandler();
+
+@Override
+public void initialize(URL location, ResourceBundle resources) {
+    loadActiveAuctions();
+}
+
+private void loadActiveAuctions() {
+    List<AuctionSession> auctions = protocol.getActiveAuctions();
+    
+    for (AuctionSession session : auctions) {
+        try {
+            // Load ProductCard.fxml
+            FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/fxml/Card/ProductCard.fxml")
+            );
+            Node card = loader.load();
+            
+            // Get controller và set data
+            ProductCardController controller = loader.getController();
+            controller.setAuctionSession(session);
+            
+            // Add vào container
+            containerAuctions.getChildren().add(card);
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+**Bước 2**: Update ProductCardController
+```java
+public class ProductCardController {
+    @FXML private Label lblItemName;
+    @FXML private Label lblCurrentPrice;
+    @FXML private Label lblTimeRemaining;
+    @FXML private Label lblBidsCount;
+    @FXML private Button btnPlaceBid;
+    
+    private AuctionSession session;
+    
+    public void setAuctionSession(AuctionSession session) {
+        this.session = session;
+        
+        // Bind data
+        lblItemName.setText(session.getItem().getName());
+        lblCurrentPrice.setText(String.format("$%.2f", session.getCurrentPrice()));
+        lblBidsCount.setText(session.getBids().size() + " bids");
+        
+        // Calculate time remaining
+        updateTimeRemaining();
+    }
+    
+    private void updateTimeRemaining() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime end = session.getEndTime();
+        
+        long seconds = ChronoUnit.SECONDS.between(now, end);
+        if (seconds < 0) {
+            lblTimeRemaining.setText("Đã kết thúc");
+        } else {
+            long hours = seconds / 3600;
+            long mins = (seconds % 3600) / 60;
+            lblTimeRemaining.setText(String.format("%dh %dm", hours, mins));
+        }
+    }
+    
+    @FXML
+    private void handlePlaceBid() {
+        // Open bid dialog
+        // protocol.placeBid(session.getId(), bidderId, amount);
+    }
+}
+```
+
+---
+
+### 2. **SellerDashboard** — Hiển thị sản phẩm của seller
+
+**File**: `SellerDashboardController.java`
+
+```java
+private void loadSellerItems() {
+    User currentUser = SessionContext.getCurrentUser();
+    if (!(currentUser instanceof Seller)) {
+        return;
+    }
+    
+    int sellerId = currentUser.getId();
+    
+    // Load all auctions, filter by seller
+    List<AuctionSession> allAuctions = protocol.getActiveAuctions();
+    List<AuctionSession> myAuctions = allAuctions.stream()
+        .filter(s -> s.getSeller().getId() == sellerId)
+        .collect(Collectors.toList());
+    
+    // Display in cards
+    for (AuctionSession session : myAuctions) {
+        // Same as BidderDashboard, but add Edit/Delete buttons
+        ProductCardController controller = loader.getController();
+        controller.setAuctionSession(session);
+        controller.showSellerActions(true); // Show edit/delete
+    }
+}
+```
+
+---
+
+### 3. **AdminDashboard** — Hiển thị danh sách user
+
+**File**: `AdminDashboardController.java`
+
+```java
+@FXML
+private TableView<User> tableUsers;
+@FXML
+private TableColumn<User, Integer> colId;
+@FXML
+private TableColumn<User, String> colUsername;
+@FXML
+private TableColumn<User, String> colRole;
+
+private void loadAllUsers() {
+    List<User> users = protocol.getAllUsers();
+    
+    // Setup table columns
+    colId.setCellValueFactory(new PropertyValueFactory<>("id"));
+    colUsername.setCellValueFactory(new PropertyValueFactory<>("username"));
+    colRole.setCellValueFactory(cellData -> 
+        new SimpleStringProperty(cellData.getValue().getRoleName())
+    );
+    
+    // Load data
+    ObservableList<User> data = FXCollections.observableArrayList(users);
+    tableUsers.setItems(data);
+}
+
+@FXML
+private void handleBanUser() {
+    User selected = tableUsers.getSelectionModel().getSelectedItem();
+    if (selected != null) {
+        boolean success = protocol.banUser(selected.getId());
+        if (success) {
+            showAlert("Đã ban user: " + selected.getUsername());
+            loadAllUsers(); // Reload
+        }
+    }
+}
+```
+
+---
+
+## 🗂️ Database Field Mapping Reference
+
+### Table: `items`
+| Java Field | Database Column | Type | Notes |
+|------------|----------------|------|-------|
+| `Item.id` | `id` | INT | Auto-generated by backend |
+| `Item.name` | `name` | VARCHAR(255) | From `txtProductName` |
+| `Item.description` | `description` | TEXT | From `txtProductDetails` |
+| `Item.seller.id` | `seller_id` | INT | From `SessionContext.getCurrentUser()` |
+
+### Table: `auction_sessions`
+| Java Field | Database Column | Type | Notes |
+|------------|----------------|------|-------|
+| `AuctionSession.id` | `id` | INT | Auto-generated |
+| `AuctionSession.item.id` | `item_id` | INT | Foreign key |
+| `AuctionSession.seller.id` | `seller_id` | INT | Foreign key |
+| `AuctionSession.winner.id` | `winner_id` | INT | NULL until auction ends |
+| `AuctionSession.startingPrice` | `starting_price` | DOUBLE | From `txtStartingPrice` |
+| `AuctionSession.currentPrice` | `current_price` | DOUBLE | Updated by bids |
+| `AuctionSession.startTime` | `start_time` | DATETIME | From `dpStartDate` + time |
+| `AuctionSession.endTime` | `end_time` | DATETIME | From `dpEndDate` + time |
+
+### Table: `bids`
+| Java Field | Database Column | Type | Notes |
+|------------|----------------|------|-------|
+| `Bid.id` | `id` | INT | Auto-generated |
+| `Bid.bidder.id` | `bidder_id` | INT | Foreign key |
+| `Bid.session.id` | `auction_session_id` | INT | Foreign key |
+| `Bid.amount` | `amount` | DOUBLE | Bid price |
+| `Bid.time` | `time` | DATETIME | Timestamp |
+
+---
+
+## 🎨 UI Components → Backend Methods
+
+| UI Action | Controller Method | Backend Method | Database Operation |
+|-----------|------------------|----------------|-------------------|
+| Click "Đăng ký" | `handleRegister()` | `protocol.register()` | INSERT INTO users |
+| Click "Đăng nhập" | `handleLogin()` | `protocol.login()` | SELECT FROM users |
+| Click "Thêm sản phẩm" | `handleCreateAuction()` | `protocol.createAuctionOrError()` | INSERT INTO items, auction_sessions |
+| Click "Đặt giá" | `handlePlaceBid()` | `protocol.placeBid()` | INSERT INTO bids, UPDATE auction_sessions |
+| Click "Ban user" | `handleBanUser()` | `protocol.banUser()` | UPDATE users SET banned=1 |
+| Load dashboard | `initialize()` | `protocol.getActiveAuctions()` | SELECT FROM auction_sessions |
+
+---
+
+## ✅ Checklist cho Giang
+
+### Phase 1: Data Binding (2 days)
+- [ ] Update `ProductCardController.setAuctionSession()`
+- [ ] Update `BidderDashboardController.loadActiveAuctions()`
+- [ ] Update `SellerDashboardController.loadSellerItems()`
+- [ ] Update `AdminDashboardController.loadAllUsers()`
+- [ ] Test: Run app, login, see real data
+
+### Phase 2: Real-time Updates (1 day)
+- [ ] Listen to `PRICE_UPDATE` push
+- [ ] Listen to `AUCTION_EXTENDED_PUSH` push
+- [ ] Update cards when price changes
+- [ ] Show toast notification
+
+### Phase 3: Polish (1 day)
+- [ ] Add countdown timer (update every second)
+- [ ] Add warning when < 5 min remaining
+- [ ] Add loading spinner while fetching data
+- [ ] Handle empty state (no auctions)
+
+---
+
+## 🆘 Nếu gặp lỗi
+
+### Lỗi: "Cannot connect to server"
+- Check server đang chạy: `ServerMain.java`
+- Check port: 8080 (default)
+
+### Lỗi: "NullPointerException"
+- Check `SessionContext.getCurrentUser()` != null
+- Check `protocol.getActiveAuctions()` trả về list (có thể empty)
+
+### Lỗi: "FXML not found"
+- Check path: `/fxml/Card/ProductCard.fxml` (phải có `/` đầu)
+- Check file tồn tại trong `resources/fxml/`
+
+---
+
+## 📞 Liên hệ
+
+Nếu có câu hỏi, hỏi Duy (backend lead):
+- Anti-sniping logic
+- Database schema
+- Protocol methods
+- Error handling
+

@@ -6,8 +6,20 @@ import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
 
+import java.util.List;
+
 public class UserService {
-    private final UserDAO userDAO = new UserDAO();
+    private final UserDAO userDAO;
+
+    /** Constructor mặc định — dùng trong production */
+    public UserService() {
+        this.userDAO = new UserDAO();
+    }
+
+    /** Constructor cho test — cho phép inject mock DAO */
+    public UserService(UserDAO userDAO) {
+        this.userDAO = userDAO;
+    }
 
     public User loginUser(String username, String password) {
         return userDAO.login(username, password);
@@ -33,5 +45,26 @@ public class UserService {
         }
         userDAO.saveUser(user);
         return true;
+    }
+
+    /**
+     * Lấy danh sách tất cả user (dành cho Admin dashboard).
+     */
+    public List<User> getAllUsers() {
+        return userDAO.getAllUsers();
+    }
+
+    /**
+     * Ban (xóa) user theo id.
+     * Validate: chỉ admin mới được ban, không thể ban chính mình.
+     */
+    public boolean banUser(int userId) {
+        try {
+            userDAO.deleteUser(userId);
+            return true;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

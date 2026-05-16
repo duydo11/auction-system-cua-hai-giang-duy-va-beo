@@ -23,10 +23,33 @@ public enum MessageType {
     GET_BIDS_REQUEST,
     GET_BIDS_RESPONSE,
 
-    /** Server → client: phiên đấu giá vừa cập nhật (sau bid). */
+    // Item Management (Seller)
+    UPDATE_ITEM_REQUEST,
+    UPDATE_ITEM_RESPONSE,
+    DELETE_ITEM_REQUEST,
+    DELETE_ITEM_RESPONSE,
+
+    // Auto-Bidding
+    REGISTER_AUTO_BID_REQUEST,
+    REGISTER_AUTO_BID_RESPONSE,
+    CANCEL_AUTO_BID_REQUEST,
+    CANCEL_AUTO_BID_RESPONSE,
+
+    // Admin
+    BAN_USER_REQUEST,
+    BAN_USER_RESPONSE,
+    GET_ALL_USERS_REQUEST,
+    GET_ALL_USERS_RESPONSE,
+
+    // Server Push (Server → Client, no correlationId)
+    /** Phiên đấu giá vừa cập nhật (sau bid). */
     AUCTION_UPDATED_PUSH,
-    /** Server → client: phiên mới được tạo. */
+    /** Phiên mới được tạo. */
     AUCTION_CREATED_PUSH,
+    /** Phiên đã tự động đóng (hết giờ). */
+    CLOSE_AUCTION_PUSH,
+    /** Phiên gia hạn do anti-sniping. */
+    AUCTION_EXTENDED_PUSH,
 
     // User
     GET_USER_INFO_REQUEST,

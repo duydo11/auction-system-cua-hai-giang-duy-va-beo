@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.ActionsScene.AddProductDialogController">
+   <children>
+      <HBox prefHeight="64.0" prefWidth="600.0">
+         <children>
+            <AnchorPane prefHeight="64.0" prefWidth="38.0" />
+            <Label prefHeight="62.0" prefWidth="290.0" text="Add New Product" textFill="#438bcf">
+               <font>
+                  <Font name="Montserrat Bold" size="24.0" />
+               </font>
+            </Label>
+         </children>
+      </HBox>
+      <ScrollPane hmax="0.0" layoutY="61.0" prefHeight="541.0" prefWidth="600.0" vmax="4.0">
+         <content>
+            <VBox prefHeight="920.0" prefWidth="582.0" spacing="10.0">
+               <children>
+                  <HBox prefHeight="77.0" prefWidth="582.0">
+                     <children>
+                        <AnchorPane prefHeight="66.0" prefWidth="37.0" />
+                        <VBox prefHeight="72.0" prefWidth="520.0">
+                           <children>
+                              <Label prefHeight="44.0" prefWidth="520.0" text="Product name">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="14.0" />
+                                 </font>
+                              </Label>
+                              <TextArea fx:id="txtProductName" prefHeight="10.0" prefWidth="520.0" style="-fx-border-color: black;" wrapText="true">
+                                 <font>
+                                    <Font name="Montserrat Medium" size="14.0" />
+                                 </font>
+                              </TextArea>
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+                  <HBox prefHeight="113.0" prefWidth="582.0">
+                     <children>
+                        <AnchorPane prefHeight="90.0" prefWidth="38.0" />
+                        <VBox prefHeight="202.0" prefWidth="520.0" spacing="5.0">
+                           <children>
+                              <Label prefHeight="28.0" prefWidth="558.0" text="Product details">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="14.0" />
+                                 </font>
+                              </Label>
+                              <TextArea fx:id="txtProductDetails" prefHeight="74.0" prefWidth="520.0" style="-fx-border-color: black;" wrapText="true">
+                                 <font>
+                                    <Font name="Montserrat Medium" size="14.0" />
+                                 </font>
+                              </TextArea>
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+                  <HBox prefHeight="56.0" prefWidth="582.0">
+                     <children>
+                        <AnchorPane prefHeight="66.0" prefWidth="37.0" />
+                        <VBox prefHeight="54.0" prefWidth="520.0">
+                           <children>
+                              <Label prefHeight="32.0" prefWidth="520.0" text="Category">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="14.0" />
+                                 </font>
+                              </Label>
+                              <ComboBox fx:id="cbCategory" prefHeight="26.0" prefWidth="526.0" promptText="Select a category" visibleRowCount="12" />
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+                  <HBox prefHeight="76.0" prefWidth="582.0">
+                     <children>
+                        <AnchorPane prefHeight="153.0" prefWidth="38.0" />
+                        <VBox prefHeight="89.0" prefWidth="520.0" spacing="5.0">
+                           <children>
+                              <Label prefHeight="28.0" prefWidth="558.0" text="Starting price">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="14.0" />
+                                 </font>
+                              </Label>
+                              <TextArea fx:id="txtStartingPrice" prefHeight="10.0" prefWidth="520.0" style="-fx-border-color: black;" wrapText="true">
+                                 <font>
+                                    <Font name="Montserrat Medium" size="14.0" />
+                                 </font>
+                              </TextArea>
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+                  <HBox prefHeight="62.0" prefWidth="582.0">
+                     <children>
+                        <AnchorPane prefHeight="153.0" prefWidth="38.0" />
+                        <VBox prefHeight="20.0" prefWidth="520.0" spacing="5.0">
+                           <children>
+                              <Label prefHeight="21.0" prefWidth="520.0" text="Start date">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="14.0" />
+                                 </font>
+                              </Label>
+                              <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="532.0" spacing="5.0">
+                                 <children>
+                                    <DatePicker fx:id="dpStartDate" prefHeight="29.0" prefWidth="210.0" style="-fx-border-color: black;" />
+                                    <ComboBox fx:id="cbStartHour" prefHeight="26.0" prefWidth="90.0" promptText="HH" visibleRowCount="12" />
+                                    <Label text=":">
+                                       <font>
+                                          <Font name="Montserrat Bold" size="14.0" />
+                                       </font>
+                                    </Label>
+                                    <ComboBox fx:id="cbStartMin" prefHeight="26.0" prefWidth="90.0" promptText="mm" />
+                                    <ComboBox fx:id="cbStartAMPM" prefHeight="26.0" prefWidth="100.0" promptText="AM/PM" visibleRowCount="2" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+                  <HBox prefHeight="62.0" prefWidth="582.0">
+                     <children>
+                        <AnchorPane prefHeight="153.0" prefWidth="38.0" />
+                        <VBox prefHeight="89.0" prefWidth="520.0" spacing="5.0">
+                           <children>
+                              <Label prefHeight="21.0" prefWidth="520.0" text="End date">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="14.0" />
+                                 </font>
+                              </Label>
+                              <HBox alignment="CENTER_LEFT" prefHeight="35.0" prefWidth="520.0" spacing="5.0">
+                                 <children>
+                                    <DatePicker fx:id="dpEndDate" prefHeight="29.0" prefWidth="210.0" style="-fx-border-color: black;" />
+                                    <ComboBox fx:id="cbEndHour" prefHeight="26.0" prefWidth="90.0" promptText="HH" visibleRowCount="12" />
+                                    <Label text=":">
+                                       <font>
+                                          <Font name="Montserrat Bold" size="14.0" />
+                                       </font>
+                                    </Label>
+                                    <ComboBox fx:id="cbEndMin" prefHeight="26.0" prefWidth="90.0" promptText="mm" />
+                                    <ComboBox fx:id="cbEndAMPM" prefHeight="26.0" prefWidth="100.0" promptText="AM/PM" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+                  <HBox prefHeight="76.0" prefWidth="582.0">
+                     <children>
+                        <AnchorPane prefHeight="153.0" prefWidth="38.0" />
+                        <VBox prefHeight="89.0" prefWidth="520.0" spacing="5.0">
+                           <children>
+                              <Label prefHeight="28.0" prefWidth="558.0" text="Add image">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="14.0" />
+                                 </font>
+                              </Label>
+                              <HBox prefHeight="100.0" prefWidth="200.0" style="-fx-border-color: black;">
+                                 <children>
+                                    <ImageView fitHeight="263.0" fitWidth="521.0" pickOnBounds="true" preserveRatio="true" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+                  <AnchorPane prefHeight="0.0" prefWidth="582.0" />
+                  <HBox fx:id="btnCreate" alignment="CENTER" onMouseClicked="#handleCreateAuction" prefHeight="51.0" prefWidth="582.0" spacing="100.0">
+                     <children>
+                        <AnchorPane prefHeight="200.0" prefWidth="200.0" />
+                        <HBox alignment="CENTER" prefHeight="50.0" prefWidth="160.0" style="-fx-background-color: #438bcf; -fx-border-color: white; -fx-background-radius: 15; -fx-border-radius: 15;">
+                           <children>
+                              <Label text="Confirm" textFill="WHITE">
+                                 <font>
+                                    <Font name="Montserrat Bold" size="18.0" />
+                                 </font>
+                              </Label>
+                           </children>
+                        </HBox>
+                     </children>
+                  </HBox>
+                  <HBox alignment="TOP_CENTER" prefHeight="40.0" prefWidth="582.0">
+                     <children>
+                        <Label fx:id="lblMessage" alignment="TOP_CENTER" prefHeight="43.0" prefWidth="440.0" textFill="#ff4949">
+                           <font>
+                              <Font name="Montserrat Medium" size="13.0" />
+                           </font>
+                        </Label>
+                     </children>
+                  </HBox>
+               </children>
+            </VBox>
+         </content>
+      </ScrollPane>
+   </children>
+</AnchorPane>
