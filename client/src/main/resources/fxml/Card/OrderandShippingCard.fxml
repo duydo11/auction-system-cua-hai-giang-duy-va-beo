@@ -39,7 +39,7 @@
                               <Font name="Montserrat Bold" size="14.0" />
                            </font>
                         </Label>
-                        <Label prefHeight="26.0" prefWidth="443.0" text="Username">
+                        <Label fx:id="lblWinner" prefHeight="26.0" prefWidth="443.0" text="Username">
                            <font>
                               <Font name="Montserrat Medium" size="14.0" />
                            </font>
@@ -62,7 +62,7 @@
                               <Font name="Montserrat Bold" size="14.0" />
                            </font>
                         </Label>
-                        <Label prefHeight="32.0" prefWidth="320.0" text="000.000.000">
+                        <Label fx:id="lblWinningPrice" prefHeight="32.0" prefWidth="320.0" text="000.000.000">
                            <font>
                               <Font name="Montserrat Medium" size="14.0" />
                            </font>
@@ -84,7 +84,7 @@
         </VBox>
       <AnchorPane prefHeight="200.0" prefWidth="200.0">
          <children>
-                  <Button layoutY="85.0" mnemonicParsing="false" prefHeight="38.0" prefWidth="168.0" style="-fx-background-color: #438bcf; -fx-background-radius: 15; -fx-border-color: #438bcf; -fx-border-radius: 15;" text="Comfirm Shipping" textFill="#fbfcfc">
+                  <Button fx:id="btnViewDetails" layoutY="85.0" mnemonicParsing="false" onAction="#handleViewDetails" prefHeight="38.0" prefWidth="168.0" style="-fx-background-color: #438bcf; -fx-background-radius: 15; -fx-border-color: #438bcf; -fx-border-radius: 15;" text="View Details" textFill="#fbfcfc">
                       <font>
                           <Font name="Montserrat Bold" size="14.0" />
                       </font>

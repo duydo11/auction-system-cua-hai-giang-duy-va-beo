@@ -39,7 +39,7 @@
                                         <HBox prefHeight="66.0" prefWidth="648.0">
                                             <children>
                                                 <AnchorPane prefHeight="46.0" prefWidth="34.0" />
-                                                <Label prefHeight="62.0" prefWidth="594.0" text="Product name">
+                                                <Label fx:id="lblItemName" prefHeight="62.0" prefWidth="594.0" text="Product name">
                                                     <font>
                                                         <Font name="Montserrat Bold" size="18.0" />
                                                     </font>
@@ -61,7 +61,7 @@
                                                 <HBox prefHeight="118.0" prefWidth="648.0">
                                                     <children>
                                                         <AnchorPane prefHeight="46.0" prefWidth="34.0" />
-                                                        <Label alignment="TOP_LEFT" contentDisplay="TEXT_ONLY" prefHeight="95.0" prefWidth="594.0" text="description  .................................................................................................................... ....................................................................... ......................................................................" wrapText="true">
+                                                        <Label fx:id="lblItemName" alignment="TOP_LEFT" contentDisplay="TEXT_ONLY" prefHeight="95.0" prefWidth="594.0" text="description  .................................................................................................................... ....................................................................... ......................................................................" wrapText="true">
                                                             <font>
                                                                 <Font name="Montserrat Medium" size="16.0" />
                                                             </font>
@@ -85,7 +85,7 @@
                                                 <HBox prefHeight="31.0" prefWidth="617.0">
                                                     <children>
                                                         <AnchorPane prefHeight="46.0" prefWidth="34.0" />
-                                                        <Label alignment="TOP_LEFT" contentDisplay="TEXT_ONLY" prefHeight="32.0" prefWidth="594.0" text="Duy Giang Hải Hoàn" wrapText="true">
+                                                        <Label fx:id="lblSeller" alignment="TOP_LEFT" contentDisplay="TEXT_ONLY" prefHeight="32.0" prefWidth="594.0" text="Duy Giang Hải Hoàn" wrapText="true">
                                                             <font>
                                                                 <Font name="Montserrat Medium" size="16.0" />
                                                             </font>
@@ -121,7 +121,7 @@
                                                         <HBox prefHeight="42.0" prefWidth="274.0">
                                                             <children>
                                                                 <AnchorPane prefHeight="42.0" prefWidth="18.0" />
-                                                                <Label prefHeight="35.0" prefWidth="236.0" text="000.000.000">
+                                                                <Label fx:id="lblCurrentPrice" prefHeight="35.0" prefWidth="236.0" text="000.000.000">
                                                                     <font>
                                                                         <Font name="Montserrat Medium" size="18.0" />
                                                                     </font>
@@ -154,7 +154,7 @@
                                                         <HBox prefHeight="42.0" prefWidth="274.0">
                                                             <children>
                                                                 <AnchorPane prefHeight="42.0" prefWidth="18.0" />
-                                                                <Label prefHeight="35.0" prefWidth="236.0" text="000.000.000">
+                                                                <Label fx:id="lblStartPrice" prefHeight="35.0" prefWidth="236.0" text="000.000.000">
                                                                     <font>
                                                                         <Font name="Montserrat Medium" size="18.0" />
                                                                     </font>
@@ -184,7 +184,7 @@
                                                         <HBox prefHeight="42.0" prefWidth="274.0">
                                                             <children>
                                                                 <AnchorPane prefHeight="42.0" prefWidth="18.0" />
-                                                                <Label prefHeight="35.0" prefWidth="38.0" text="000">
+                                                                <Label fx:id="lblTimeH" prefHeight="35.0" prefWidth="38.0" text="000">
                                                                     <font>
                                                                         <Font name="Montserrat Medium" size="18.0" />
                                                                     </font>
@@ -194,7 +194,7 @@
                                                                         <Font name="Montserrat Medium" size="18.0" />
                                                                     </font>
                                                                 </Label>
-                                                                <Label prefHeight="35.0" prefWidth="25.0" text="00">
+                                                                <Label fx:id="lblTimem" prefHeight="35.0" prefWidth="25.0" text="00">
                                                                     <font>
                                                                         <Font name="Montserrat Medium" size="18.0" />
                                                                     </font>
@@ -204,7 +204,7 @@
                                                                         <Font name="Montserrat Medium" size="18.0" />
                                                                     </font>
                                                                 </Label>
-                                                                <Label prefHeight="35.0" prefWidth="25.0" text="00">
+                                                                <Label fx:id="lblTimes" prefHeight="35.0" prefWidth="25.0" text="00">
                                                                     <font>
                                                                         <Font name="Montserrat Medium" size="18.0" />
                                                                     </font>
@@ -234,7 +234,7 @@
                                                         <HBox prefHeight="42.0" prefWidth="274.0">
                                                             <children>
                                                                 <AnchorPane prefHeight="42.0" prefWidth="18.0" />
-                                                                <Label prefHeight="35.0" prefWidth="236.0" text="0">
+                                                                <Label fx:id="lblCurrentBids" prefHeight="35.0" prefWidth="236.0" text="0">
                                                                     <font>
                                                                         <Font name="Montserrat Medium" size="18.0" />
                                                                     </font>
@@ -262,7 +262,7 @@
                                                         </Label>
                                                     </children>
                                                 </HBox>
-                                                <LineChart prefHeight="362.0" prefWidth="582.0">
+                                                <LineChart fx:id="lcPriceHistory" prefHeight="362.0" prefWidth="582.0">
                                                     <xAxis>
                                                         <CategoryAxis label="Time" side="BOTTOM">
                                                             <tickLabelFont>
@@ -295,13 +295,14 @@
                                                 </HBox>
                                                 <ScrollPane hbarPolicy="NEVER" hmax="0.0" prefHeight="409.0" prefWidth="586.0" vbarPolicy="NEVER">
                                                     <content>
-                                                        <VBox prefHeight="428.0" prefWidth="582.0" />
+                                                        <VBox fx:id="containerBidHistory" prefHeight="428.0" prefWidth="582.0" />
                                                     </content>
                                                 </ScrollPane>
                                             </children>
                                         </VBox>
                                     </children>
                                 </HBox>
+                        <HBox fx:id="containerResult" prefHeight="136.0" prefWidth="648.0" style="-fx-background-color: white; -fx-background-radius: 5;" />
                             </children>
                         </VBox>
                     </children>

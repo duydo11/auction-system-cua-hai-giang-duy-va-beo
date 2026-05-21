@@ -1,15 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.image.Image?>
-<?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<HBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="150.0" prefWidth="900.0" style="-fx-background-radius: 15; -fx-background-color: white;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.Card.HistoryCardController">
+<HBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="150.0" prefWidth="900.0" style="-fx-background-radius: 15; -fx-background-color: white;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.Card.HistoryCardController">
    <children>
       <AnchorPane prefHeight="150.0" prefWidth="22.0" />
       <ImageView fitHeight="150.0" fitWidth="207.0" pickOnBounds="true" preserveRatio="true" />
@@ -18,12 +14,12 @@
             <AnchorPane prefHeight="17.0" prefWidth="600.0" />
             <HBox prefHeight="29.0" prefWidth="600.0">
                <children>
-                  <Label prefHeight="30.0" prefWidth="599.0" text="Product name (Details)">
+                  <Label fx:id="lblItemName" prefHeight="30.0" prefWidth="599.0" text="Product name (Details)">
                      <font>
                         <Font name="Montserrat Bold" size="18.0" />
                      </font>
                   </Label>
-                  <Label alignment="CENTER" prefHeight="22.0" prefWidth="187.0" style="-fx-background-color: #e0e0e0; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #0f0f0f;" text="STATUS">
+                  <Label fx:id="lblStatus" alignment="CENTER" prefHeight="22.0" prefWidth="187.0" style="-fx-background-color: #e0e0e0; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #0f0f0f;" text="STATUS">
                      <font>
                         <Font name="Montserrat Bold" size="14.0" />
                      </font>
@@ -37,7 +33,7 @@
                         <Image url="@../../png/3.money.png" />
                      </image>
                   </ImageView>
-                  <Label prefHeight="32.0" prefWidth="355.0" text="000.000">
+                  <Label fx:id="lblCurrentPrice" prefHeight="32.0" prefWidth="355.0" text="000.000">
                      <font>
                         <Font name="Montserrat Medium" size="16.0" />
                      </font>
@@ -56,42 +52,26 @@
                         <Font name="Montserrat Bold" size="14.0" />
                      </font>
                   </Label>
-                  <Label prefHeight="30.0" prefWidth="31.0" text="000">
-                     <font>
-                        <Font name="Montserrat Bold" size="14.0" />
-                     </font>
-                  </Label>
-                  <Label alignment="CENTER" prefHeight="30.0" prefWidth="5.0" text=":">
-                     <font>
-                        <Font name="Montserrat Bold" size="13.0" />
-                     </font>
-                  </Label>
-                  <Label prefHeight="30.0" prefWidth="21.0" text="00">
-                     <font>
-                        <Font name="Montserrat Bold" size="14.0" />
-                     </font>
-                  </Label>
-                  <Label alignment="CENTER" prefHeight="30.0" prefWidth="5.0" text=":">
-                     <font>
-                        <Font name="Montserrat Bold" size="13.0" />
-                     </font>
-                  </Label>
-                  <Label prefHeight="30.0" prefWidth="23.0" text="00">
-                     <font>
-                        <Font name="Montserrat Bold" size="14.0" />
-                     </font>
-                  </Label>
+                  <HBox prefHeight="100.0" prefWidth="200.0">
+                     <children>
+                        <Label fx:id="lblTimeRemaining" prefHeight="30.0" prefWidth="201.0" text="000">
+                           <font>
+                              <Font name="Montserrat Bold" size="14.0" />
+                           </font>
+                        </Label>
+                     </children>
+                  </HBox>
                </children>
             </HBox>
             <HBox prefHeight="34.0" prefWidth="600.0">
                <children>
                   <AnchorPane prefHeight="26.0" prefWidth="28.0" />
-                  <Label alignment="TOP_LEFT" prefHeight="34.0" prefWidth="479.0" text="Status details (Win, Lose or Living)">
+                  <Label fx:id="lblStatusDetails" alignment="TOP_LEFT" prefHeight="34.0" prefWidth="479.0">
                      <font>
                         <Font name="Montserrat Regular" size="13.0" />
                      </font>
                   </Label>
-                  <Button mnemonicParsing="false" prefHeight="34.0" prefWidth="146.0" style="-fx-background-color: white; -fx-background-radius: 15; -fx-border-color: black; -fx-border-radius: 15;" text="View Details">
+                  <Button fx:id="btnViewDetails" mnemonicParsing="false" onAction="#handleViewDetails" prefHeight="34.0" prefWidth="146.0" style="-fx-background-color: white; -fx-background-radius: 15; -fx-border-color: black; -fx-border-radius: 15;" text="View Details">
                      <font>
                         <Font name="Montserrat Bold" size="14.0" />
                      </font>
