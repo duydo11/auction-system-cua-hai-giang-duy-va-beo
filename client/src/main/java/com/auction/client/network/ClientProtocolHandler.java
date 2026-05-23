@@ -5,9 +5,11 @@ import com.auction.shared.model.auction.AutoBidConfig;
 import com.auction.shared.model.auction.Bid;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.user.User;
+import com.auction.shared.model.user.Transaction;
 import com.auction.shared.protocol.Message;
 import com.auction.shared.protocol.MessageType;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
@@ -260,6 +262,76 @@ public class ClientProtocolHandler {
         Object data = response.getData();
         if (data instanceof List<?> list && !list.isEmpty() && list.get(0) instanceof User) {
             return (List<User>) data;
+        }
+        return Collections.emptyList();
+    }
+
+    // ========================
+    // User & Wallet methods
+    // ========================
+
+    public User getUserInfo(int userId) {
+        Message response = send(MessageType.GET_USER_INFO_REQUEST, String.valueOf(userId));
+        if (response == null || !response.isSuccess()) {
+            return null;
+        }
+        Object data = response.getData();
+        return data instanceof User ? (User) data : null;
+    }
+
+    public boolean updateUser(User user) {
+        Message response = send(MessageType.UPDATE_USER_REQUEST, user);
+        return response != null && response.isSuccess();
+    }
+
+    /**
+     * Persist a wallet deposit/withdraw entry after the balance update succeeds.
+     * The server stores this as a transaction so Wallet1/Wallet2 can render it later.
+     */
+    public boolean saveTransaction(Transaction transaction) {
+        Message response = send(MessageType.SAVE_TRANSACTION_REQUEST, transaction);
+        return response != null && response.isSuccess();
+    }
+
+    /** Convenience helper used by DepositActionController. */
+    public boolean deposit(User user, double amount) {
+        if (user == null || amount <= 0) return false;
+        boolean updated = updateUser(user);
+        if (!updated) return false;
+        return saveTransaction(new Transaction(
+                0,
+                user.getId(),
+                amount,
+                "DEPOSIT",
+                "Deposit",
+                LocalDateTime.now()
+        ));
+    }
+
+    /** Convenience helper used by WithdrawActionController. */
+    public boolean withdraw(User user, double amount) {
+        if (user == null || amount <= 0) return false;
+        boolean updated = updateUser(user);
+        if (!updated) return false;
+        return saveTransaction(new Transaction(
+                0,
+                user.getId(),
+                -amount,
+                "WITHDRAW",
+                "Withdraw",
+                LocalDateTime.now()
+        ));
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Transaction> getTransactions(int userId) {
+        Message response = send(MessageType.GET_TRANSACTIONS_REQUEST, String.valueOf(userId));
+        if (response == null || !response.isSuccess()) {
+            return Collections.emptyList();
+        }
+        Object data = response.getData();
+        if (data instanceof List<?> list && !list.isEmpty() && list.get(0) instanceof Transaction) {
+            return (List<Transaction>) data;
         }
         return Collections.emptyList();
     }

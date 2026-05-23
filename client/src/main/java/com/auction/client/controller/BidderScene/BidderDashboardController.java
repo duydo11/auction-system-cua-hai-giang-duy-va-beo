@@ -21,10 +21,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
 
 /**
- * BidderDashboard — load real auctions từ backend.
- * Listen realtime updates từ server push.
+ * Bidder dashboard controller.
+ *
+ * <p>Responsibilities:</p>
+ * <ul>
+ *   <li>load active auctions from the backend instead of static placeholder cards,</li>
+ *   <li>create one {@code ProductCard.fxml} per {@link AuctionSession},</li>
+ *   <li>store card controllers by session id so realtime pushes can update the right card,</li>
+ *   <li>remove only this controller's listener during cleanup to avoid breaking other screens.</li>
+ * </ul>
  */
 public class BidderDashboardController implements Initializable {
 
@@ -34,6 +42,7 @@ public class BidderDashboardController implements Initializable {
     
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
     private final Map<Integer, ProductCardController> cardControllers = new HashMap<>();
+    private Consumer<AuctionSession> realtimeListener;
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -118,7 +127,8 @@ public class BidderDashboardController implements Initializable {
      * Setup realtime listener cho price updates.
      */
     private void setupRealtimeListener() {
-        RealtimeAuctionBus.addAuctionListener(updatedSession -> {
+        if (realtimeListener != null) return;
+        realtimeListener = updatedSession -> {
             // Update card nếu đang hiển thị
             ProductCardController controller = cardControllers.get(updatedSession.getId());
             if (controller != null) {
@@ -128,7 +138,8 @@ public class BidderDashboardController implements Initializable {
                     controller.setAuctionSession(updatedSession);
                 });
             }
-        });
+        };
+        RealtimeAuctionBus.addAuctionListener(realtimeListener);
     }
     
     /**
@@ -142,7 +153,10 @@ public class BidderDashboardController implements Initializable {
         cardControllers.clear();
         
         // Remove realtime listener
-        RealtimeAuctionBus.clearAllListeners();
+        if (realtimeListener != null) {
+            RealtimeAuctionBus.removeAuctionListener(realtimeListener);
+            realtimeListener = null;
+        }
     }
     
     // ==================== Navigation ====================

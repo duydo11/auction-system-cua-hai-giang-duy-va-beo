@@ -1,257 +1,532 @@
-# 🎨 Hướng dẫn cho Giang — FXML Changes Needed
+# Hướng dẫn duy nhất cho Giang — UI/FXML, Data Binding, Realtime và Demo
 
-## ✅ Đã hoàn thành (Backend Integration)
-
-Tôi đã implement **data binding** cho 4 controllers chính:
-
-| Controller | Status | Chức năng |
-|------------|--------|-----------|
-| `ProductCardController` | ✅ Done | Bind AuctionSession → card, countdown timer, realtime update |
-| `BidderDashboardController` | ✅ Done | Load real auctions, listen realtime push |
-| `HistoryCardController` | ✅ Done | Bind Bid → card |
-| `SellerDashboardController` | ✅ Done | Create auction với real backend call |
-| `UserManagementController` | ✅ Done | TableView users, ban user |
+> File này là tài liệu duy nhất Giang cần đọc để catch up phần UI.
+> Mục tiêu: Giang chỉ chỉnh giao diện/FXML cho đẹp và đồng bộ, không đổi tên `fx:id` hoặc handler đang được Java controller dùng.
 
 ---
 
-## 🎨 Giang cần làm: Thêm fx:id vào FXML
+## 1. Giang đang phụ trách phần nào?
 
-### 1. ProductCard.fxml
+Giang phụ trách phần **JavaFX UI/FXML**:
 
-**File**: `client/src/main/resources/fxml/Card/ProductCard.fxml`
+```text
+client/src/main/resources/fxml/
+client/src/main/resources/png/
+client/src/main/java/com/auction/client/controller/
+```
 
-**Cần thêm fx:id cho các Label/Button:**
+Luồng UI hiện tại:
+
+```text
+FXML file
+  ↓ fx:controller
+Java Controller
+  ↓ ClientProtocolHandler
+SocketClient
+  ↓ Message protocol
+ServerProtocolHandler
+  ↓ Service
+DAO
+  ↓
+Database
+```
+
+Nói đơn giản:
+
+- FXML chỉ là phần vẽ màn hình.
+- Controller là phần đổ dữ liệu thật vào FXML.
+- Backend trả `AuctionSession`, `Bid`, `User`, `Transaction`.
+- Controller lấy dữ liệu đó rồi set vào `Label`, `VBox`, `LineChart`, card.
+
+---
+
+## 2. Nguyên tắc quan trọng khi sửa FXML
+
+> [!IMPORTANT]
+> Không đổi tên các `fx:id` dưới đây nếu không sửa controller tương ứng.
+
+Nếu đổi sai `fx:id`, JavaFX sẽ bị lỗi kiểu:
+
+```text
+NullPointerException
+LoadException
+Cannot resolve onAction/onMouseClicked
+```
+
+Giang được sửa:
+
+- màu nền,
+- font,
+- spacing,
+- kích thước,
+- vị trí layout,
+- ảnh,
+- bo góc,
+- style CSS inline.
+
+Giang không nên sửa nếu chưa báo team:
+
+- `fx:id`,
+- `fx:controller`,
+- `onAction`,
+- `onMouseClicked`,
+- đường dẫn FXML card như `/fxml/Card/ProductCard.fxml`.
+
+---
+
+## 3. Các màn hình đã được backend đổ dữ liệu thật
+
+### BidderDashboard.fxml
+
+Controller: `BidderDashboardController`
+
+Các field quan trọng:
+
+```java
+@FXML private Label lblUsername;
+@FXML private HBox container1;
+@FXML private HBox container2;
+```
+
+Chức năng:
+
+- Hiển thị tên user đang login.
+- Gọi backend lấy danh sách auction thật.
+- Tự load `ProductCard.fxml` vào `container1`, `container2`.
+- Lắng nghe realtime push để card tự đổi giá/status/time.
+
+Luồng:
+
+```text
+initialize()
+  → loadActiveAuctions()
+  → protocol.getActiveAuctions()
+  → mỗi AuctionSession tạo 1 ProductCard
+  → ProductCardController.setAuctionSession(session)
+```
+
+Realtime:
+
+```text
+Server broadcast AUCTION_UPDATED_PUSH
+  → SocketClient
+  → RealtimeAuctionBus
+  → BidderDashboardController listener
+  → ProductCardController re-bind
+```
+
+---
+
+### ProductCard.fxml
+
+Controller: `ProductCardController`
+
+Các `fx:id` bắt buộc:
 
 ```xml
-<!-- Line 31: Product name label -->
-<Label fx:id="lblItemName" prefHeight="30.0" prefWidth="219.0" text="Product name (Details)">
-
-<!-- Line 59: Current price label -->
-<Label fx:id="lblCurrentPrice" prefHeight="22.0" prefWidth="122.0" text="000.000.000.0">
-
-<!-- Line 19: Status badge -->
-<Label fx:id="lblStatus" alignment="CENTER" layoutX="191.0" layoutY="3.0" 
-       prefHeight="22.0" prefWidth="51.0" text="STATUS">
-
-<!-- Line 64: View Details button -->
-<Button fx:id="btnViewDetails" mnemonicParsing="false" 
-        onAction="#handleViewDetails" 
-        prefHeight="23.0" prefWidth="91.0" text="View Details">
+<Label fx:id="lblStatus" />
+<Label fx:id="lblItemName" />
+<HBox fx:id="lblCategory" />
+<Label fx:id="lblCurrentPrice" />
+<Button fx:id="btnViewDetails" onAction="#handleViewDetails" />
 ```
 
-**Thêm Label mới cho time remaining** (đặt ở đâu đó trong card):
-```xml
-<Label fx:id="lblTimeRemaining" text="--h --m" 
-       style="-fx-font-size: 12px; -fx-text-fill: #424242;">
-    <font>
-        <Font name="Montserrat Medium" size="12.0" />
-    </font>
-</Label>
-```
+Chức năng:
+
+- Hiển thị tên sản phẩm.
+- Hiển thị giá hiện tại.
+- Hiển thị status: Coming / Live / Ended / Canceled.
+- Hiển thị category bằng chữ cái/màu.
+- Click `View Details` mở `AuctionDetailsforBidder.fxml`.
+- Có method `updatePrice()` để realtime đổi giá ngay trên card.
+
+Gợi ý UI đồng bộ:
+
+| Thành phần | Màu gợi ý |
+|---|---|
+| Coming | vàng nhạt |
+| Live | xanh lá |
+| Ended | đỏ/hồng nhạt |
+| Canceled | xám |
+| Nút View Details | tím/xanh đồng bộ dashboard |
 
 ---
 
-### 2. HistoryCard.fxml (nếu có)
+### AuctionDetailsforBidder.fxml
 
-**File**: `client/src/main/resources/fxml/Card/HistoryCard.fxml`
+Controller: `AuctionDetailsforBidderController`
 
-**Cần thêm fx:id:**
-
-```xml
-<Label fx:id="lblBidAmount" text="000.000 VND">
-<Label fx:id="lblBidTime" text="HH:mm dd/MM">
-<Label fx:id="lblBidder" text="Username">
-<Label fx:id="lblAuctionId" text="Phiên #123">
-```
-
----
-
-### 3. UserManagement.fxml
-
-**File**: `client/src/main/resources/fxml/AdminScene/UserManagement.fxml`
-
-**Cần thêm TableView:**
+Các `fx:id` bắt buộc:
 
 ```xml
-<TableView fx:id="tableUsers" prefHeight="400.0" prefWidth="600.0">
-    <columns>
-        <TableColumn fx:id="colId" text="ID" prefWidth="50.0" />
-        <TableColumn fx:id="colUsername" text="Username" prefWidth="150.0" />
-        <TableColumn fx:id="colEmail" text="Email" prefWidth="200.0" />
-        <TableColumn fx:id="colRole" text="Role" prefWidth="100.0" />
-    </columns>
-</TableView>
+<Label fx:id="lblStatus" />
+<Label fx:id="lblItemName" />
+<Label fx:id="lblItemDetails" />
+<Label fx:id="lblSeller" />
+<TextField fx:id="txtBidAmount" />
+<HBox fx:id="btnPlaceBid" onMouseClicked="#handlePlaceBid" />
+<CheckBox fx:id="chboxAutobid" onAction="#hanldeAutoBid" />
+<VBox fx:id="paneAutobid" />
+<TextField fx:id="txtMaxBidAmount" />
+<TextField fx:id="txtIncrementAmount" />
+<Label fx:id="lblCurrentPrice" />
+<Label fx:id="lblCurrentPriceSmall" />
+<Label fx:id="lblStartPrice" />
+<Label fx:id="lblTimeH" />
+<Label fx:id="lblTimem" />
+<Label fx:id="lblTimes" />
+<Label fx:id="lblCurrentBids" />
+<Label fx:id="lblWarning" />
+<LineChart fx:id="lcPriceHistory" />
+<VBox fx:id="containerBidHistory" />
+```
 
-<Button fx:id="btnBan" text="Ban User" onAction="#handleBanUser" 
-        style="-fx-background-color: #c62828; -fx-text-fill: white;">
-    <font>
-        <Font name="Montserrat Bold" size="12.0" />
-    </font>
-</Button>
+Chức năng:
 
-<Button text="Refresh" onAction="#handleRefresh" 
-        style="-fx-background-color: #1976d2; -fx-text-fill: white;">
-    <font>
-        <Font name="Montserrat Bold" size="12.0" />
-    </font>
-</Button>
+- Đổ thông tin phiên đấu giá thật.
+- Đặt giá thật qua backend.
+- Đăng ký/hủy auto-bid.
+- Hiển thị lịch sử bid bằng card.
+- Vẽ biểu đồ giá bằng `LineChart`.
+- Countdown theo `endTime`.
+- Hiển thị cảnh báo anti-sniping:
+  - còn dưới 5 phút: nhắc chuẩn bị đặt giá,
+  - còn dưới 30 giây: cảnh báo bid mới có thể gia hạn,
+  - khi server gia hạn: hiện thông báo auction extended.
+- Lắng nghe realtime push để tự refresh giá, chart, bid history, countdown.
 
-<Label fx:id="lblMessage" text="" 
-       style="-fx-font-size: 14px;">
-    <font>
-        <Font name="Montserrat Medium" size="14.0" />
-    </font>
-</Label>
+Luồng đặt giá:
+
+```text
+User nhập txtBidAmount
+  → click btnPlaceBid
+  → handlePlaceBid()
+  → protocol.placeBidOrError(sessionId, userId, amount)
+  → server BidService.placeBid()
+  → lưu Bid vào DB
+  → broadcast AUCTION_UPDATED_PUSH
+  → UI tự refresh
 ```
 
 ---
 
-### 4. SellerDashboard.fxml
+### AuctionDetailsforSeller.fxml
 
-**File**: `client/src/main/resources/fxml/SellerScene/SellerDashboard.fxml`
+Controller: `AuctionDetailsforSellerController`
 
-**Kiểm tra các fx:id đã có chưa:**
+Các `fx:id` bắt buộc:
 
 ```xml
-<TextField fx:id="txtItemName" promptText="Tên sản phẩm">
-<TextField fx:id="txtItemDesc" promptText="Mô tả">
-<TextField fx:id="txtStartPrice" promptText="Giá khởi điểm">
-<TextField fx:id="txtDurationHours" promptText="Số giờ">
-<Label fx:id="lblCreateAuctionMsg" text="">
-<Button text="Tạo phiên" onAction="#handleCreateAuction">
+<Label fx:id="lblStatus" />
+<Label fx:id="lblItemName" />
+<Label fx:id="lblItemDetails" />
+<Label fx:id="lblSeller" />
+<Label fx:id="lblCurrentPrice" />
+<Label fx:id="lblStartPrice" />
+<Label fx:id="lblTimeH" />
+<Label fx:id="lblTimem" />
+<Label fx:id="lblTimes" />
+<Label fx:id="lblCurrentBids" />
+<Label fx:id="lblWarning" />
+<LineChart fx:id="lcPriceHistory" />
+<VBox fx:id="containerBidHistory" />
+<HBox fx:id="containerResult" />
+```
+
+Chức năng:
+
+- Seller xem thông tin phiên của mình.
+- Xem realtime bid count/current price/chart.
+- Xem cảnh báo anti-sniping.
+- Khi phiên kết thúc:
+  - nếu có winner: load `AuctionResult1Card.fxml`,
+  - nếu không có bid: load `AuctionResult2Card.fxml`.
+
+---
+
+### BidderHistoryCard.fxml
+
+Controller: `BidderHistoryCardController`
+
+Các `fx:id`:
+
+```xml
+<Label fx:id="lblBidder" />
+<Label fx:id="lblBidAmount" />
+<Label fx:id="lblBidDay" />
+<Label fx:id="lblBidTime" />
+```
+
+Chức năng:
+
+- Mỗi card là 1 lần đặt giá.
+- Controller nhận `Bid` rồi hiển thị:
+  - username người đặt,
+  - số tiền,
+  - ngày,
+  - giờ.
+
+---
+
+### Wallet1.fxml và Wallet2.fxml
+
+Controllers:
+
+- `Wallet1Controller` cho Bidder.
+- `Wallet2Controller` cho Seller.
+
+Các `fx:id`:
+
+```xml
+<Label fx:id="lblTotalBalance" />
+<Label fx:id="lblAvailabe" />
+<Label fx:id="lblReserved" />
+<VBox fx:id="containerTrans" />
+```
+
+Chức năng:
+
+- Lấy user hiện tại từ server.
+- Hiển thị tổng tiền, tiền khả dụng, tiền reserved.
+- Load `TransHisCard.fxml` theo transaction history.
+- Sau deposit/withdraw, server cập nhật balance và lưu transaction.
+- Khi auction thành công, scheduler tạo transaction cho buyer/seller.
+
+---
+
+### DepositAction.fxml và WithdrawAction.fxml
+
+Controllers:
+
+- `DepositActionController`
+- `WithdrawActionController`
+
+Các `fx:id`:
+
+```xml
+<TextField fx:id="txtDepositAmount" />
+<HBox fx:id="btnConfirm" onMouseClicked="#handleConfirm" />
+
+<TextField fx:id="txtWithdrawAmount" />
+<HBox fx:id="btnConfirm" onMouseClicked="#handleConfirm" />
+```
+
+Chức năng:
+
+- Validate số tiền nhập.
+- Gọi backend update user balance.
+- Lưu transaction:
+  - `DEPOSIT`,
+  - `WITHDRAW`.
+
+---
+
+## 4. Bid History Chart hoạt động như nào?
+
+Trong detail controller:
+
+```java
+List<Bid> bids = protocol.getBidHistory(session.getId());
+XYChart.Series<String, Number> series = new XYChart.Series<>();
+series.getData().add(new XYChart.Data<>("Start", session.getStartingPrice()));
+for (Bid bid : bids) {
+    series.getData().add(new XYChart.Data<>(timeLabel, bid.getAmount()));
+}
+lcPriceHistory.getData().add(series);
+```
+
+Ý nghĩa:
+
+- Điểm đầu là giá khởi điểm.
+- Mỗi bid là 1 điểm trên chart.
+- Trục X là thời gian đặt giá.
+- Trục Y là số tiền.
+- Khi server push bid mới, controller gọi lại `loadBidHistoryChart()` nên chart refresh realtime.
+
+---
+
+## 5. Anti-sniping UI hoạt động như nào?
+
+Backend đã có logic trong `BidService`:
+
+```text
+Nếu bid được đặt trong 30 giây cuối
+  → endTime += 60 giây
+  → lưu session
+  → broadcast update cho client
+```
+
+UI đã có:
+
+```xml
+<Label fx:id="lblWarning" />
+```
+
+Controller sẽ set text:
+
+- `< 5 phút`: `Auction ending soon...`
+- `< 30 giây`: cảnh báo anti-sniping.
+- Server gia hạn: `Anti-sniping activated: auction extended by server.`
+
+Giang chỉ cần style label này cho nổi bật, ví dụ:
+
+```xml
+<Label fx:id="lblWarning"
+       style="-fx-text-fill: #b45309; -fx-font-weight: bold;"
+       wrapText="true" />
 ```
 
 ---
 
-## 📊 Tổng kết thay đổi
+## 6. Một phiên đấu giá hoàn chỉnh từ đầu đến cuối
 
-### Backend Integration (✅ Done by Duy)
+```text
+Seller login
+  → Seller tạo item/auction
+  → Server lưu item + auction_sessions
+  → Broadcast AUCTION_CREATED_PUSH
+  → BidderDashboard thấy card mới
 
-| File | Changes |
-|------|---------|
-| `ProductCardController.java` | ✅ Data binding, countdown timer, realtime update |
-| `BidderDashboardController.java` | ✅ Load real auctions, realtime listener, cleanup |
-| `HistoryCardController.java` | ✅ Bind Bid data |
-| `SellerDashboardController.java` | ✅ Enabled `handleCreateAuction` |
-| `UserManagementController.java` | ✅ TableView, ban user, refresh |
+Bidder login
+  → mở ProductCard detail
+  → đặt bid
+  → Server lưu bids + update current_price/winner
+  → Nếu bid trong 30s cuối: gia hạn end_time
+  → Broadcast AUCTION_UPDATED_PUSH
+  → Dashboard/detail/chart/history cập nhật realtime
 
-### UI Changes (⚠️ Giang cần làm)
-
-| File | Action |
-|------|--------|
-| `ProductCard.fxml` | ⚠️ Thêm fx:id: `lblItemName`, `lblCurrentPrice`, `lblStatus`, `lblTimeRemaining`, `btnViewDetails` |
-| `HistoryCard.fxml` | ⚠️ Thêm fx:id: `lblBidAmount`, `lblBidTime`, `lblBidder`, `lblAuctionId` |
-| `UserManagement.fxml` | ⚠️ Thêm TableView + columns + buttons |
-| `SellerDashboard.fxml` | ⚠️ Kiểm tra fx:id đã đủ chưa |
-
----
-
-## 🎯 Cách test
-
-### Test ProductCard
-1. Chạy server: `ServerMain.java`
-2. Chạy client: `MainApp.java`
-3. Login as Bidder
-4. Vào BidderDashboard → sẽ thấy cards với data thật
-5. Kiểm tra:
-   - ✅ Tên sản phẩm hiển thị
-   - ✅ Giá hiện tại hiển thị
-   - ✅ Countdown timer chạy (update mỗi giây)
-   - ✅ Status badge đúng màu
-   - ✅ Nếu < 5 phút: hiển thị đỏ ⚠️
-
-### Test SellerDashboard
-1. Login as Seller
-2. Điền form: tên, mô tả, giá, số giờ
-3. Click "Tạo phiên"
-4. Kiểm tra:
-   - ✅ Hiển thị "Đã tạo phiên thành công!" (màu xanh)
-   - ✅ Form clear sau khi tạo
-   - ✅ Bidder dashboard thấy phiên mới ngay lập tức
-
-### Test UserManagement
-1. Login as Admin
-2. Vào User Management
-3. Kiểm tra:
-   - ✅ TableView hiển thị danh sách users
-   - ✅ Chọn user → click "Ban User"
-   - ✅ Confirm dialog xuất hiện
-   - ✅ Sau khi ban: table refresh, message hiển thị
-
----
-
-## 🚀 Realtime Updates
-
-**Đã implement** — không cần làm gì thêm:
-
-- ✅ `RealtimeAuctionBus` lắng nghe push từ server
-- ✅ Khi có bid mới → tất cả ProductCard tự update giá
-- ✅ Khi anti-snipe trigger → time remaining tự update
-- ✅ Cleanup listeners khi đổi scene
-
----
-
-## 📝 Notes cho Giang
-
-### ProductCard Layout Suggestions
-
-Để countdown timer dễ nhìn, đề xuất layout:
-
-```
-┌─────────────────────────────┐
-│  [Image]          [STATUS]  │
-│                              │
-│  Product Name                │
-│  💰 000.000 VND   ⏰ 2h 30m  │
-│                              │
-│  [View Details]              │
-└─────────────────────────────┘
+Auction hết giờ
+  → AuctionScheduler scan
+  → status = FINISHED
+  → tạo transaction buyer/seller
+  → broadcast CLOSE_AUCTION_PUSH
+  → Seller detail hiện result card
+  → Wallet hiện transaction history
 ```
 
-### Color Scheme
+---
 
-| Element | Color | Style |
-|---------|-------|-------|
-| Status RUNNING | Green | `#e8f5e9` bg, `#388e3c` text |
-| Status FINISHED | Pink | `#fce4ec` bg, `#c2185b` text |
-| Time < 5 min | Red | `#c62828` text, bold |
-| Success message | Green | `#2e7d32` text |
-| Error message | Red | `#c62828` text |
+## 7. Checklist để Giang tự test UI
 
-### Font Recommendations
+### Bidder flow
 
-Đang dùng **Montserrat** — giữ nguyên:
-- Bold: titles, buttons
-- Medium: body text
-- Size: 10-14px
+- [ ] Login bidder.
+- [ ] Vào dashboard thấy product cards có dữ liệu thật.
+- [ ] Bấm View Details.
+- [ ] Thấy item name/details/seller/current price/start price.
+- [ ] Thấy countdown chạy.
+- [ ] Đặt bid lớn hơn current price.
+- [ ] Bid history card xuất hiện.
+- [ ] Line chart có thêm điểm mới.
+- [ ] Mở 2 client, client còn lại cũng tự update giá.
+
+### Anti-sniping
+
+- [ ] Tạo auction sắp hết giờ.
+- [ ] Bid trong 30s cuối.
+- [ ] Countdown được gia hạn.
+- [ ] `lblWarning` hiện thông báo extended.
+
+### Seller flow
+
+- [ ] Login seller.
+- [ ] Mở detail auction của mình.
+- [ ] Thấy current price/bid count/chart realtime.
+- [ ] Chờ phiên kết thúc.
+- [ ] Có winner thì hiện `AuctionResult1Card`.
+- [ ] Không có bid thì hiện `AuctionResult2Card`.
+
+### Wallet flow
+
+- [ ] Deposit tiền.
+- [ ] Wallet balance tăng.
+- [ ] Transaction history có dòng Deposit.
+- [ ] Withdraw tiền.
+- [ ] Wallet balance giảm.
+- [ ] Transaction history có dòng Withdraw.
+- [ ] Auction kết thúc có winner thì buyer/seller có transaction đấu giá.
 
 ---
 
-## ❓ Nếu gặp lỗi
+## 8. File nào Giang nên chỉnh nếu muốn làm UI đẹp hơn?
 
-### Lỗi: "fx:id not found"
-→ Kiểm tra tên fx:id trong FXML khớp với `@FXML private Label lblItemName;` trong Controller
-
-### Lỗi: "NullPointerException"
-→ Kiểm tra fx:id đã thêm vào FXML chưa
-
-### Lỗi: "Cannot load FXML"
-→ Kiểm tra path: `/fxml/Card/ProductCard.fxml` (phải có `/` đầu)
-
-### Cards không hiển thị data
-→ Kiểm tra server đang chạy, có auctions trong DB chưa
+| Màn hình | File FXML |
+|---|---|
+| Dashboard bidder | `fxml/BidderScene/BidderDashboard.fxml` |
+| Card sản phẩm | `fxml/Card/ProductCard.fxml` |
+| Bidder detail | `fxml/ActionsScene/AuctionDetailsforBidder.fxml` |
+| Seller detail | `fxml/ActionsScene/AuctionDetailsforSeller.fxml` |
+| Bid history card | `fxml/Card/BidderHistoryCard.fxml` |
+| Wallet bidder | `fxml/BidderScene/Wallet1.fxml` |
+| Wallet seller | `fxml/SellerScene/Wallet2.fxml` |
+| Transaction card | `fxml/Card/TransHisCard.fxml` |
+| Result có winner | `fxml/Card/AuctionResult1Card.fxml` |
+| Result không winner | `fxml/Card/AuctionResult2Card.fxml` |
 
 ---
 
-## 🎉 Kết quả mong đợi
+## 9. Lỗi thường gặp
 
-Sau khi Giang thêm fx:id vào FXML:
+### `NullPointerException` khi mở màn
 
-✅ **BidderDashboard**: Hiển thị cards với data thật, countdown timer chạy  
-✅ **SellerDashboard**: Tạo phiên thành công, form clear  
-✅ **UserManagement**: TableView hiển thị users, ban user hoạt động  
-✅ **Realtime**: Giá tự update khi có bid mới  
-✅ **Anti-snipe**: Time warning < 5 phút, auto-extend khi bid cuối  
+Nguyên nhân thường là thiếu `fx:id`.
 
-**Điểm dự tính sau khi hoàn thành: 10.5/11** (chỉ thiếu Bid History Chart)
+Cách sửa:
 
+- Mở controller.
+- Tìm field `@FXML private ... name;`
+- FXML phải có `fx:id="name"` đúng y hệt.
+
+### Click button không chạy
+
+Nguyên nhân thường là sai handler.
+
+Ví dụ đúng:
+
+```xml
+<HBox onMouseClicked="#handlePlaceBid" />
+<Button onAction="#handleViewDetails" />
+```
+
+Tên sau `#` phải tồn tại trong controller.
+
+### Chart không hiện
+
+Kiểm tra:
+
+```xml
+<LineChart fx:id="lcPriceHistory">
+```
+
+Và auction phải có bid history.
+
+### Realtime không update
+
+Kiểm tra:
+
+- server đang chạy,
+- client còn connected,
+- `SocketClient` nhận push,
+- controller chưa bị cleanup,
+- đang dùng đúng `AuctionSession.id`.
+
+---
+
+## 10. Kết luận cho Giang
+
+Hiện tại phần Java controller đã làm nhiệm vụ:
+
+- data binding thật,
+- protocol backend,
+- realtime listener,
+- bid chart,
+- anti-sniping warning,
+- wallet transaction,
+- auction result.
+
+Giang chỉ cần tập trung:
+
+1. làm FXML đồng bộ style,
+2. giữ nguyên `fx:id`/handler,
+3. test theo checklist trên,
+4. không cần tự viết backend logic nữa.

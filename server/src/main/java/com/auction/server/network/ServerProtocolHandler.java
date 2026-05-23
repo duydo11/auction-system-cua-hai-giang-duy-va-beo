@@ -9,6 +9,7 @@ import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.AutoBidConfig;
 import com.auction.shared.model.auction.Bid;
 import com.auction.shared.model.item.Item;
+import com.auction.shared.model.user.Transaction;
 import com.auction.shared.model.user.User;
 import com.auction.shared.protocol.Message;
 import com.auction.shared.protocol.MessageType;
@@ -63,6 +64,12 @@ public class ServerProtocolHandler {
                 // Admin
                 case BAN_USER_REQUEST -> handleBanUser(message.getData());
                 case GET_ALL_USERS_REQUEST -> handleGetAllUsers();
+
+                // User & Balance
+                case GET_USER_INFO_REQUEST -> handleGetUserInfo(message.getData());
+                case UPDATE_USER_REQUEST -> handleUpdateUser(message.getData());
+                case GET_TRANSACTIONS_REQUEST -> handleGetTransactions(message.getData());
+                case SAVE_TRANSACTION_REQUEST -> handleSaveTransaction(message.getData());
 
                 default -> new Message(MessageType.ERROR, "Unknown message type: " + message.getType());
             };
@@ -250,6 +257,38 @@ public class ServerProtocolHandler {
     private Message handleGetAllUsers() throws Exception {
         List<User> users = userService.getAllUsers();
         return new Message(MessageType.GET_ALL_USERS_RESPONSE, users);
+    }
+
+    private Message handleGetUserInfo(Object data) throws Exception {
+        int userId = Integer.parseInt(String.valueOf(data).trim());
+        User user = userService.getUserById(userId);
+        if (user != null) {
+            return new Message(MessageType.GET_USER_INFO_RESPONSE, user);
+        } else {
+            return new Message(MessageType.ERROR, "User not found");
+        }
+    }
+
+    private Message handleUpdateUser(Object data) throws Exception {
+        User user = (User) data;
+        boolean success = userService.updateUser(user);
+        if (success) {
+            return new Message(MessageType.UPDATE_USER_RESPONSE, user);
+        } else {
+            return new Message(MessageType.ERROR, "Failed to update user");
+        }
+    }
+
+    private Message handleGetTransactions(Object data) throws Exception {
+        int userId = Integer.parseInt(String.valueOf(data).trim());
+        List<Transaction> list = userService.getTransactionsByUserId(userId);
+        return new Message(MessageType.GET_TRANSACTIONS_RESPONSE, list);
+    }
+
+    private Message handleSaveTransaction(Object data) throws Exception {
+        Transaction transaction = (Transaction) data;
+        userService.saveTransaction(transaction);
+        return new Message(MessageType.SAVE_TRANSACTION_RESPONSE, transaction);
     }
 }
 

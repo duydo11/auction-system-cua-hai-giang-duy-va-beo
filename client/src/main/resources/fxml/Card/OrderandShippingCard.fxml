@@ -18,7 +18,7 @@
                 <AnchorPane prefHeight="17.0" prefWidth="600.0" />
                 <HBox prefHeight="38.0" prefWidth="650.0">
                     <children>
-                        <Label prefHeight="30.0" prefWidth="599.0" text="Product name (Details)">
+                        <Label fx:id="lblItemName" prefHeight="30.0" prefWidth="599.0" text="Product name (Details)">
                             <font>
                                 <Font name="Montserrat Bold" size="18.0" />
                             </font>
