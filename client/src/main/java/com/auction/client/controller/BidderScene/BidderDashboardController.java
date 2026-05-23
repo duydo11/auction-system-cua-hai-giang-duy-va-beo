@@ -37,8 +37,8 @@ import java.util.function.Consumer;
 public class BidderDashboardController implements Initializable {
 
     @FXML private Label lblUsername;
-    @FXML private HBox container1;
-    @FXML private HBox container2;
+    @FXML private HBox containerTopPicks;
+    @FXML private HBox containerEndingSoon;
     
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
     private final Map<Integer, ProductCardController> cardControllers = new HashMap<>();
@@ -71,18 +71,18 @@ public class BidderDashboardController implements Initializable {
                 // Show empty state
                 Label emptyLabel = new Label("Chưa có phiên đấu giá nào");
                 emptyLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
-                container1.getChildren().add(emptyLabel);
+                containerTopPicks.getChildren().add(emptyLabel);
                 return;
             }
             
             // Clear containers
-            container1.getChildren().clear();
-            container2.getChildren().clear();
+            containerTopPicks.getChildren().clear();
+            containerEndingSoon.getChildren().clear();
             
             // Load cards
             for (int i = 0; i < auctions.size(); i++) {
                 AuctionSession session = auctions.get(i);
-                loadProductCard(session, i % 2 == 0 ? container1 : container2);
+                loadProductCard(session, i % 2 == 0 ? containerTopPicks : containerEndingSoon);
             }
             
         } catch (Exception e) {
@@ -92,7 +92,7 @@ public class BidderDashboardController implements Initializable {
             // Show error state
             Label errorLabel = new Label("Không thể kết nối server");
             errorLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #c62828;");
-            container1.getChildren().add(errorLabel);
+            containerTopPicks.getChildren().add(errorLabel);
         }
     }
     
