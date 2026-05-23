@@ -72,6 +72,19 @@ public class BidService {
             checkAndExtendForAntiSnipe(session);
             
             auctionSessionDAO.updateSession(session);
+
+            // Kích hoạt auto-bids sau bid thủ công. AutoBidService có thể tạo thêm bid mới.
+            com.auction.server.ServiceRegistry.AUTO_BID_SERVICE.processAutoBids(sessionId, amount);
+
+            // Push lại phiên mới nhất cho toàn bộ UI đang mở.
+            // AUCTION_EXTENDED_PUSH chỉ báo sự kiện gia hạn; AUCTION_UPDATED_PUSH giúp card,
+            // detail page, chart và countdown cùng re-bind dữ liệu thống nhất.
+            AuctionSession refreshed = auctionSessionDAO.getSessionById(sessionId);
+            ClientBroadcastHub.broadcast(new Message(
+                    MessageType.AUCTION_UPDATED_PUSH,
+                    refreshed != null ? refreshed : session
+            ));
+
             return true;
         }
     }

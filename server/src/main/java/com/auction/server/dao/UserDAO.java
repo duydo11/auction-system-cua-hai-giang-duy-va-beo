@@ -4,6 +4,7 @@ import com.auction.shared.model.user.Admin;
 import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
+import com.auction.shared.model.user.Transaction;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,7 +13,40 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * DAO for users and wallet transactions.
+ *
+ * <p>The UI wallet screens depend on this DAO for two things:</p>
+ * <ul>
+ *   <li>loading the current role-specific user object with its balance,</li>
+ *   <li>saving and querying transaction history for deposit, withdraw and successful auctions.</li>
+ * </ul>
+ */
 public class UserDAO {
+
+    public UserDAO() {
+        try (Connection conn = DatabaseConnection.getConnection();
+             java.sql.Statement stmt = conn.createStatement()) {
+            // Create transactions table if not exists
+            stmt.execute("CREATE TABLE IF NOT EXISTS transactions (" +
+                         "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                         "user_id VARCHAR(255) NOT NULL, " +
+                         "amount DOUBLE NOT NULL, " +
+                         "type VARCHAR(50) NOT NULL, " +
+                         "description VARCHAR(255), " +
+                         "time DATETIME NOT NULL" +
+                         ")");
+
+            // Alter sellers table to add account_balance if not exists
+            try {
+                stmt.execute("ALTER TABLE sellers ADD COLUMN account_balance DOUBLE DEFAULT 0.0");
+            } catch (SQLException ignore) {
+                // Table might already have column, ignore
+            }
+        } catch (SQLException e) {
+            System.err.println("Note: DB initialization error: " + e.getMessage());
+        }
+    }
 
     /** ID tiếp theo cho đăng ký (schema users.id kiểu INT). */
     public int allocateNextUserId() {
@@ -84,10 +118,11 @@ public class UserDAO {
                     }
                 } else if (user instanceof Seller) {
                     Seller seller = (Seller) user;
-                    String sqlSeller = "INSERT INTO sellers (user_id, rating) VALUES (?, ?)";
+                    String sqlSeller = "INSERT INTO sellers (user_id, rating, account_balance) VALUES (?, ?, ?)";
                     try (PreparedStatement psSeller = conn.prepareStatement(sqlSeller)) {
                         psSeller.setInt(1, seller.getId());
                         psSeller.setDouble(2, seller.getRating());
+                        psSeller.setDouble(3, seller.getAccountBalance());
                         psSeller.executeUpdate();
                     }
                 } else if (user instanceof Admin) {
@@ -133,7 +168,7 @@ public class UserDAO {
     }
 
     public Seller getSellerById(int id) {
-        String sql = "SELECT u.id, u.username, u.password, u.email, s.rating " +
+        String sql = "SELECT u.id, u.username, u.password, u.email, s.rating, s.account_balance " +
                 "FROM users u INNER JOIN sellers s ON u.id = s.user_id WHERE u.id = ?";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -143,7 +178,7 @@ public class UserDAO {
                 return new Seller(
                         rs.getInt("id"), rs.getString("username"),
                         rs.getString("password"), rs.getString("email"),
-                        rs.getDouble("rating")
+                        rs.getDouble("rating"), rs.getDouble("account_balance")
                 );
             }
         } catch (SQLException e) {
@@ -215,10 +250,11 @@ public class UserDAO {
                     }
                 } else if (user instanceof Seller) {
                     Seller seller = (Seller) user;
-                    String sqlSeller = "UPDATE sellers SET rating = ? WHERE user_id = ?";
+                    String sqlSeller = "UPDATE sellers SET rating = ?, account_balance = ? WHERE user_id = ?";
                     try (PreparedStatement psSeller = conn.prepareStatement(sqlSeller)) {
                         psSeller.setDouble(1, seller.getRating());
-                        psSeller.setInt(2, seller.getId());
+                        psSeller.setDouble(2, seller.getAccountBalance());
+                        psSeller.setInt(3, seller.getId());
                         psSeller.executeUpdate();
                     }
                 } else if (user instanceof Admin) {
@@ -289,5 +325,45 @@ public class UserDAO {
             e.printStackTrace();
         }
         return users;
+    }
+
+    public void saveTransaction(Transaction trans) {
+        String sql = "INSERT INTO transactions (user_id, amount, type, description, time) VALUES (?, ?, ?, ?, ?)";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, String.valueOf(trans.getUserId()));
+            ps.setDouble(2, trans.getAmount());
+            ps.setString(3, trans.getType());
+            ps.setString(4, trans.getDescription());
+            ps.setTimestamp(5, java.sql.Timestamp.valueOf(trans.getTime()));
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public List<Transaction> getTransactionsByUserId(int userId) {
+        List<Transaction> list = new ArrayList<>();
+        String sql = "SELECT id, user_id, amount, type, description, time FROM transactions WHERE user_id = ? ORDER BY time DESC";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, String.valueOf(userId));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Transaction t = new Transaction(
+                            rs.getInt("id"),
+                            rs.getInt("user_id"),
+                            rs.getDouble("amount"),
+                            rs.getString("type"),
+                            rs.getString("description"),
+                            rs.getTimestamp("time").toLocalDateTime()
+                    );
+                    list.add(t);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 }

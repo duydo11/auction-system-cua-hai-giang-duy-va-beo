@@ -1,93 +1,193 @@
 package com.auction.client.controller.BidderScene;
 
-import com.auction.client.MockData.DataStore;
+import com.auction.client.RealtimeAuctionBus;
 import com.auction.client.SessionContext;
+import com.auction.client.controller.Card.ProductCardController;
+import com.auction.client.network.ClientProtocolHandler;
 import com.auction.client.util.SceneNavigator;
+import com.auction.shared.model.auction.AuctionSession;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
-import javafx.stage.Stage;
+
 import java.io.IOException;
 import java.net.URL;
-import java.util.Objects;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
 
+/**
+ * Bidder dashboard controller.
+ *
+ * <p>Responsibilities:</p>
+ * <ul>
+ *   <li>load active auctions from the backend instead of static placeholder cards,</li>
+ *   <li>create one {@code ProductCard.fxml} per {@link AuctionSession},</li>
+ *   <li>store card controllers by session id so realtime pushes can update the right card,</li>
+ *   <li>remove only this controller's listener during cleanup to avoid breaking other screens.</li>
+ * </ul>
+ */
 public class BidderDashboardController implements Initializable {
 
-    //Hiển thị Username
-    @FXML
-    private Label lblUsername;
+    @FXML private Label lblUsername;
+    @FXML private HBox container1;
+    @FXML private HBox container2;
+    
+    private final ClientProtocolHandler protocol = new ClientProtocolHandler();
+    private final Map<Integer, ProductCardController> cardControllers = new HashMap<>();
+    private Consumer<AuctionSession> realtimeListener;
+    
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // Display username
         if (SessionContext.getCurrentUser() != null) {
             lblUsername.setText(SessionContext.getCurrentUser().getUsername());
-        } else if (DataStore.currentUser != null) {
-            lblUsername.setText(DataStore.currentUser.getUsername());
         } else {
             lblUsername.setText("Guest User");
         }
-
-        testLoadCards(); //Test productcard
+        
+        // Load real auctions
+        loadActiveAuctions();
+        
+        // Listen for realtime updates
+        setupRealtimeListener();
     }
-
-    //Đổi giao diện Seller
-    @FXML
-    public void switchSellerDB(MouseEvent mouseEvent) {
-        SceneNavigator.loadScene(SceneNavigator.SELLER_DASHBOARD, "seller dashboard");
-    }
-
-    //Đổi My bids
-    @FXML
-    public void switchMyBids(MouseEvent mouseEvent) {
-        SceneNavigator.loadScene(SceneNavigator.MY_BIDS, "my bids");
-    }
-
-    //Đổi items
-    @FXML
-    public void switchItems(MouseEvent mouseEvent) {
-        SceneNavigator.loadScene(SceneNavigator.ITEMS, "items");
-    }
-
-    //Đổi wallet
-    @FXML
-    private void switchWalletPane(MouseEvent event) throws IOException {
-        SceneNavigator.loadScene(SceneNavigator.WALLET1, "wallet");
-    }
-
-    //Đổi Settings
-    @FXML
-    private void switchSettingsPane(MouseEvent event) throws IOException {
-        SceneNavigator.loadScene(SceneNavigator.SETTING1, "Setting");
-    }
-
-    //Test Product Card
-    @FXML
-    private HBox container1;
-    @FXML
-    private HBox container2;
-    private void testLoadCards() {
+    
+    /**
+     * Load active auctions từ backend.
+     */
+    private void loadActiveAuctions() {
         try {
-            for (int i = 0; i < 4; i++) {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/ProductCard.fxml"));
-                Node card = loader.load();
-                card.getStyleClass().add("product-card");
-                container1.getChildren().add(card);
-
-                FXMLLoader loader2 = new FXMLLoader(getClass().getResource("/fxml/Card/ProductCard.fxml"));
-                Node card2 = loader2.load();
-                card.getStyleClass().add("product-card");
-                container2.getChildren().add(card2);
+            List<AuctionSession> auctions = protocol.getActiveAuctions();
+            
+            if (auctions.isEmpty()) {
+                // Show empty state
+                Label emptyLabel = new Label("Chưa có phiên đấu giá nào");
+                emptyLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
+                container1.getChildren().add(emptyLabel);
+                return;
             }
+            
+            // Clear containers
+            container1.getChildren().clear();
+            container2.getChildren().clear();
+            
+            // Load cards
+            for (int i = 0; i < auctions.size(); i++) {
+                AuctionSession session = auctions.get(i);
+                loadProductCard(session, i % 2 == 0 ? container1 : container2);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error loading auctions: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Show error state
+            Label errorLabel = new Label("Không thể kết nối server");
+            errorLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #c62828;");
+            container1.getChildren().add(errorLabel);
+        }
+    }
+    
+    /**
+     * Load một ProductCard với data binding.
+     */
+    private void loadProductCard(AuctionSession session, HBox container) {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/fxml/Card/ProductCard.fxml")
+            );
+            Node card = loader.load();
+            
+            // Get controller và bind data
+            ProductCardController controller = loader.getController();
+            controller.setAuctionSession(session);
+            
+            // Store controller để update sau
+            cardControllers.put(session.getId(), controller);
+            
+            // Add to container
+            card.getStyleClass().add("product-card");
+            container.getChildren().add(card);
+            
         } catch (IOException e) {
-            System.out.println("Lỗi rồi: Không tìm thấy file CardItems.fxml");
+            System.err.println("Error loading ProductCard: " + e.getMessage());
             e.printStackTrace();
         }
     }
-
+    
+    /**
+     * Setup realtime listener cho price updates.
+     */
+    private void setupRealtimeListener() {
+        if (realtimeListener != null) return;
+        realtimeListener = updatedSession -> {
+            // Update card nếu đang hiển thị
+            ProductCardController controller = cardControllers.get(updatedSession.getId());
+            if (controller != null) {
+                Platform.runLater(() -> {
+                    controller.updatePrice(updatedSession.getCurrentPrice());
+                    // Re-bind để update status, time, etc.
+                    controller.setAuctionSession(updatedSession);
+                });
+            }
+        };
+        RealtimeAuctionBus.addAuctionListener(realtimeListener);
+    }
+    
+    /**
+     * Cleanup khi rời scene.
+     */
+    public void cleanup() {
+        // Stop all countdown timers
+        for (ProductCardController controller : cardControllers.values()) {
+            controller.cleanup();
+        }
+        cardControllers.clear();
+        
+        // Remove realtime listener
+        if (realtimeListener != null) {
+            RealtimeAuctionBus.removeAuctionListener(realtimeListener);
+            realtimeListener = null;
+        }
+    }
+    
+    // ==================== Navigation ====================
+    
+    @FXML
+    public void switchSellerDB(MouseEvent mouseEvent) {
+        cleanup();
+        SceneNavigator.loadScene(SceneNavigator.SELLER_DASHBOARD, "seller dashboard");
+    }
+    
+    @FXML
+    public void switchMyBids(MouseEvent mouseEvent) {
+        cleanup();
+        SceneNavigator.loadScene(SceneNavigator.MY_BIDS, "my bids");
+    }
+    
+    @FXML
+    public void switchItems(MouseEvent mouseEvent) {
+        cleanup();
+        SceneNavigator.loadScene(SceneNavigator.ITEMS, "items");
+    }
+    
+    @FXML
+    private void switchWalletPane(MouseEvent event) {
+        cleanup();
+        SceneNavigator.loadScene(SceneNavigator.WALLET1, "wallet");
+    }
+    
+    @FXML
+    private void switchSettingsPane(MouseEvent event) {
+        cleanup();
+        SceneNavigator.loadScene(SceneNavigator.SETTING1, "Setting");
+    }
 }

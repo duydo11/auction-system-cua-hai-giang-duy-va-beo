@@ -1,6 +1,7 @@
 package com.auction.server.dao;
 
 import com.auction.shared.model.auction.AuctionSession;
+import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.auction.Bid;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.user.User;
@@ -14,6 +15,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AuctionSessionDAO {
+
+    public AuctionSessionDAO() {
+        try (Connection conn = DatabaseConnection.getConnection();
+             java.sql.Statement stmt = conn.createStatement()) {
+            try {
+                stmt.execute("ALTER TABLE auction_sessions ADD COLUMN status VARCHAR(50) DEFAULT 'OPEN'");
+            } catch (SQLException ignore) {}
+        } catch (SQLException e) {
+            System.err.println("Note: AuctionSession table init: " + e.getMessage());
+        }
+    }
 
     public int allocateNextSessionId() {
         String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM auction_sessions";
@@ -32,7 +44,7 @@ public class AuctionSessionDAO {
     // Khoi tao phien dau gia
     public void saveSession(AuctionSession session) {
         String sql = "INSERT INTO auction_sessions (id, item_id, seller_id, winner_id, " +
-                "starting_price, current_price, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                "starting_price, current_price, start_time, end_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, session.getId());
@@ -55,6 +67,7 @@ public class AuctionSessionDAO {
             ps.setDouble(6, session.getCurrentPrice());
             ps.setObject(7, session.getStartTime());
             ps.setObject(8, session.getEndTime());
+            ps.setString(9, session.getStatus() != null ? session.getStatus().name() : "OPEN");
             ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -64,7 +77,7 @@ public class AuctionSessionDAO {
     public List<AuctionSession> findAllActiveSessions() {
         List<AuctionSession> list = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
-        String sql = "SELECT id FROM auction_sessions WHERE start_time < ? AND end_time > ?";
+        String sql = "SELECT id FROM auction_sessions WHERE start_time < ? AND end_time > ? AND status IN ('OPEN', 'RUNNING')";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, now);
@@ -117,6 +130,16 @@ public class AuctionSessionDAO {
                 AuctionSession session = new AuctionSession(fetchedId, seller, item, startingPrice, startTime, endTime);
                 session.setCurrentPrice(rs.getDouble("current_price"));
                 session.setWinner(winner);
+                String statusStr = rs.getString("status");
+                if (statusStr != null) {
+                    try {
+                        session.setStatus(AuctionStatus.valueOf(statusStr));
+                    } catch (IllegalArgumentException e) {
+                        session.setStatus(AuctionStatus.OPEN);
+                    }
+                } else {
+                    session.setStatus(AuctionStatus.OPEN);
+                }
 
                 // Cuối cùng, kéo toàn bộ lịch sử trả giá (Bids) gắn vào phiên này
                 List<Bid> bids = bidDAO.getBidsBySessionId(fetchedId, session);
@@ -132,7 +155,7 @@ public class AuctionSessionDAO {
 
     // Cap nhat phien dau gia
     public void updateSession(AuctionSession session) {
-        String sql = "UPDATE auction_sessions SET current_price = ?, winner_id = ? WHERE id = ?";
+        String sql = "UPDATE auction_sessions SET current_price = ?, winner_id = ?, status = ?, end_time = ? WHERE id = ?";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDouble(1, session.getCurrentPrice());
@@ -141,7 +164,9 @@ public class AuctionSessionDAO {
             } else {
                 ps.setNull(2, java.sql.Types.INTEGER);
             }
-            ps.setInt(3, session.getId());
+            ps.setString(3, session.getStatus() != null ? session.getStatus().name() : "OPEN");
+            ps.setObject(4, session.getEndTime());
+            ps.setInt(5, session.getId());
             ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -158,5 +183,23 @@ public class AuctionSessionDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public List<AuctionSession> findAllUnfinishedSessions() {
+        List<AuctionSession> list = new ArrayList<>();
+        String sql = "SELECT id FROM auction_sessions WHERE status NOT IN ('FINISHED', 'PAID', 'CANCELED')";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                AuctionSession session = getSessionById(rs.getInt("id"));
+                if (session != null) {
+                    list.add(session);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 }

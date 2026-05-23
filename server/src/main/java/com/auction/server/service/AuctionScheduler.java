@@ -1,9 +1,11 @@
 package com.auction.server.service;
 
 import com.auction.server.dao.AuctionSessionDAO;
+import com.auction.server.dao.UserDAO;
 import com.auction.server.network.ClientBroadcastHub;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.AuctionStatus;
+import com.auction.shared.model.user.User;
 import com.auction.shared.protocol.Message;
 import com.auction.shared.protocol.MessageType;
 
@@ -18,7 +20,7 @@ import java.util.logging.Logger;
 /**
  * Scheduler tự động đóng phiên đấu giá hết hạn.
  * Chạy mỗi 10 giây, scan DB → đóng phiên hết giờ → broadcast push.
- * 
+ *
  * Sử dụng:
  * <pre>
  * AuctionScheduler.getInstance().start();
@@ -90,15 +92,46 @@ public class AuctionScheduler {
      */
     private void scanAndCloseExpired() {
         try {
-            List<AuctionSession> activeSessions = auctionSessionDAO.findAllActiveSessions();
+            List<AuctionSession> activeSessions = auctionSessionDAO.findAllUnfinishedSessions();
             LocalDateTime now = LocalDateTime.now();
+            UserDAO userDAO = new UserDAO();
 
             for (AuctionSession session : activeSessions) {
-                if (now.isAfter(session.getEndTime()) &&
-                    (session.getStatus() == AuctionStatus.OPEN || session.getStatus() == AuctionStatus.RUNNING)) {
+                if (now.isAfter(session.getEndTime())) {
+                    User winner = session.getWinner();
+                    User seller = session.getSeller();
+                    double price = session.getCurrentPrice();
 
-                    // Đóng phiên
-                    session.setStatus(AuctionStatus.FINISHED);
+                    if (winner != null) {
+                        session.setStatus(AuctionStatus.PAID);
+
+                        // Deduct from winner
+                        if (winner instanceof com.auction.shared.model.user.Bidder) {
+                            com.auction.shared.model.user.Bidder bidder = (com.auction.shared.model.user.Bidder) winner;
+                            bidder.setAccountBalance(bidder.getAccountBalance() - price);
+                            userDAO.updateUser(bidder);
+
+                            // Save winner transaction
+                            userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                                0, bidder.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
+                            ));
+                        }
+
+                        // Add to seller
+                        if (seller instanceof com.auction.shared.model.user.Seller) {
+                            com.auction.shared.model.user.Seller sel = (com.auction.shared.model.user.Seller) seller;
+                            sel.setAccountBalance(sel.getAccountBalance() + price);
+                            userDAO.updateUser(sel);
+
+                            // Save seller transaction
+                            userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                                0, sel.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
+                            ));
+                        }
+                    } else {
+                        session.setStatus(AuctionStatus.FINISHED);
+                    }
+
                     auctionSessionDAO.updateSession(session);
 
                     // Broadcast push tới client
@@ -107,7 +140,7 @@ public class AuctionScheduler {
                     );
 
                     logger.info("Auto-closed auction #" + session.getId() +
-                            " | Winner: " + (session.getWinner() != null ? session.getWinner().getUsername() : "None"));
+                            " | Winner: " + (winner != null ? winner.getUsername() : "None"));
                 }
             }
         } catch (Exception e) {

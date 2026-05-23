@@ -67,4 +67,26 @@ public class UserService {
             return false;
         }
     }
+
+    public User getUserById(int userId) {
+        return userDAO.getUserById(userId);
+    }
+
+    public boolean updateUser(User user) {
+        try {
+            userDAO.updateUser(user);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public void saveTransaction(com.auction.shared.model.user.Transaction trans) {
+        userDAO.saveTransaction(trans);
+    }
+
+    public List<com.auction.shared.model.user.Transaction> getTransactionsByUserId(int userId) {
+        return userDAO.getTransactionsByUserId(userId);
+    }
 }

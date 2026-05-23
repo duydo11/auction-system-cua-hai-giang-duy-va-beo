@@ -9,48 +9,41 @@ import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
-import javafx.stage.Stage;
 
-import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDateTime;
-import java.util.Objects;
 import java.util.ResourceBundle;
 
+/**
+ * SellerDashboard — hiển thị thông tin seller, tạo phiên đấu giá mới.
+ */
 public class SellerDashboardController implements Initializable {
 
-    @FXML
-    private Label lblUsername;
-    @FXML
-    private TextField txtItemName;
-    @FXML
-    private TextField txtItemDesc;
-    @FXML
-    private TextField txtStartPrice;
-    @FXML
-    private TextField txtDurationHours;
-    @FXML
-    private Label lblCreateAuctionMsg;
+    @FXML private Label lblUsername;
+    @FXML private TextField txtItemName;
+    @FXML private TextField txtItemDesc;
+    @FXML private TextField txtStartPrice;
+    @FXML private TextField txtDurationHours;
+    @FXML private Label lblCreateAuctionMsg;
 
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        var u = SessionContext.getCurrentUser();
+        User u = SessionContext.getCurrentUser();
         lblUsername.setText(u != null ? u.getUsername() : "Guest");
     }
 
-    /*: CreateAuction - Data thật (Giang chưa check)
+    /**
+     * Tạo phiên đấu giá mới — gửi data thật qua protocol.
+     */
     @FXML
     private void handleCreateAuction(ActionEvent event) {
+        if (lblCreateAuctionMsg == null) return;
         lblCreateAuctionMsg.setText("");
         lblCreateAuctionMsg.setStyle("-fx-text-fill: #c62828;");
 
@@ -60,10 +53,10 @@ public class SellerDashboardController implements Initializable {
             return;
         }
 
-        String name = txtItemName.getText().trim();
-        String desc = txtItemDesc.getText().trim();
-        String priceRaw = txtStartPrice.getText().trim().replace(",", "");
-        String hoursRaw = txtDurationHours.getText().trim();
+        String name = txtItemName != null ? txtItemName.getText().trim() : "";
+        String desc = txtItemDesc != null ? txtItemDesc.getText().trim() : "";
+        String priceRaw = txtStartPrice != null ? txtStartPrice.getText().trim().replace(",", "") : "";
+        String hoursRaw = txtDurationHours != null ? txtDurationHours.getText().trim() : "";
 
         if (name.isEmpty() || desc.isEmpty() || priceRaw.isEmpty() || hoursRaw.isEmpty()) {
             lblCreateAuctionMsg.setText("Điền đủ các ô.");
@@ -90,33 +83,40 @@ public class SellerDashboardController implements Initializable {
 
         String err = protocol.createAuctionOrError(session);
         if (err == null) {
-            lblCreateAuctionMsg.setText("Đã tạo phiên #" + session.getId() + " — các bidder thấy ngay (push).");
+            lblCreateAuctionMsg.setText("Đã tạo phiên thành công!");
             lblCreateAuctionMsg.setStyle("-fx-text-fill: #2e7d32;");
-            txtItemName.clear();
-            txtItemDesc.clear();
-            txtStartPrice.clear();
-            txtDurationHours.clear();
+            if (txtItemName != null) txtItemName.clear();
+            if (txtItemDesc != null) txtItemDesc.clear();
+            if (txtStartPrice != null) txtStartPrice.clear();
+            if (txtDurationHours != null) txtDurationHours.clear();
         } else {
             lblCreateAuctionMsg.setText(err);
         }
-    } */
+    }
 
-    //Đổi bidder
+    // ==================== Navigation ====================
+
     @FXML
     public void switchBidderDB(MouseEvent mouseEvent) {
         SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "bidder home");
     }
+
+    @FXML
     public void switchShipping(MouseEvent mouseEvent) {
         SceneNavigator.loadScene(SceneNavigator.SHIPPING, "shipping home");
     }
 
+    @FXML
     public void switchWallet(MouseEvent mouseEvent) {
         SceneNavigator.loadScene(SceneNavigator.WALLET2, "wallet home");
     }
 
+    @FXML
     public void switchSetting(MouseEvent mouseEvent) {
         SceneNavigator.loadScene(SceneNavigator.SETTING2, "setting home");
     }
+
+    @FXML
     public void switchMylisting(MouseEvent mouseEvent) {
         SceneNavigator.loadScene(SceneNavigator.MY_LISTING, "shipping home");
     }
