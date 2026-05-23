@@ -146,12 +146,12 @@
                                              <children>
                                                 <HBox prefHeight="50.0" prefWidth="646.0">
                                                    <children>
-                                                      <Label fx:id="lblUsername1" prefHeight="50.0" prefWidth="125.0" text="Total Balance:" textFill="WHITE">
+                                                      <Label prefHeight="50.0" prefWidth="125.0" text="Total Balance:" textFill="WHITE">
                                                          <font>
                                                             <Font name="Montserrat Bold" size="16.0" />
                                                          </font>
                                                       </Label>
-                                                      <Label fx:id="lblUsername13" prefHeight="50.0" prefWidth="396.0" text="000.000" textFill="WHITE">
+                                                      <Label fx:id="lblTotalBalance" prefHeight="50.0" prefWidth="396.0" text="000.000" textFill="WHITE">
                                                          <font>
                                                             <Font name="Montserrat Bold" size="16.0" />
                                                          </font>
@@ -160,12 +160,12 @@
                                                 </HBox>
                                                 <HBox prefHeight="50.0" prefWidth="646.0">
                                                    <children>
-                                                      <Label fx:id="lblUsername11" prefHeight="50.0" prefWidth="142.0" text="Available to Bid:" textFill="WHITE">
+                                                      <Label prefHeight="50.0" prefWidth="142.0" text="Available to Bid:" textFill="WHITE">
                                                          <font>
                                                             <Font name="Montserrat Bold" size="16.0" />
                                                          </font>
                                                       </Label>
-                                                      <Label fx:id="lblUsername131" prefHeight="50.0" prefWidth="396.0" text="000.000" textFill="WHITE">
+                                                      <Label fx:id="lblAvailabe" prefHeight="50.0" prefWidth="396.0" text="000.000" textFill="WHITE">
                                                          <font>
                                                             <Font name="Montserrat Bold" size="16.0" />
                                                          </font>
@@ -174,12 +174,12 @@
                                                 </HBox>
                                                 <HBox prefHeight="50.0" prefWidth="200.0">
                                                    <children>
-                                                      <Label fx:id="lblUsername12" prefHeight="50.0" prefWidth="90.0" text="Reserved:" textFill="WHITE">
+                                                      <Label prefHeight="50.0" prefWidth="90.0" text="Reserved:" textFill="WHITE">
                                                          <font>
                                                             <Font name="Montserrat Bold" size="16.0" />
                                                          </font>
                                                       </Label>
-                                                      <Label fx:id="lblUsername132" prefHeight="50.0" prefWidth="396.0" text="000.000" textFill="WHITE">
+                                                      <Label fx:id="lblReserved" prefHeight="50.0" prefWidth="396.0" text="000.000" textFill="WHITE">
                                                          <font>
                                                             <Font name="Montserrat Bold" size="16.0" />
                                                          </font>

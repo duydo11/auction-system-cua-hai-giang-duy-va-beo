@@ -1,4 +1,4 @@
 package com.auction.client.controller.Card;
 
-public class BidsHistoryCardController {
+public class BidderHistoryCardController {
 }

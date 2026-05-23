@@ -164,6 +164,7 @@
                                                       <AnchorPane prefHeight="200.0" prefWidth="200.0" />
                                                    </children>
                                                 </HBox>
+                                                <VBox fx:id="containerShipped" alignment="TOP_CENTER" prefHeight="498.0" prefWidth="921.0" spacing="10.0" />
                                              </children>
                                           </VBox>
                                        </content>
@@ -192,7 +193,7 @@
                                                       <AnchorPane prefHeight="200.0" prefWidth="200.0" />
                                                    </children>
                                                 </HBox>
-                                                <VBox fx:id="containerTotal" alignment="TOP_CENTER" prefHeight="498.0" prefWidth="921.0" spacing="10.0" />
+                                                <VBox fx:id="containerPending" alignment="TOP_CENTER" prefHeight="498.0" prefWidth="921.0" spacing="10.0" />
                                              </children>
                                           </VBox>
                                        </content>

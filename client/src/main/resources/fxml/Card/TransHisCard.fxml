@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<HBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="100.0" prefWidth="900.0" style="-fx-background-color: white; -fx-background-radius: 15; -fx-border-radius: 15;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.Card.TransHisCardController">
+<HBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="100.0" prefWidth="900.0" style="-fx-background-color: white; -fx-background-radius: 15; -fx-border-radius: 15;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.Card.TransHisCardController">
    <children>
       <VBox prefHeight="100.0" prefWidth="674.0">
          <children>
@@ -14,7 +12,7 @@
             <HBox prefHeight="56.0" prefWidth="600.0">
                <children>
                   <AnchorPane prefHeight="50.0" prefWidth="24.0" />
-                  <Label prefHeight="50.0" prefWidth="402.0" text="Transaction Title">
+                  <Label fx:id="lblTransTit" prefHeight="50.0" prefWidth="402.0" text="Transaction Title">
                      <font>
                         <Font name="Montserrat Bold" size="16.0" />
                      </font>
@@ -24,12 +22,12 @@
             <HBox prefHeight="86.0" prefWidth="600.0">
                <children>
                   <AnchorPane prefHeight="50.0" prefWidth="24.0" />
-                  <Label prefHeight="18.0" prefWidth="158.0" text="DD/MM/YYYY">
+                  <Label fx:id="lblTransDay" prefHeight="18.0" prefWidth="158.0" text="DD/MM/YYYY">
                      <font>
                         <Font name="Montserrat Regular" size="14.0" />
                      </font>
                   </Label>
-                  <Label prefHeight="18.0" prefWidth="118.0" text="HH:mm">
+                  <Label fx:id="lblTransTime" prefHeight="18.0" prefWidth="118.0" text="HH:mm">
                      <font>
                         <Font name="Montserrat Regular" size="14.0" />
                      </font>
@@ -40,7 +38,7 @@
       </VBox>
       <HBox prefHeight="100.0" prefWidth="386.0">
          <children>
-            <Label alignment="CENTER_RIGHT" prefHeight="100.0" prefWidth="306.0" text="000.000.000" textAlignment="RIGHT">
+            <Label fx:id="lblTransAmount" alignment="CENTER_RIGHT" prefHeight="100.0" prefWidth="306.0" text="000.000.000" textAlignment="RIGHT">
                <font>
                   <Font name="Montserrat Bold" size="16.0" />
                </font>

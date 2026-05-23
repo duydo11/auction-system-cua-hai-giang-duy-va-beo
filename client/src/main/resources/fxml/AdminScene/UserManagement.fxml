@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.image.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" styleClass="product-card" stylesheets="@../../css/productcard.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AdminScene.UserManagementController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="680.0" prefWidth="1230.0" styleClass="product-card" stylesheets="@../../css/productcard.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AdminScene.UserManagementController">
     <children>
         <ImageView fitHeight="680.0" fitWidth="1238.0" pickOnBounds="true">
             <image>
@@ -101,13 +106,13 @@
                                         </HBox>
                                         <AnchorPane prefHeight="521.0" prefWidth="871.0" style="-fx-border-color: black;">
                                  <children>
-                                    <TableView layoutX="2.0" layoutY="2.0" prefHeight="494.0" prefWidth="818.0" style="-fx-background-color: white; -fx-background-radius: 10;">
+                                    <TableView fx:id="tableUsers" layoutX="2.0" layoutY="2.0" prefHeight="494.0" prefWidth="818.0" style="-fx-background-color: white; -fx-background-radius: 10;">
                                       <columns>
-                                        <TableColumn prefWidth="99.20001220703125" text="ID" />
-                                        <TableColumn prefWidth="224.0" text="USERNAME" />
-                                          <TableColumn prefWidth="273.5999755859375" text="EMAIL" />
-                                          <TableColumn prefWidth="117.5999755859375" text="STATUS" />
-                                          <TableColumn prefWidth="106.4000244140625" text="ACTIONS" />
+                                        <TableColumn fx:id="colId" prefWidth="99.20001220703125" text="ID" />
+                                        <TableColumn fx:id="colUsername" prefWidth="224.0" text="USERNAME" />
+                                          <TableColumn fx:id="colEmail" prefWidth="273.5999755859375" text="EMAIL" />
+                                          <TableColumn fx:id="colStatus" prefWidth="117.5999755859375" text="STATUS" />
+                                          <TableColumn fx:id="colActions" prefWidth="106.4000244140625" text="ACTIONS" />
                                       </columns>
                                     </TableView>
                                  </children>
