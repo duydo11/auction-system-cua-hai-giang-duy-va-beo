@@ -151,6 +151,9 @@ public class AddProductDialogController implements Initializable {
 
             // 5. Tạo phiên đấu giá
             Electronics item = new Electronics(0, name, desc, seller, 12);
+            if (selectedImageFile != null) {
+                item.setImagePath(selectedImageFile.toURI().toString());
+            }
             AuctionSession session = new AuctionSession(0, seller, item, price, start, end);
 
             String err = protocol.createAuctionOrError(session);

@@ -8,7 +8,7 @@
 <HBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="150.0" prefWidth="900.0" style="-fx-background-radius: 15; -fx-background-color: white;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.Card.HistoryCardController">
    <children>
       <AnchorPane prefHeight="150.0" prefWidth="22.0" />
-      <ImageView fitHeight="150.0" fitWidth="207.0" pickOnBounds="true" preserveRatio="true" />
+      <ImageView fx:id="imgProduct" fitHeight="150.0" fitWidth="207.0" pickOnBounds="true" preserveRatio="true" />
       <VBox prefHeight="150.0" prefWidth="649.0">
          <children>
             <AnchorPane prefHeight="17.0" prefWidth="600.0" />

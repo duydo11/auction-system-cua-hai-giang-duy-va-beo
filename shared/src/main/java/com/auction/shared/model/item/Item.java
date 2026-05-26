@@ -13,12 +13,19 @@ public abstract class Item extends Entity {
     private String name;
     private String description;
     private User seller;
+    /** Local path/URI of the product image selected by the seller. */
+    private String imagePath;
 
     public Item(int id, String name, String description, User seller) {
         super(id);
         this.name = name;
         this.description = description;
         this.seller = seller;
+    }
+
+    public Item(int id, String name, String description, User seller, String imagePath) {
+        this(id, name, description, seller);
+        this.imagePath = imagePath;
     }
 
     public abstract String getItemType();

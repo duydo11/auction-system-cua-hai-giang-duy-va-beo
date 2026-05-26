@@ -8,6 +8,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -28,7 +30,9 @@ public class ProductCardController {
     @FXML private Label lblItemName;
     @FXML private Label lblCurrentPrice;
     @FXML private Label lblTimeRemaining;
+    @FXML private Label lblStartTime;
     @FXML private Label lblStatus;
+    @FXML private ImageView imgProduct;
     @FXML private Button btnViewDetails;
 
     private AuctionSession session;
@@ -59,6 +63,9 @@ public class ProductCardController {
         if (lblStatus != null) {
             updateStatus();
         }
+
+        updateStartTime();
+        updateProductImage();
 
         // Start countdown timer
         startCountdownTimer();
@@ -98,6 +105,33 @@ public class ProductCardController {
                 lblStatus.setText("Đã hủy");
                 lblStatus.setStyle("-fx-background-color: #f5f5f5; -fx-text-fill: #757575;");
             }
+        }
+    }
+
+    /**
+     * Shows when the auction starts, so bidders can see scheduled auctions clearly.
+     */
+    private void updateStartTime() {
+        if (lblStartTime != null && session != null && session.getStartTime() != null) {
+            lblStartTime.setText("Start: " + session.getStartTime().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm")));
+        }
+    }
+
+    /**
+     * Uses the seller-selected local image when available; otherwise keeps the FXML placeholder.
+     */
+    private void updateProductImage() {
+        if (imgProduct == null || session == null || session.getItem() == null) {
+            return;
+        }
+        String imagePath = session.getItem().getImagePath();
+        if (imagePath == null || imagePath.isBlank()) {
+            return;
+        }
+        try {
+            imgProduct.setImage(new Image(imagePath, true));
+        } catch (RuntimeException e) {
+            System.err.println("Cannot load product image: " + imagePath);
         }
     }
 

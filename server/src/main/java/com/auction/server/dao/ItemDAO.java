@@ -12,6 +12,19 @@ import java.sql.SQLException;
 
 public class ItemDAO {
 
+    public ItemDAO() {
+        Connection conn = DatabaseConnection.getConnection();
+        try (java.sql.Statement stmt = conn.createStatement()) {
+            try {
+                stmt.execute("ALTER TABLE items ADD COLUMN image_path VARCHAR(1000)");
+            } catch (SQLException ignore) {
+                // Column already exists on most runs.
+            }
+        } catch (SQLException e) {
+            System.err.println("Note: Item table init: " + e.getMessage());
+        }
+    }
+
     public int allocateNextItemId() {
         String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM items";
         Connection conn = DatabaseConnection.getConnection();
@@ -26,9 +39,8 @@ public class ItemDAO {
         return 1;
     }
 
-    // tao item
     public void saveItem(Item item) {
-        String sqlItem = "INSERT INTO items (id, name, description, seller_id) VALUES (?, ?, ?, ?)";
+        String sqlItem = "INSERT INTO items (id, name, description, seller_id, image_path) VALUES (?, ?, ?, ?, ?)";
         Connection conn = DatabaseConnection.getConnection();
         try {
             conn.setAutoCommit(false);
@@ -42,6 +54,7 @@ public class ItemDAO {
                 } else {
                     psItem.setNull(4, java.sql.Types.INTEGER);
                 }
+                psItem.setString(5, item.getImagePath());
                 psItem.executeUpdate();
 
                 if (item instanceof Vehicle) {
@@ -81,7 +94,7 @@ public class ItemDAO {
     // Lay thong tin item, cung voi seller luon
     public Item getItemById(int id) {
         // Thêm i.seller_id vào câu SQL
-        String sql = "SELECT i.id, i.name, i.description, i.seller_id, v.brand, e.warranty_months, a.author " +
+        String sql = "SELECT i.id, i.name, i.description, i.seller_id, i.image_path, v.brand, e.warranty_months, a.author " +
                 "FROM items i " +
                 "LEFT JOIN vehicles v ON i.id = v.item_id " +
                 "LEFT JOIN electronics e ON i.id = e.item_id " +
@@ -95,6 +108,7 @@ public class ItemDAO {
                 int fetchedId = rs.getInt("id");
                 String name = rs.getString("name");
                 String desc = rs.getString("description");
+                String imagePath = rs.getString("image_path");
                 int sellerId = rs.getInt("seller_id");
                 boolean hasSeller = !rs.wasNull();
 
@@ -103,14 +117,18 @@ public class ItemDAO {
                 UserDAO userDAO = new UserDAO();
                 User seller = hasSeller ? userDAO.getUserById(sellerId) : null;
 
-                // Trả về đúng Class con kèm full dữ liệu Seller
+                Item item;
                 if (rs.getString("brand") != null) {
-                    return new Vehicle(fetchedId, name, desc, seller, rs.getString("brand"));
+                    item = new Vehicle(fetchedId, name, desc, seller, rs.getString("brand"));
                 } else if (rs.getObject("warranty_months") != null) {
-                    return new Electronics(fetchedId, name, desc, seller, rs.getInt("warranty_months"));
+                    item = new Electronics(fetchedId, name, desc, seller, rs.getInt("warranty_months"));
                 } else if (rs.getString("author") != null) {
-                    return new Art(fetchedId, name, desc, seller, rs.getString("author"));
+                    item = new Art(fetchedId, name, desc, seller, rs.getString("author"));
+                } else {
+                    item = new Electronics(fetchedId, name, desc, seller, 12);
                 }
+                item.setImagePath(imagePath);
+                return item;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -120,14 +138,15 @@ public class ItemDAO {
 
     //Cap nhat item
     public void updateItem(Item item) {
-        String sqlItem = "UPDATE items SET name = ?, description = ? WHERE id = ?";
+        String sqlItem = "UPDATE items SET name = ?, description = ?, image_path = ? WHERE id = ?";
         Connection conn = DatabaseConnection.getConnection();
         try {
             conn.setAutoCommit(false);
             try (PreparedStatement psItem = conn.prepareStatement(sqlItem)) {
                 psItem.setString(1, item.getName());
                 psItem.setString(2, item.getDescription());
-                psItem.setInt(3, item.getId());
+                psItem.setString(3, item.getImagePath());
+                psItem.setInt(4, item.getId());
                 psItem.executeUpdate();
 
                 // Cập nhật tùy theo class con

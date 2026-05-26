@@ -1,35 +1,33 @@
 package com.auction.client.controller.SellerScene;
 
 import com.auction.client.SessionContext;
+import com.auction.client.controller.Card.ProductCardController;
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.auction.AuctionSession;
-import com.auction.shared.model.item.Electronics;
-import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 
+import java.io.IOException;
 import java.net.URL;
-import java.time.LocalDateTime;
+import java.util.List;
 import java.util.ResourceBundle;
 
 /**
- * SellerDashboard — hiển thị thông tin seller, tạo phiên đấu giá mới.
+ * Seller dashboard that shows the current seller's listed auctions.
  */
 public class SellerDashboardController implements Initializable {
 
     @FXML private Label lblUsername;
-    @FXML private TextField txtItemName;
-    @FXML private TextField txtItemDesc;
-    @FXML private TextField txtStartPrice;
-    @FXML private TextField txtDurationHours;
-    @FXML private Label lblCreateAuctionMsg;
+    @FXML private HBox containerTopPicks;
+    @FXML private HBox containerEndingSoon;
 
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
 
@@ -37,65 +35,56 @@ public class SellerDashboardController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         User u = SessionContext.getCurrentUser();
         lblUsername.setText(u != null ? u.getUsername() : "Guest");
+        loadSellerAuctions();
     }
 
-    /**
-     * Tạo phiên đấu giá mới — gửi data thật qua protocol.
-     */
-    @FXML
-    private void handleCreateAuction(ActionEvent event) {
-        if (lblCreateAuctionMsg == null) return;
-        lblCreateAuctionMsg.setText("");
-        lblCreateAuctionMsg.setStyle("-fx-text-fill: #c62828;");
+    private void loadSellerAuctions() {
+        if (containerTopPicks != null) containerTopPicks.getChildren().clear();
+        if (containerEndingSoon != null) containerEndingSoon.getChildren().clear();
 
-        User u = SessionContext.getCurrentUser();
-        if (!(u instanceof Seller seller)) {
-            lblCreateAuctionMsg.setText("Chỉ tài khoản Seller có thể đăng phiên.");
+        User current = SessionContext.getCurrentUser();
+        if (current == null) {
+            showMessage("Bạn chưa đăng nhập.");
             return;
         }
 
-        String name = txtItemName != null ? txtItemName.getText().trim() : "";
-        String desc = txtItemDesc != null ? txtItemDesc.getText().trim() : "";
-        String priceRaw = txtStartPrice != null ? txtStartPrice.getText().trim().replace(",", "") : "";
-        String hoursRaw = txtDurationHours != null ? txtDurationHours.getText().trim() : "";
+        List<AuctionSession> auctions = protocol.getActiveAuctions().stream()
+                .filter(s -> s.getSeller() != null && s.getSeller().getId() == current.getId())
+                .toList();
 
-        if (name.isEmpty() || desc.isEmpty() || priceRaw.isEmpty() || hoursRaw.isEmpty()) {
-            lblCreateAuctionMsg.setText("Điền đủ các ô.");
+        if (auctions.isEmpty()) {
+            showMessage("Bạn chưa có sản phẩm nào đang lên sàn.");
             return;
         }
 
-        double startPrice;
-        long hours;
+        for (int i = 0; i < auctions.size(); i++) {
+            HBox target = i % 2 == 0 ? containerTopPicks : containerEndingSoon;
+            if (target != null) {
+                loadProductCard(auctions.get(i), target);
+            }
+        }
+    }
+
+    private void loadProductCard(AuctionSession session, HBox container) {
         try {
-            startPrice = Double.parseDouble(priceRaw);
-            hours = Long.parseLong(hoursRaw);
-        } catch (NumberFormatException e) {
-            lblCreateAuctionMsg.setText("Giá hoặc số giờ không hợp lệ.");
-            return;
-        }
-        if (startPrice <= 0 || hours <= 0) {
-            lblCreateAuctionMsg.setText("Giá và thời gian phải > 0.");
-            return;
-        }
-
-        Electronics item = new Electronics(0, name, desc, seller, 12);
-        LocalDateTime start = LocalDateTime.now();
-        AuctionSession session = new AuctionSession(0, seller, item, startPrice, start, start.plusHours(hours));
-
-        String err = protocol.createAuctionOrError(session);
-        if (err == null) {
-            lblCreateAuctionMsg.setText("Đã tạo phiên thành công!");
-            lblCreateAuctionMsg.setStyle("-fx-text-fill: #2e7d32;");
-            if (txtItemName != null) txtItemName.clear();
-            if (txtItemDesc != null) txtItemDesc.clear();
-            if (txtStartPrice != null) txtStartPrice.clear();
-            if (txtDurationHours != null) txtDurationHours.clear();
-        } else {
-            lblCreateAuctionMsg.setText(err);
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/ProductCard.fxml"));
+            Node card = loader.load();
+            ProductCardController controller = loader.getController();
+            controller.setAuctionSession(session);
+            container.getChildren().add(card);
+        } catch (IOException e) {
+            System.err.println("Cannot load seller product card: " + e.getMessage());
         }
     }
 
-    // ==================== Navigation ====================
+    private void showMessage(String message) {
+        HBox target = containerTopPicks != null ? containerTopPicks : containerEndingSoon;
+        if (target != null) {
+            Label label = new Label(message);
+            label.setStyle("-fx-font-family: 'Montserrat'; -fx-font-size: 14; -fx-text-fill: #666666;");
+            target.getChildren().add(label);
+        }
+    }
 
     @FXML
     public void switchBidderDB(MouseEvent mouseEvent) {

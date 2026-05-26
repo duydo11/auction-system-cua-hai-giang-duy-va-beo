@@ -192,11 +192,11 @@
                                                 </HBox>
                                     <AnchorPane prefHeight="200.0" prefWidth="200.0">
                                        <children>
-                                          <ScrollPane prefHeight="200.0" prefWidth="982.0">
-                                             <content>
-                                                <HBox prefHeight="199.0" prefWidth="965.0" />
-                                             </content>
-                                          </ScrollPane>
+                                           <ScrollPane prefHeight="200.0" prefWidth="982.0">
+                                              <content>
+                                                 <HBox fx:id="containerTopPicks" prefHeight="199.0" prefWidth="965.0" />
+                                              </content>
+                                           </ScrollPane>
                                        </children>
                                     </AnchorPane>
                                             </children>
@@ -220,11 +220,11 @@
                                                 </HBox>
                                               <AnchorPane prefHeight="200.0" prefWidth="200.0">
                                        <children>
-                                          <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="982.0" vbarPolicy="NEVER">
-                                             <content>
-                                                <HBox prefHeight="199.0" prefWidth="965.0" />
-                                             </content>
-                                          </ScrollPane>
+                                           <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="982.0" vbarPolicy="NEVER">
+                                              <content>
+                                                 <HBox fx:id="containerEndingSoon" prefHeight="199.0" prefWidth="965.0" />
+                                              </content>
+                                           </ScrollPane>
                                        </children>
                                     </AnchorPane>
                                             </children>
