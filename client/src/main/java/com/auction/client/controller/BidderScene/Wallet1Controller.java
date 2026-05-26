@@ -4,6 +4,7 @@ import com.auction.client.SessionContext;
 import com.auction.client.controller.Card.TransHisCardController;
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.User;
@@ -157,6 +158,7 @@ public class Wallet1Controller implements Initializable {
 
     @FXML
     public void switchSellerDB(MouseEvent mouseEvent) throws IOException {
+        UserRoleSwitcher.switchToSellerRole();
         SceneNavigator.loadScene(SceneNavigator.SELLER_DASHBOARD, "seller dashboard");
     }
 

@@ -2,6 +2,7 @@ package com.auction.client.controller.SellerScene;
 
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.UserRoleSwitcher;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -41,6 +42,7 @@ public class ShippingController {
     //Đổi bidder
     @FXML
     public void switchBidderDB(MouseEvent mouseEvent) {
+        UserRoleSwitcher.switchToBidderRole();
         SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "bidder home");
     }
     public void switchWallet(MouseEvent mouseEvent) {

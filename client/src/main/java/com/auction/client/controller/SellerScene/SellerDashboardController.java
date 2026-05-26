@@ -3,6 +3,7 @@ package com.auction.client.controller.SellerScene;
 import com.auction.client.SessionContext;
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.item.Electronics;
 import com.auction.shared.model.user.Seller;
@@ -98,6 +99,7 @@ public class SellerDashboardController implements Initializable {
 
     @FXML
     public void switchBidderDB(MouseEvent mouseEvent) {
+        UserRoleSwitcher.switchToBidderRole();
         SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "bidder home");
     }
 

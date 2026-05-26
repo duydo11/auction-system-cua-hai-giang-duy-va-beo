@@ -4,6 +4,7 @@ import com.auction.client.SessionContext;
 import com.auction.client.controller.Card.TransHisCardController;
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
 import com.auction.shared.model.user.Transaction;
@@ -142,6 +143,7 @@ public class Wallet2Controller implements Initializable {
 
     @FXML
     public void switchBidderDB(MouseEvent mouseEvent) {
+        UserRoleSwitcher.switchToBidderRole();
         SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "bidder home");
     }
 

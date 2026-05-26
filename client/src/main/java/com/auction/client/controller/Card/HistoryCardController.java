@@ -47,4 +47,15 @@ public class HistoryCardController {
             lblAuctionId.setText("Phiên #" + bid.getAuctionSession().getId());
         }
     }
+
+    /**
+     * Handler referenced by HistoryCard.fxml.
+     *
+     * <p>Hiện card lịch sử chỉ hiển thị thông tin bid tóm tắt, nên nút này tạm
+     * ghi log thay vì điều hướng sang màn hình khác chưa tồn tại.</p>
+     */
+    @FXML
+    private void handleViewDetails() {
+        System.out.println("History bid details are already shown on this card.");
+    }
 }

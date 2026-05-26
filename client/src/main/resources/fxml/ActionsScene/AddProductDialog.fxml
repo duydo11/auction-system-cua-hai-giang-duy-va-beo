@@ -85,7 +85,7 @@
                         <AnchorPane prefHeight="153.0" prefWidth="38.0" />
                         <VBox prefHeight="89.0" prefWidth="520.0" spacing="5.0">
                            <children>
-                              <Label prefHeight="28.0" prefWidth="558.0" text="Starting price">
+                               <Label prefHeight="28.0" prefWidth="558.0" text="Starting price (x.000 VND - numbers only)">
                                  <font>
                                     <Font name="Montserrat Bold" size="14.0" />
                                  </font>
@@ -163,9 +163,9 @@
                                     <Font name="Montserrat Bold" size="14.0" />
                                  </font>
                               </Label>
-                              <HBox prefHeight="100.0" prefWidth="200.0" style="-fx-border-color: black;">
+                              <HBox onMouseClicked="#handleChooseImage" prefHeight="100.0" prefWidth="200.0" style="-fx-border-color: black; -fx-cursor: hand;">
                                  <children>
-                                    <ImageView fitHeight="263.0" fitWidth="521.0" pickOnBounds="true" preserveRatio="true" />
+                                    <ImageView fx:id="imgPreview" fitHeight="263.0" fitWidth="521.0" pickOnBounds="true" preserveRatio="true" />
                                  </children>
                               </HBox>
                            </children>

@@ -5,6 +5,7 @@ import com.auction.client.SessionContext;
 import com.auction.client.controller.Card.ProductCardController;
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.auction.AuctionSession;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -181,6 +182,7 @@ public class BidderDashboardController implements Initializable {
     
     @FXML
     public void switchSellerDB(MouseEvent mouseEvent) {
+        UserRoleSwitcher.switchToSellerRole();
         cleanup();
         SceneNavigator.loadScene(SceneNavigator.SELLER_DASHBOARD, "seller dashboard");
     }
