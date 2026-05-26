@@ -68,32 +68,50 @@ public class BidderDashboardController implements Initializable {
             List<AuctionSession> auctions = protocol.getActiveAuctions();
             
             if (auctions.isEmpty()) {
-                // Show empty state
-                Label emptyLabel = new Label("Chưa có phiên đấu giá nào");
-                emptyLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
-                containerTopPicks.getChildren().add(emptyLabel);
+                // Show empty state on the first available FXML container.
+                showDashboardMessage("Chưa có phiên đấu giá nào", "#757575");
                 return;
             }
             
             // Clear containers
-            containerTopPicks.getChildren().clear();
-            containerEndingSoon.getChildren().clear();
+            if (containerTopPicks != null) {
+                containerTopPicks.getChildren().clear();
+            }
+            if (containerEndingSoon != null) {
+                containerEndingSoon.getChildren().clear();
+            }
             
             // Load cards
             for (int i = 0; i < auctions.size(); i++) {
                 AuctionSession session = auctions.get(i);
-                loadProductCard(session, i % 2 == 0 ? containerTopPicks : containerEndingSoon);
+                HBox targetContainer = i % 2 == 0 ? containerTopPicks : containerEndingSoon;
+                if (targetContainer != null) {
+                    loadProductCard(session, targetContainer);
+                }
             }
             
         } catch (Exception e) {
             System.err.println("Error loading auctions: " + e.getMessage());
             e.printStackTrace();
             
-            // Show error state
-            Label errorLabel = new Label("Không thể kết nối server");
-            errorLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #c62828;");
-            containerTopPicks.getChildren().add(errorLabel);
+            // Show error state without throwing another NPE if FXML ids change.
+            showDashboardMessage("Không thể kết nối server", "#c62828");
         }
+    }
+
+    /**
+     * Adds a status label to the first visible dashboard row.
+     */
+    private void showDashboardMessage(String message, String color) {
+        HBox targetContainer = containerTopPicks != null ? containerTopPicks : containerEndingSoon;
+        if (targetContainer == null) {
+            System.err.println("Bidder dashboard FXML containers are not injected.");
+            return;
+        }
+        targetContainer.getChildren().clear();
+        Label label = new Label(message);
+        label.setStyle("-fx-font-size: 14px; -fx-text-fill: " + color + ";");
+        targetContainer.getChildren().add(label);
     }
     
     /**

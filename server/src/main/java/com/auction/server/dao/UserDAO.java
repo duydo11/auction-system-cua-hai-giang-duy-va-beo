@@ -25,8 +25,9 @@ import java.util.List;
 public class UserDAO {
 
     public UserDAO() {
-        try (Connection conn = DatabaseConnection.getConnection();
-             java.sql.Statement stmt = conn.createStatement()) {
+        Connection conn = DatabaseConnection.getConnection();
+        // Chỉ đóng Statement; connection singleton cần sống tiếp cho các request sau.
+        try (java.sql.Statement stmt = conn.createStatement()) {
             // Create transactions table if not exists
             stmt.execute("CREATE TABLE IF NOT EXISTS transactions (" +
                          "id INT AUTO_INCREMENT PRIMARY KEY, " +
@@ -43,8 +44,36 @@ public class UserDAO {
             } catch (SQLException ignore) {
                 // Table might already have column, ignore
             }
+
+            // Seed tài khoản mặc định cho giáo viên/tester: username admin, password admin.
+            ensureDefaultAdminAccount(conn);
         } catch (SQLException e) {
             System.err.println("Note: DB initialization error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Ensures the default admin account exists exactly once.
+     */
+    private void ensureDefaultAdminAccount(Connection conn) throws SQLException {
+        if (existsByUsername("admin")) {
+            return;
+        }
+
+        int adminId = allocateNextUserId();
+        try (PreparedStatement psUser = conn.prepareStatement(
+                "INSERT INTO users (id, username, password, email) VALUES (?, ?, ?, ?)");
+             PreparedStatement psAdmin = conn.prepareStatement(
+                "INSERT INTO admins (user_id, access_level) VALUES (?, ?)")) {
+            psUser.setInt(1, adminId);
+            psUser.setString(2, "admin");
+            psUser.setString(3, "admin");
+            psUser.setString(4, "admin@auction.local");
+            psUser.executeUpdate();
+
+            psAdmin.setInt(1, adminId);
+            psAdmin.setString(2, "SUPER_ADMIN");
+            psAdmin.executeUpdate();
         }
     }
 

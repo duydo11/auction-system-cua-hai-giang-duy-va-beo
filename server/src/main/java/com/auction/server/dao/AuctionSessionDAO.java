@@ -17,8 +17,9 @@ import java.util.List;
 public class AuctionSessionDAO {
 
     public AuctionSessionDAO() {
-        try (Connection conn = DatabaseConnection.getConnection();
-             java.sql.Statement stmt = conn.createStatement()) {
+        Connection conn = DatabaseConnection.getConnection();
+        // Chỉ đóng Statement; connection là singleton dùng chung cho các request server.
+        try (java.sql.Statement stmt = conn.createStatement()) {
             try {
                 stmt.execute("ALTER TABLE auction_sessions ADD COLUMN status VARCHAR(50) DEFAULT 'OPEN'");
             } catch (SQLException ignore) {}

@@ -106,7 +106,8 @@ public class ServerProtocolHandler {
 
     private Message handleRegisterRequest(Object data) throws Exception {
         String[] userData = (String[]) data;
-        boolean success = userService.registerUser(userData[0], userData[1], userData[2], userData[3]);
+        String role = userData.length >= 4 ? userData[3] : "BIDDER";
+        boolean success = userService.registerUser(userData[0], userData[1], userData[2], role);
 
         if (success) {
             return new Message(MessageType.REGISTER_RESPONSE, (Object) "Registration successful");
