@@ -17,6 +17,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.input.MouseEvent;
 
 import java.net.URL;
+import java.time.format.DateTimeFormatter;
 import java.util.ResourceBundle;
 
 public class CategoryManagementController implements Initializable {
@@ -25,10 +26,13 @@ public class CategoryManagementController implements Initializable {
     @FXML private TableColumn<AuctionSession, String> colProduct;
     @FXML private TableColumn<AuctionSession, String> colSeller;
     @FXML private TableColumn<AuctionSession, String> colStatus;
+    @FXML private TableColumn<AuctionSession, String> colStart;
+    @FXML private TableColumn<AuctionSession, String> colEnd;
     @FXML private TableColumn<AuctionSession, String> colActions;
     @FXML private Label lblMessage;
     @FXML private Button btnRefresh;
 
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("dd/MM HH:mm");
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
 
     @Override
@@ -53,6 +57,12 @@ public class CategoryManagementController implements Initializable {
         }
         if (colStatus != null) {
             colStatus.setCellValueFactory(cell -> new SimpleStringProperty(resolveStatus(cell.getValue())));
+        }
+        if (colStart != null) {
+            colStart.setCellValueFactory(cell -> new SimpleStringProperty(formatTime(cell.getValue().getStartTime())));
+        }
+        if (colEnd != null) {
+            colEnd.setCellValueFactory(cell -> new SimpleStringProperty(formatTime(cell.getValue().getEndTime())));
         }
         if (colActions != null) {
             colActions.setCellValueFactory(cell -> new SimpleStringProperty("Xem"));
@@ -90,6 +100,10 @@ public class CategoryManagementController implements Initializable {
             return "ENDED";
         }
         return "RUNNING";
+    }
+
+    private String formatTime(java.time.LocalDateTime time) {
+        return time == null ? "" : time.format(TIME_FORMAT);
     }
 
     public void switchHome(MouseEvent mouseEvent) {

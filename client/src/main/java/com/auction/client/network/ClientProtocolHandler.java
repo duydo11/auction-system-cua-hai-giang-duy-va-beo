@@ -104,7 +104,9 @@ public class ClientProtocolHandler {
     public List<AuctionSession> getActiveAuctions() {
         Message response = send(MessageType.VIEW_AUCTIONS_REQUEST, null);
         if (response == null || !response.isSuccess()) {
-            return Collections.emptyList();
+            // Nếu socket rớt/timeout thì giữ lại cache cũ thay vì trả list rỗng.
+            // Như vậy UI sẽ không bị trắng xoá chỉ vì một lần gọi mạng bị lỗi tạm thời.
+            return AuctionCache.get();
         }
         Object data = response.getData();
         if (data instanceof List<?> list && list.isEmpty()) {
@@ -135,15 +137,6 @@ public class ClientProtocolHandler {
     public boolean createAuction(AuctionSession auction) {
         Message response = send(MessageType.CREATE_AUCTION_REQUEST, auction);
         return response != null && response.isSuccess();
-    }
-
-    public boolean createAuctionLocalFallback(AuctionSession auction) {
-        Message response = send(MessageType.CREATE_AUCTION_REQUEST, auction);
-        if (response != null && response.isSuccess()) {
-            return true;
-        }
-        AuctionCache.addOrReplace(auction);
-        return true;
     }
 
     /** @return {@code null} nếu tạo phiên thành công */

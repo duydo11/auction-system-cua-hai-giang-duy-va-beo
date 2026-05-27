@@ -71,7 +71,8 @@ public class AuctionSessionDAO {
             ps.setString(9, session.getStatus() != null ? session.getStatus().name() : "OPEN");
             ps.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            // Không được nuốt lỗi ở đây, nếu insert fail thì phía trên phải biết để không báo thành công giả.
+            throw new RuntimeException("Không thể lưu phiên đấu giá vào database", e);
         }
     }
 

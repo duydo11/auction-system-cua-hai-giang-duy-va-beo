@@ -56,18 +56,18 @@ public class MyListingController {
             showMessage("Loading your listings...");
         }
 
-        if (AuctionCache.isStale()) {
-            FxAsync.run("my-listings-load", protocol::getAllAuctions,
-                    auctions -> {
-                        AuctionCache.update(auctions);
-                        renderSellerListings(filterSellerAuctions(auctions, current.getId()));
-                    },
-                    error -> {
-                        if (!AuctionCache.hasData()) {
-                            showMessage("Could not load product cards.");
-                        }
-                    });
-        }
+        // My Listings phải luôn gọi getAllAuctions, không được chỉ dựa vào cache.
+        // Cache có thể đang là danh sách active của bidder, nên nếu dùng lại sẽ mất lịch sử seller.
+        FxAsync.run("my-listings-load", protocol::getAllAuctions,
+                auctions -> {
+                    AuctionCache.update(auctions);
+                    renderSellerListings(filterSellerAuctions(auctions, current.getId()));
+                },
+                error -> {
+                    if (!AuctionCache.hasData()) {
+                        showMessage("Could not load product cards.");
+                    }
+                });
     }
 
     private void renderSellerListings(List<AuctionSession> auctions) {

@@ -19,6 +19,8 @@ import javafx.scene.layout.HBox;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -57,33 +59,48 @@ public class SellerDashboardController implements Initializable {
             showMessage("Loading your listings...");
         }
 
-        if (AuctionCache.isStale()) {
-            FxAsync.run("seller-dashboard-load", protocol::getAllAuctions,
-                    auctions -> {
-                        AuctionCache.update(auctions);
-                        renderSellerAuctions(filterSellerAuctions(auctions, current));
-                    },
-                    error -> {
-                        if (!AuctionCache.hasData()) {
-                            showMessage("Could not load seller listings.");
-                        }
-                    });
-        }
+        // Seller home cũng refresh nền mỗi lần mở màn.
+        // Như vậy nếu account khác vừa tạo sản phẩm, seller không cần đợi cache stale mới thấy.
+        FxAsync.run("seller-dashboard-load", protocol::getAllAuctions,
+                auctions -> {
+                    AuctionCache.update(auctions);
+                    renderSellerAuctions(filterSellerAuctions(auctions, current));
+                },
+                error -> {
+                    if (!AuctionCache.hasData()) {
+                        showMessage("Could not load seller listings.");
+                    }
+                });
     }
 
     private void renderSellerAuctions(List<AuctionSession> auctions) {
         clearContainers();
-        if (auctions.isEmpty()) {
-            showMessage("Bạn chưa tạo sản phẩm nào.");
+        List<AuctionSession> active = auctions.stream()
+                .filter(this::isBiddableNow)
+                .toList();
+        if (active.isEmpty()) {
+            showMessage("Không có phiên nào đang chạy.");
             return;
         }
 
-        for (int i = 0; i < auctions.size(); i++) {
-            HBox target = i % 2 == 0 ? containerTopPicks : containerEndingSoon;
-            if (target != null) {
-                loadProductCard(auctions.get(i), target);
-            }
+        // Top Picks: hiển thị toàn bộ phiên đang chạy của seller hiện tại.
+        for (AuctionSession session : active) {
+            loadProductCard(session, containerTopPicks);
         }
+
+        // Ending Soon: tiếp tục hiển thị toàn bộ phiên đang chạy, nhưng sắp xếp theo thời gian kết thúc.
+        active.stream()
+                .sorted(Comparator.comparing(AuctionSession::getEndTime))
+                .forEach(session -> loadProductCard(session, containerEndingSoon));
+    }
+
+    private boolean isBiddableNow(AuctionSession session) {
+        if (session == null || session.getStartTime() == null || session.getEndTime() == null) {
+            return false;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        return now.isAfter(session.getStartTime()) && now.isBefore(session.getEndTime())
+                && session.getStatus() != com.auction.shared.model.auction.AuctionStatus.CANCELED;
     }
 
     private List<AuctionSession> filterSellerAuctions(List<AuctionSession> auctions, User seller) {

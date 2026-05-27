@@ -9,7 +9,6 @@ import com.auction.client.util.FxAsync;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.auction.AuctionSession;
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -62,18 +61,18 @@ public class BidderDashboardController implements Initializable {
             showDashboardMessage("Loading active auctions...", "#757575");
         }
 
-        if (AuctionCache.isStale()) {
-            FxAsync.run("bidder-dashboard-load", protocol::getActiveAuctions,
-                    auctions -> {
-                        AuctionCache.update(auctions);
-                        renderAuctions(auctions);
-                    },
-                    error -> {
-                        if (!AuctionCache.hasData()) {
-                            showDashboardMessage("Could not connect to the server.", "#c62828");
-                        }
-                    });
-        }
+        // Luôn refresh nền, không chờ TTL 30s.
+        // Nếu account khác vừa tạo auction mà push bị miss, request này sẽ kéo dữ liệu mới từ server.
+        FxAsync.run("bidder-dashboard-load", protocol::getActiveAuctions,
+                auctions -> {
+                    AuctionCache.update(auctions);
+                    renderAuctions(auctions);
+                },
+                error -> {
+                    if (!AuctionCache.hasData()) {
+                        showDashboardMessage("Could not connect to the server.", "#c62828");
+                    }
+                });
     }
 
     private void renderAuctions(List<AuctionSession> auctions) {
@@ -151,13 +150,10 @@ public class BidderDashboardController implements Initializable {
     private void setupRealtimeListener() {
         if (realtimeListener != null) return;
         realtimeListener = updatedSession -> {
-            ProductCardController controller = cardControllers.get(updatedSession.getId());
-            if (controller != null) {
-                Platform.runLater(() -> {
-                    controller.updatePrice(updatedSession.getCurrentPrice());
-                    controller.setAuctionSession(updatedSession);
-                });
-            }
+            // Khi account khác tạo sản phẩm, server gửi AUCTION_CREATED_PUSH vào đây.
+            // Cập nhật cache rồi render lại để dashboard không bị lệch giữa 2 cửa sổ client.
+            AuctionCache.addOrReplace(updatedSession);
+            renderAuctions(AuctionCache.get());
         };
         RealtimeAuctionBus.addAuctionListener(realtimeListener);
     }

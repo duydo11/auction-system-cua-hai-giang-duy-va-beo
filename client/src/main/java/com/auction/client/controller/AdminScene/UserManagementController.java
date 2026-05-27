@@ -39,7 +39,8 @@ public class UserManagementController implements Initializable {
     @FXML private TableColumn<User, Integer> colId;
     @FXML private TableColumn<User, String> colUsername;
     @FXML private TableColumn<User, String> colEmail;
-    @FXML private TableColumn<User, String> colRole;
+    @FXML private TableColumn<User, String> colStatus;
+    @FXML private TableColumn<User, String> colActions;
     @FXML private Button btnBan;
     @FXML private Label lblMessage;
     
@@ -74,10 +75,16 @@ public class UserManagementController implements Initializable {
             );
         }
         
-        if (colRole != null) {
-            colRole.setCellValueFactory(cellData -> 
+        if (colStatus != null) {
+            // Cột STATUS trong FXML đang được dùng để hiển thị role ngắn gọn của user.
+            colStatus.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().getRoleName())
             );
+        }
+
+        if (colActions != null) {
+            // Tạm thời hiển thị action chữ để người dùng biết cột này có chức năng ban.
+            colActions.setCellValueFactory(cellData -> new SimpleStringProperty("Ban"));
         }
     }
     

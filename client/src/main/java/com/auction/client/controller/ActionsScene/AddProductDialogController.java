@@ -164,17 +164,19 @@ public class AddProductDialogController implements Initializable {
             lblMessage.setStyle("-fx-text-fill: #1976d2;");
             lblMessage.setText("Creating auction...");
 
+            // Không dùng local fallback fake: phải lưu lên server thành công thì mới báo tạo thành công.
             FxAsync.run("create-auction",
-                    () -> protocol.createAuctionLocalFallback(session),
-                    ok -> {
-                        if (ok) {
-                            AuctionCache.addOrReplace(session);
+                    () -> protocol.createAuctionOrError(session),
+                    err -> {
+                        if (err == null) {
+                            // Tạo thành công thì xoá cache để các màn sau load lại dữ liệu thật từ server.
+                            AuctionCache.invalidate();
                             lblMessage.setStyle("-fx-text-fill: #2e7d32;");
-                            lblMessage.setText("Auction created successfully.");
+                            lblMessage.setText("Tạo phiên đấu giá thành công.");
                             lblMessage.getScene().getWindow().hide();
                         } else {
                             lblMessage.setStyle("-fx-text-fill: #c62828;");
-                            lblMessage.setText("Could not create auction.");
+                            lblMessage.setText(err);
                         }
 
                         if (btnConfirm != null) {
