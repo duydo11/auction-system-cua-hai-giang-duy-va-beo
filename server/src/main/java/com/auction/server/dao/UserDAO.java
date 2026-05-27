@@ -45,6 +45,13 @@ public class UserDAO {
                 // Table might already have column, ignore
             }
 
+            // Thêm cột ban mềm: không xóa user để tránh mất lịch sử auction/bid/transaction.
+            try {
+                stmt.execute("ALTER TABLE users ADD COLUMN is_banned BOOLEAN DEFAULT FALSE");
+            } catch (SQLException ignore) {
+                // Cột đã tồn tại ở các lần chạy sau.
+            }
+
             // Seed tài khoản mặc định cho giáo viên/tester: username admin, password admin.
             ensureDefaultAdminAccount(conn);
         } catch (SQLException e) {
@@ -107,15 +114,18 @@ public class UserDAO {
 
     // Dang nhap
     public User login(String username, String password) {
-        String sql = "SELECT id FROM users WHERE username = ? AND password = ?";
+        String sql = "SELECT id, is_banned FROM users WHERE username = ? AND password = ?";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
             ps.setString(2, password);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
+                // Ban mềm: user vẫn còn trong DB để giữ lịch sử, nhưng không được đăng nhập.
+                if (rs.getBoolean("is_banned")) {
+                    throw new RuntimeException("bạn đã bị admin ban");
+                }
                 int userId = rs.getInt("id");
-                // Tìm thấy ID rồi thì dùng hàm getUserById để lấy Full Object (tự nhận diện Role)
                 return getUserById(userId);
             }
         } catch (SQLException e) {
@@ -304,6 +314,19 @@ public class UserDAO {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    public boolean banUser(int userId) {
+        String sql = "UPDATE users SET is_banned = TRUE WHERE id = ? AND username <> 'admin'";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            // Không xóa user thật, chỉ khóa login để giữ nguyên lịch sử seller/bidder.
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
         }
     }
 

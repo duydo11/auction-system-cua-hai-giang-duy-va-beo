@@ -205,6 +205,25 @@ public class AuctionSessionDAO {
         }
     }
 
+    public void deleteSessionsByItemId(int itemId) {
+        Connection conn = DatabaseConnection.getConnection();
+        try {
+            // Xóa bid trước vì bids đang trỏ tới auction_sessions.
+            try (PreparedStatement psBids = conn.prepareStatement(
+                    "DELETE FROM bids WHERE auction_session_id IN (SELECT id FROM auction_sessions WHERE item_id = ?)")) {
+                psBids.setInt(1, itemId);
+                psBids.executeUpdate();
+            }
+            // Sau đó mới xóa session của item để admin delete không bị kẹt khóa ngoại.
+            try (PreparedStatement psSessions = conn.prepareStatement("DELETE FROM auction_sessions WHERE item_id = ?")) {
+                psSessions.setInt(1, itemId);
+                psSessions.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Không thể xóa phiên đấu giá của item", e);
+        }
+    }
+
     public List<AuctionSession> findAllUnfinishedSessions() {
         List<AuctionSession> list = new ArrayList<>();
         String sql = "SELECT id FROM auction_sessions WHERE status NOT IN ('FINISHED', 'PAID', 'CANCELED')";

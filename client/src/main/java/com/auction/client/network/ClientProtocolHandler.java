@@ -75,7 +75,12 @@ public class ClientProtocolHandler {
 
     public User login(String username, String password) {
         Message response = send(MessageType.LOGIN_REQUEST, new String[]{username, password});
-        if (response == null || !response.isSuccess()) {
+        if (response == null) {
+            return null;
+        }
+        if (!response.isSuccess()) {
+            // Giữ nguyên lỗi từ server, ví dụ: "bạn đã bị admin ban".
+            lastTransportError = lastError(response);
             return null;
         }
         Object data = response.getData();
@@ -104,16 +109,18 @@ public class ClientProtocolHandler {
     public List<AuctionSession> getActiveAuctions() {
         Message response = send(MessageType.VIEW_AUCTIONS_REQUEST, null);
         if (response == null || !response.isSuccess()) {
-            // Nếu socket rớt/timeout thì giữ lại cache cũ thay vì trả list rỗng.
-            // Như vậy UI sẽ không bị trắng xoá chỉ vì một lần gọi mạng bị lỗi tạm thời.
-            return AuctionCache.get();
+            // Lỗi mạng tạm thời thì giữ lại active cache, không trả nhầm all/history.
+            return AuctionCache.getActive();
         }
         Object data = response.getData();
         if (data instanceof List<?> list && list.isEmpty()) {
+            AuctionCache.updateActive(Collections.emptyList());
             return Collections.emptyList();
         }
         if (data instanceof List<?> list && list.get(0) instanceof AuctionSession) {
-            return (List<AuctionSession>) data;
+            List<AuctionSession> auctions = (List<AuctionSession>) data;
+            AuctionCache.updateActive(auctions);
+            return auctions;
         }
         return Collections.emptyList();
     }
@@ -122,14 +129,18 @@ public class ClientProtocolHandler {
     public List<AuctionSession> getAllAuctions() {
         Message response = send(MessageType.GET_ALL_AUCTIONS_REQUEST, null);
         if (response == null || !response.isSuccess()) {
-            return AuctionCache.get();
+            // Lỗi mạng tạm thời thì giữ lại all cache để My Listings/admin không bị trống.
+            return AuctionCache.getAll();
         }
         Object data = response.getData();
         if (data instanceof List<?> list && list.isEmpty()) {
+            AuctionCache.updateAll(Collections.emptyList());
             return Collections.emptyList();
         }
         if (data instanceof List<?> list && list.get(0) instanceof AuctionSession) {
-            return (List<AuctionSession>) data;
+            List<AuctionSession> auctions = (List<AuctionSession>) data;
+            AuctionCache.updateAll(auctions);
+            return auctions;
         }
         return Collections.emptyList();
     }
@@ -217,7 +228,11 @@ public class ClientProtocolHandler {
      */
     public boolean deleteItem(int itemId) {
         Message response = send(MessageType.DELETE_ITEM_REQUEST, String.valueOf(itemId));
-        return response != null && response.isSuccess();
+        if (response != null && response.isSuccess()) {
+            AuctionCache.removeByItemId(itemId);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -226,7 +241,10 @@ public class ClientProtocolHandler {
      */
     public String deleteItemOrError(int itemId) {
         Message response = send(MessageType.DELETE_ITEM_REQUEST, String.valueOf(itemId));
-        if (response != null && response.isSuccess()) return null;
+        if (response != null && response.isSuccess()) {
+            AuctionCache.removeByItemId(itemId);
+            return null;
+        }
         return lastError(response);
     }
 
@@ -315,11 +333,19 @@ public class ClientProtocolHandler {
     /** Convenience helper used by DepositActionController. */
     public boolean deposit(User user, double amount) {
         if (user == null || amount <= 0) return false;
-        boolean updated = updateUser(user);
+        // Lấy user mới nhất từ server rồi mới cộng tiền, tránh cộng local trước làm UI/DB lệch nhau.
+        User latest = getUserInfo(user.getId());
+        if (latest == null) latest = user;
+        if (latest instanceof com.auction.shared.model.user.Bidder bidder) {
+            bidder.setAccountBalance(bidder.getAccountBalance() + amount);
+        } else if (latest instanceof com.auction.shared.model.user.Seller seller) {
+            seller.setAccountBalance(seller.getAccountBalance() + amount);
+        }
+        boolean updated = updateUser(latest);
         if (!updated) return false;
         return saveTransaction(new Transaction(
                 0,
-                user.getId(),
+                latest.getId(),
                 amount,
                 "DEPOSIT",
                 "Deposit",

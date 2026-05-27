@@ -7,91 +7,138 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Cache in-memory cho danh sách auction đang hoạt động.
+ * Cache in-memory cho auction ở client.
  *
- * <p>Dùng pattern <strong>stale-while-revalidate</strong>:
- * <ol>
- *   <li>Nếu cache đang có data → trả về ngay (UI render tức thì, không cần loading).</li>
- *   <li>Sau đó refresh ngầm ở background để data luôn gần đúng.</li>
- *   <li>Nếu cache rỗng (lần đầu mở app) → phải đợi fetch lần đầu.</li>
- * </ol>
+ * <p>QUAN TRỌNG: không dùng chung một list cho mọi màn nữa.</p>
+ * <ul>
+ *   <li>activeAuctions: chỉ chứa phiên đang có thể đặt giá, dùng cho bidder dashboard/items.</li>
+ *   <li>allAuctions: chứa toàn bộ lịch sử, dùng cho seller My Listings và admin.</li>
+ * </ul>
  *
- * <p>Cache tự động hết hạn sau {@value #TTL_MS} ms. Sau khi hết hạn, lần fetch tiếp theo
- * vẫn trả cache cũ nhưng đồng thời kick-off refresh ngầm để không làm chậm UI.</p>
- *
- * <p>Cache cũng có thể bị invalidate thủ công (ví dụ sau khi tạo auction mới)
- * bằng cách gọi {@link #invalidate()}.</p>
+ * <p>Nếu trộn 2 loại dữ liệu này, màn bidder có thể ghi cache chỉ còn vài phiên active,
+ * rồi seller/admin đọc lại cache đó và tưởng lịch sử bị mất.</p>
  */
 public final class AuctionCache {
 
-    /** Thời gian cache còn hiệu lực: 30 giây. */
-    private static final long TTL_MS = 30_000;
-
-    private static volatile List<AuctionSession> cached = null;
-    private static volatile long fetchedAtMs = 0L;
+    /** Cache chỉ để render tức thì; các màn vẫn refresh nền từ server. */
+    private static volatile List<AuctionSession> activeAuctions = null;
+    private static volatile List<AuctionSession> allAuctions = null;
 
     private AuctionCache() {
     }
 
-    /**
-     * Kiểm tra cache có data hay chưa (kể cả data đã stale).
-     *
-     * @return true nếu có ít nhất một lần fetch thành công trước đó
-     */
-    public static boolean hasData() {
-        return cached != null;
+    public static boolean hasActiveData() {
+        return activeAuctions != null;
     }
 
-    /**
-     * Trả về data hiện có trong cache (có thể đã stale).
-     * Trả về list rỗng nếu chưa có data lần nào.
-     */
-    public static List<AuctionSession> get() {
-        List<AuctionSession> snapshot = cached;
+    public static boolean hasAllData() {
+        return allAuctions != null;
+    }
+
+    /** Backward-compatible: coi như có dữ liệu nếu một trong hai cache đã có. */
+    public static boolean hasData() {
+        return hasActiveData() || hasAllData();
+    }
+
+    public static List<AuctionSession> getActive() {
+        List<AuctionSession> snapshot = activeAuctions;
         return snapshot != null ? snapshot : Collections.emptyList();
     }
 
-    /**
-     * Kiểm tra cache đã hết hạn hay chưa.
-     *
-     * @return true nếu cache rỗng hoặc đã quá {@value #TTL_MS} ms
-     */
+    public static List<AuctionSession> getAll() {
+        List<AuctionSession> snapshot = allAuctions;
+        return snapshot != null ? snapshot : Collections.emptyList();
+    }
+
+    /** Backward-compatible: ưu tiên all, nếu chưa có thì trả active. */
+    public static List<AuctionSession> get() {
+        if (allAuctions != null) {
+            return allAuctions;
+        }
+        return getActive();
+    }
+
+    /** Không còn dùng TTL 30s để tránh giữ dữ liệu cũ quá lâu khi test nhiều cửa sổ. */
     public static boolean isStale() {
-        return cached == null || (System.currentTimeMillis() - fetchedAtMs) > TTL_MS;
+        return true;
     }
 
-    /**
-     * Cập nhật cache với data mới từ server.
-     *
-     * @param auctions danh sách auction mới nhất từ server
-     */
+    public static void updateActive(List<AuctionSession> auctions) {
+        activeAuctions = safeCopy(auctions);
+    }
+
+    public static void updateAll(List<AuctionSession> auctions) {
+        allAuctions = safeCopy(auctions);
+    }
+
+    /** Backward-compatible: mặc định update all để không làm mất lịch sử. */
     public static void update(List<AuctionSession> auctions) {
-        cached = auctions;
-        fetchedAtMs = System.currentTimeMillis();
+        updateAll(auctions);
     }
 
-    /**
-     * Xóa cache, buộc fetch lại lần kế tiếp.
-     *
-     * <p>Gọi sau các thao tác có thể làm thay đổi danh sách auction,
-     * ví dụ: tạo auction mới, kết thúc auction.</p>
-     */
+    public static void invalidateActive() {
+        activeAuctions = null;
+    }
+
+    public static void invalidateAll() {
+        allAuctions = null;
+    }
+
     public static void invalidate() {
-        cached = null;
-        fetchedAtMs = 0L;
+        invalidateActive();
+        invalidateAll();
     }
 
+    /** Thêm/cập nhật auction vào cả hai cache nếu cache đó đang tồn tại. */
     public static synchronized void addOrReplace(AuctionSession auction) {
         if (auction == null) {
             return;
         }
-        List<AuctionSession> next = new ArrayList<>(get());
-        if (auction.getId() <= 0) {
-            int maxId = next.stream().mapToInt(AuctionSession::getId).max().orElse(0);
-            auction.setId(maxId + 1);
+        if (activeAuctions != null) {
+            activeAuctions = addOrReplaceIn(activeAuctions, auction);
         }
+        if (allAuctions != null) {
+            allAuctions = addOrReplaceIn(allAuctions, auction);
+        }
+    }
+
+    /** Xóa auction khỏi cả active/all cache, dùng sau khi admin xóa sản phẩm. */
+    public static synchronized void removeBySessionId(int sessionId) {
+        if (activeAuctions != null) {
+            activeAuctions = removeFrom(activeAuctions, sessionId);
+        }
+        if (allAuctions != null) {
+            allAuctions = removeFrom(allAuctions, sessionId);
+        }
+    }
+
+    public static synchronized void removeByItemId(int itemId) {
+        if (activeAuctions != null) {
+            activeAuctions = activeAuctions.stream()
+                    .filter(s -> s.getItem() == null || s.getItem().getId() != itemId)
+                    .toList();
+        }
+        if (allAuctions != null) {
+            allAuctions = allAuctions.stream()
+                    .filter(s -> s.getItem() == null || s.getItem().getId() != itemId)
+                    .toList();
+        }
+    }
+
+    private static List<AuctionSession> safeCopy(List<AuctionSession> auctions) {
+        return auctions == null ? Collections.emptyList() : new ArrayList<>(auctions);
+    }
+
+    private static List<AuctionSession> addOrReplaceIn(List<AuctionSession> source, AuctionSession auction) {
+        List<AuctionSession> next = new ArrayList<>(source);
         next.removeIf(existing -> existing.getId() == auction.getId());
         next.add(0, auction);
-        update(next);
+        return next;
+    }
+
+    private static List<AuctionSession> removeFrom(List<AuctionSession> source, int sessionId) {
+        return source.stream()
+                .filter(session -> session.getId() != sessionId)
+                .toList();
     }
 }

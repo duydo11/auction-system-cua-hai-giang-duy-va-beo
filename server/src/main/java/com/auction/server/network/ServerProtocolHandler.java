@@ -204,6 +204,10 @@ public class ServerProtocolHandler {
         boolean success = auctionService.deleteItem(itemId);
         if (success) {
             logger.info("Item deleted: " + itemId);
+            // Gửi một session tín hiệu để client biết cần refresh lại từ server.
+            // Id âm giúp phân biệt đây không phải auction thật.
+            ClientBroadcastHub.broadcast(new Message(MessageType.AUCTION_UPDATED_PUSH,
+                    new AuctionSession(-1, null, null, 0, java.time.LocalDateTime.now(), java.time.LocalDateTime.now())));
             return new Message(MessageType.DELETE_ITEM_RESPONSE, (Object) "Item deleted successfully");
         } else {
             return new Message(MessageType.DELETE_ITEM_RESPONSE, "Failed to delete item");

@@ -53,21 +53,17 @@ public class SellerDashboardController implements Initializable {
             return;
         }
 
-        if (AuctionCache.hasData()) {
-            renderSellerAuctions(filterSellerAuctions(AuctionCache.get(), current));
+        if (AuctionCache.hasAllData()) {
+            renderSellerAuctions(filterSellerAuctions(AuctionCache.getAll(), current));
         } else {
             showMessage("Loading your listings...");
         }
 
-        // Seller home cũng refresh nền mỗi lần mở màn.
-        // Như vậy nếu account khác vừa tạo sản phẩm, seller không cần đợi cache stale mới thấy.
+        // Seller home dùng all cache vì cần biết toàn bộ phiên của seller, sau đó mới lọc phiên đang chạy.
         FxAsync.run("seller-dashboard-load", protocol::getAllAuctions,
-                auctions -> {
-                    AuctionCache.update(auctions);
-                    renderSellerAuctions(filterSellerAuctions(auctions, current));
-                },
+                auctions -> renderSellerAuctions(filterSellerAuctions(auctions, current)),
                 error -> {
-                    if (!AuctionCache.hasData()) {
+                    if (!AuctionCache.hasAllData()) {
                         showMessage("Could not load seller listings.");
                     }
                 });

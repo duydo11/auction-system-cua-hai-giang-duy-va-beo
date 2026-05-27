@@ -9,6 +9,8 @@ import com.auction.client.util.FxAsync;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.auction.AuctionSession;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -16,6 +18,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.util.Duration;
 
 import java.io.IOException;
 import java.net.URL;
@@ -39,6 +42,7 @@ public class BidderDashboardController implements Initializable {
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
     private final Map<Integer, ProductCardController> cardControllers = new HashMap<>();
     private Consumer<AuctionSession> realtimeListener;
+    private Timeline refreshTimer;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -50,26 +54,23 @@ public class BidderDashboardController implements Initializable {
 
         loadActiveAuctionsAsync();
         setupRealtimeListener();
+        startRefreshTimer();
     }
 
     private void loadActiveAuctionsAsync() {
-        if (AuctionCache.hasData()) {
-            renderAuctions(AuctionCache.get());
+        if (AuctionCache.hasActiveData()) {
+            renderAuctions(AuctionCache.getActive());
         } else {
             clearContainers();
             cardControllers.clear();
             showDashboardMessage("Loading active auctions...", "#757575");
         }
 
-        // Luôn refresh nền, không chờ TTL 30s.
-        // Nếu account khác vừa tạo auction mà push bị miss, request này sẽ kéo dữ liệu mới từ server.
+        // Luôn refresh nền, không chờ TTL. Đây là lưới an toàn nếu push realtime bị miss.
         FxAsync.run("bidder-dashboard-load", protocol::getActiveAuctions,
-                auctions -> {
-                    AuctionCache.update(auctions);
-                    renderAuctions(auctions);
-                },
+                this::renderAuctions,
                 error -> {
-                    if (!AuctionCache.hasData()) {
+                    if (!AuctionCache.hasActiveData()) {
                         showDashboardMessage("Could not connect to the server.", "#c62828");
                     }
                 });
@@ -150,15 +151,26 @@ public class BidderDashboardController implements Initializable {
     private void setupRealtimeListener() {
         if (realtimeListener != null) return;
         realtimeListener = updatedSession -> {
-            // Khi account khác tạo sản phẩm, server gửi AUCTION_CREATED_PUSH vào đây.
-            // Cập nhật cache rồi render lại để dashboard không bị lệch giữa 2 cửa sổ client.
+            // Push chỉ là tín hiệu có thay đổi; fetch lại active từ server để tránh lệch dữ liệu giữa các cửa sổ.
             AuctionCache.addOrReplace(updatedSession);
-            renderAuctions(AuctionCache.get());
+            loadActiveAuctionsAsync();
         };
         RealtimeAuctionBus.addAuctionListener(realtimeListener);
     }
 
+    private void startRefreshTimer() {
+        if (refreshTimer != null) return;
+        // Poll nhẹ 3 giây/lần khi màn đang mở để đảm bảo 2 bidder + admin luôn gần realtime.
+        refreshTimer = new Timeline(new KeyFrame(Duration.seconds(3), event -> loadActiveAuctionsAsync()));
+        refreshTimer.setCycleCount(Timeline.INDEFINITE);
+        refreshTimer.play();
+    }
+
     public void cleanup() {
+        if (refreshTimer != null) {
+            refreshTimer.stop();
+            refreshTimer = null;
+        }
         for (ProductCardController controller : cardControllers.values()) {
             controller.cleanup();
         }

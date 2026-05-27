@@ -10,10 +10,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 
 import java.net.URL;
@@ -65,7 +62,23 @@ public class CategoryManagementController implements Initializable {
             colEnd.setCellValueFactory(cell -> new SimpleStringProperty(formatTime(cell.getValue().getEndTime())));
         }
         if (colActions != null) {
-            colActions.setCellValueFactory(cell -> new SimpleStringProperty("Xem"));
+            colActions.setCellValueFactory(cell -> new SimpleStringProperty("Xóa"));
+            // Cột action có nút xóa thật để admin có thể dọn sản phẩm lỗi khi test.
+            colActions.setCellFactory(column -> new TableCell<>() {
+                private final Button btnDelete = new Button("Xóa");
+                {
+                    btnDelete.setOnAction(event -> {
+                        AuctionSession session = getTableView().getItems().get(getIndex());
+                        handleDeleteAuction(session);
+                    });
+                }
+
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : btnDelete);
+                }
+            });
         }
     }
 
@@ -85,6 +98,38 @@ public class CategoryManagementController implements Initializable {
                     if (lblMessage != null) {
                         lblMessage.setText("Không tải được dữ liệu category");
                     }
+                });
+    }
+
+    private void handleDeleteAuction(AuctionSession session) {
+        if (session == null || session.getItem() == null) {
+            return;
+        }
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Xác nhận xóa");
+        confirm.setHeaderText("Xóa sản phẩm: " + session.getItem().getName());
+        confirm.setContentText("Admin sẽ xóa sản phẩm và các phiên/bid liên quan. Bạn có chắc không?");
+        if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
+            return;
+        }
+
+        int itemId = session.getItem().getId();
+        if (lblMessage != null) {
+            lblMessage.setText("Đang xóa sản phẩm...");
+        }
+        // Gọi server ở background để UI admin không bị đơ.
+        FxAsync.run("admin-delete-item",
+                () -> protocol.deleteItemOrError(itemId),
+                errorMessage -> {
+                    if (errorMessage == null || errorMessage.isBlank()) {
+                        if (lblMessage != null) lblMessage.setText("Đã xóa sản phẩm");
+                        loadAuctionsAsync();
+                    } else if (lblMessage != null) {
+                        lblMessage.setText("Xóa thất bại: " + errorMessage);
+                    }
+                },
+                error -> {
+                    if (lblMessage != null) lblMessage.setText("Xóa thất bại: " + error);
                 });
     }
 

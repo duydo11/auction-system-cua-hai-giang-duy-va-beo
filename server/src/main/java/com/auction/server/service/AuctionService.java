@@ -65,14 +65,12 @@ public class AuctionService {
 
     /**
      * Xóa item theo id.
-     * Validate: chỉ xóa được khi không có phiên nào đang RUNNING với item này.
+     * Admin cần xóa được sản phẩm khi test/demo, nên ta xóa các phiên và bid liên quan trước.
      */
     public boolean deleteItem(int itemId) {
         try {
-            if (isItemInRunningSession(itemId)) {
-                System.err.println("Không thỉ xóa item #" + itemId + " — phiên đang chạy");
-                return false;
-            }
+            // Không xóa item trực tiếp trước, vì auction_sessions/bids có thể đang tham chiếu tới item này.
+            auctionSessionDAO.deleteSessionsByItemId(itemId);
             itemDAO.deleteItem(itemId);
             return true;
         } catch (RuntimeException e) {

@@ -55,25 +55,21 @@ public class ItemsController implements Initializable {
     }
 
     private void loadAuctionsAsync() {
-        if (AuctionCache.hasData()) {
-            renderAuctionRows(AuctionCache.get());
+        if (AuctionCache.hasActiveData()) {
+            renderAuctionRows(AuctionCache.getActive());
         } else {
             containerArt.getChildren().clear();
             showLoadingMessage("Loading items...");
         }
 
-        if (AuctionCache.isStale()) {
-            FxAsync.run("items-load", protocol::getActiveAuctions,
-                    auctions -> {
-                        AuctionCache.update(auctions);
-                        renderAuctionRows(auctions);
-                    },
-                    error -> {
-                        if (!AuctionCache.hasData()) {
-                            showLoadingMessage("Could not load items. Please try again.");
-                        }
-                    });
-        }
+        // Items chỉ dùng active cache; refresh nền mỗi lần mở để các client đồng bộ nhanh.
+        FxAsync.run("items-load", protocol::getActiveAuctions,
+                this::renderAuctionRows,
+                error -> {
+                    if (!AuctionCache.hasActiveData()) {
+                        showLoadingMessage("Could not load items. Please try again.");
+                    }
+                });
     }
 
     private void renderAuctionRows(List<AuctionSession> auctions) {

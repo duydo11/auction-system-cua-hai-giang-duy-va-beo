@@ -3,8 +3,6 @@ package com.auction.client.controller.ActionsScene;
 import com.auction.client.SessionContext;
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.client.util.FxAsync;
-import com.auction.shared.model.user.Bidder;
-import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
@@ -57,21 +55,15 @@ public class DepositActionController {
         btnConfirm.setDisable(true);
         showMessage("Processing deposit...", false);
 
-        // Gọi deposit ở background thread
+        // Gọi deposit ở background thread. Không cộng tiền local trước, server thành công rồi mới refresh lại user.
         FxAsync.run("deposit",
                 () -> {
-                    // Update local balance
-                    if (currentUser instanceof Bidder bidder) {
-                        bidder.setAccountBalance(bidder.getAccountBalance() + amount);
-                    } else if (currentUser instanceof Seller seller) {
-                        seller.setAccountBalance(seller.getAccountBalance() + amount);
-                    }
-                    
-                    return protocol.deposit(currentUser, amount);
+                    boolean ok = protocol.deposit(currentUser, amount);
+                    return ok ? protocol.getUserInfo(currentUser.getId()) : null;
                 },
-                success -> {
-                    if (success) {
-                        // Close the dialog stage
+                latestUser -> {
+                    if (latestUser != null) {
+                        SessionContext.setCurrentUser(latestUser);
                         Stage stage = (Stage) btnConfirm.getScene().getWindow();
                         stage.close();
                     } else {

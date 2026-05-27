@@ -55,13 +55,11 @@ public class UserService {
     }
 
     /**
-     * Ban (xóa) user theo id.
-     * Validate: chỉ admin mới được ban, không thể ban chính mình.
+     * Ban mềm user theo id: khóa login nhưng vẫn giữ dữ liệu lịch sử.
      */
     public boolean banUser(int userId) {
         try {
-            userDAO.deleteUser(userId);
-            return true;
+            return userDAO.banUser(userId);
         } catch (RuntimeException e) {
             e.printStackTrace();
             return false;
