@@ -53,9 +53,11 @@ public class AutoBidService {
     public boolean registerAutoBid(AutoBidConfig config) {
         try {
             int sessionId = config.getSessionId();
-            autoBidsBySession.computeIfAbsent(sessionId, k -> 
+            PriorityBlockingQueue<AutoBidConfig> queue = autoBidsBySession.computeIfAbsent(sessionId, k ->
                     new PriorityBlockingQueue<>(11, Comparator.comparing(AutoBidConfig::getRegisteredAt)));
-            autoBidsBySession.get(sessionId).add(config);
+            // Mỗi bidder chỉ nên có một cấu hình auto-bid trên một phiên; đăng ký mới sẽ thay thế cấu hình cũ.
+            queue.removeIf(existing -> existing.getBidderId() == config.getBidderId());
+            queue.add(config);
             
             logger.info("Auto-bid registered: bidderId=" + config.getBidderId() +
                     ", sessionId=" + sessionId +

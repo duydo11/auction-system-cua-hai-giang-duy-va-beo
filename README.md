@@ -152,37 +152,172 @@ auction-system/
 
 ---
 
-## 🚀 Hướng dẫn chạy
+## 🚀 Hướng dẫn cài đặt, build fat JAR và chạy
 
-### Yêu cầu
-- Java 21 (Eclipse Temurin)
-- Maven 3.9+
-- MySQL 8.0 (hoặc dùng Aiven cloud DB đã config sẵn)
+> Yêu cầu nộp bài: nhánh nộp cuối cùng là `main`, có README rõ ràng và có file executable fat JAR / uber JAR chạy được bằng `java -jar <ten-file>.jar`.
 
-### Bước 1: Clone & Build
+### 1. Yêu cầu môi trường
+
+- **Java 21** — khuyến nghị Eclipse Temurin / Adoptium JDK 21.
+- **Maven 3.9+** — dùng để build fat JAR từ source.
+- **Internet ổn định** — database hiện dùng MySQL Aiven Cloud qua SSL.
+- **Git** — để clone/pull source mới nhất.
+
+Kiểm tra môi trường:
+
+```bash
+java -version
+mvn -version
+git --version
+```
+
+### 2. Clone hoặc cập nhật source
+
+Clone lần đầu:
+
 ```bash
 git clone https://github.com/duydo11/auction-system-cua-hai-giang-duy-va-beo.git
-cd auction-system
-mvn clean compile
+cd auction-system-cua-hai-giang-duy-va-beo
 ```
 
-### Bước 2: Chạy Server
+Nếu đã có project sẵn:
+
 ```bash
-cd server
-mvn exec:java -Dexec.mainClass="com.auction.server.ServerMain"
+git pull origin main
 ```
 
-### Bước 3: Chạy Client
+### 3. Build fat JAR / uber JAR
+
+Cách khuyến nghị trên Windows:
+
+```bat
+build-fat-jar.bat
+```
+
+Hoặc dùng Maven trực tiếp tại thư mục gốc project:
+
 ```bash
-cd client
-mvn javafx:run
+mvn clean package -DskipTests
 ```
 
-### Chạy Unit Tests
+Project đang dùng `maven-assembly-plugin` để đóng gói dependencies vào JAR.
+Sau khi build thành công, các file JAR nằm tại:
+
+| Module | File JAR cần chạy |
+|--------|-------------------|
+| Server | `server/target/server-1.0-SNAPSHOT-jar-with-dependencies.jar` |
+| Client | `client/target/client-1.0-SNAPSHOT-jar-with-dependencies.jar` |
+
+### 4. Chạy chương trình bằng JAR
+
+> Luôn chạy **Server trước**, sau đó mới chạy một hoặc nhiều Client.
+
+#### Bước 1 — Chạy Server
+
+Mở terminal/cmd thứ nhất tại thư mục gốc project:
+
+```bash
+java -jar server/target/server-1.0-SNAPSHOT-jar-with-dependencies.jar
+```
+
+Server mặc định lắng nghe:
+
+```text
+127.0.0.1:5000
+```
+
+Giữ cửa sổ server mở trong suốt quá trình demo/test.
+
+#### Bước 2 — Chạy Client
+
+Mở terminal/cmd thứ hai tại thư mục gốc project:
+
+```bash
+java -jar client/target/client-1.0-SNAPSHOT-jar-with-dependencies.jar
+```
+
+#### Bước 3 — Chạy nhiều Client
+
+Để demo realtime update hoặc concurrent bidding, mở thêm terminal/cmd khác và chạy lại:
+
+```bash
+java -jar client/target/client-1.0-SNAPSHOT-jar-with-dependencies.jar
+```
+
+Ví dụ demo 3 cửa sổ:
+
+- Client 1: đăng nhập Seller để tạo sản phẩm/phiên đấu giá.
+- Client 2: đăng nhập Bidder để đặt giá.
+- Client 3: đăng nhập Bidder khác hoặc Admin để xem realtime/admin dashboard.
+
+### 5. Thứ tự demo khuyến nghị
+
+1. Chạy `server.jar` trước.
+2. Chạy 2-3 cửa sổ `client.jar`.
+3. Seller tạo sản phẩm và phiên đấu giá.
+4. Bidder 1 đặt giá, Bidder 2 quan sát realtime update.
+5. Demo Auto-bid:
+   - Mở chi tiết auction bằng tài khoản Bidder.
+   - Tick `Auto-bid`.
+   - Nhập `Maximum Bid` và `Bid Increment`.
+   - Bấm nút bid/start hiện tại.
+   - App sẽ đặt bid mở đầu rồi đăng ký auto-bid.
+6. Demo Admin dashboard/users/categories nếu cần.
+
+### 6. Database hiện tại
+
+Database đang cấu hình trong server DAO là MySQL Aiven Cloud SSL. Vì vậy:
+
+- Cần internet khi chạy server.
+- Lần load đầu có thể chậm hơn local DB.
+- Các màn list đã được tối ưu để giảm query N+1.
+- Nếu Aiven hoặc mạng chậm, client có thể load lâu dù chương trình vẫn chạy đúng.
+
+Các bảng chính:
+
+```sql
+users, bidders, sellers, admins
+items, electronics, arts, vehicles
+auction_sessions, bids, transactions
+```
+
+### 7. Chạy test/smoke test khi cần
+
+Chạy unit tests:
+
 ```bash
 mvn test
-# 41 tests, 100% pass (không cần MySQL)
 ```
+
+Chạy smoke test protocol/server trên Windows PowerShell:
+
+```powershell
+cd server
+mvn dependency:build-classpath -Dmdep.outputFile=target\cp.txt
+$cp = Get-Content target\cp.txt
+java -cp "target\classes;$cp" com.auction.server.tools.ProtocolSmokeTest
+```
+
+Kết quả mong muốn:
+
+```text
+SMOKE_TEST_PASS activeAuctions=... allAuctions=... users=...
+```
+
+### 8. Lỗi thường gặp
+
+| Lỗi | Cách xử lý |
+|-----|------------|
+| `Connection refused 127.0.0.1:5000` | Chưa chạy server hoặc server crash. Chạy server trước client. |
+| `Socket closed` | Tắt hết client/server cũ, pull source mới, build lại JAR rồi chạy lại. |
+| Load dashboard chậm | Kiểm tra mạng tới Aiven Cloud DB; lần đầu có thể chậm. |
+| Không thấy auction mới | Kiểm tra server còn chạy, rồi mở lại dashboard/client. |
+| JavaFX không chạy | Kiểm tra đang dùng JDK 21 và đã build đúng client fat JAR. |
+
+### 9. Link báo cáo PDF và video demo
+
+- Báo cáo PDF: **sẽ bổ sung link/file sau khi nhóm xuất bản báo cáo cuối cùng**.
+- Video demo: **sẽ bổ sung link sau khi nhóm quay video demo tối đa 3 phút**.
 
 ---
 

@@ -4,15 +4,25 @@ echo Building Auction System Fat JARs
 echo ========================================
 echo.
 
-set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot
-set PATH=C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot\bin;%PATH%
+echo Checking Java and Maven...
+java -version
+mvn -version
+if errorlevel 1 (
+    echo.
+    echo Maven was not found. Please install Maven 3.9+ and add it to PATH.
+    pause
+    exit /b 1
+)
 
+echo.
 echo [1/2] Cleaning previous builds...
-call C:\Users\Admin\.m2\wrapper\dists\apache-maven-3.9.15-bin\4rlcemksed9vjmkvgss0jpc4po\apache-maven-3.9.15\bin\mvn.cmd clean
+call mvn clean
+if errorlevel 1 goto build_failed
 
 echo.
 echo [2/2] Building fat JARs (this may take a few minutes)...
-call C:\Users\Admin\.m2\wrapper\dists\apache-maven-3.9.15-bin\4rlcemksed9vjmkvgss0jpc4po\apache-maven-3.9.15\bin\mvn.cmd -DskipTests package
+call mvn -DskipTests package
+if errorlevel 1 goto build_failed
 
 echo.
 echo ========================================
@@ -30,3 +40,10 @@ echo   1. Start server: java -jar server\target\server-1.0-SNAPSHOT-jar-with-dep
 echo   2. Start client: java -jar client\target\client-1.0-SNAPSHOT-jar-with-dependencies.jar
 echo.
 pause
+exit /b 0
+
+:build_failed
+echo.
+echo Build failed. Please check the error above.
+pause
+exit /b 1

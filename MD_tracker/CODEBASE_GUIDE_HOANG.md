@@ -558,6 +558,50 @@ Tất cả client:
 
 ---
 
+## 🔄 Cập nhật source mới nhất Hoàng cần biết
+
+### 1. Client RPC dùng lock chung để ổn định socket
+
+File chính: `client/src/main/java/com/auction/client/network/ClientProtocolHandler.java`
+
+Do app dùng `ClientConnection` singleton, nhiều controller gọi request cùng lúc có thể làm socket bị đóng giữa chừng.
+Hiện tại mọi RPC được serialize bằng:
+
+```java
+private static final Object RPC_LOCK = new Object();
+```
+
+Ý nghĩa:
+
+- tránh lỗi `Socket write failed: Socket closed`;
+- controller A không disconnect/reconnect socket khi controller B đang gửi request;
+- phù hợp cho demo ổn định hơn, dù request không còn chạy song song hoàn toàn.
+
+### 2. `SocketClient.isConnected()` kiểm tra socket thật
+
+File chính: `client/src/main/java/com/auction/client/network/SocketClient.java`
+
+`isConnected()` không chỉ dựa vào boolean nữa, mà kiểm tra cả socket:
+
+```java
+return isConnected && socket != null && socket.isConnected() && !socket.isClosed();
+```
+
+Mục đích: tránh trường hợp flag còn `true` nhưng socket thực tế đã đóng.
+
+### 3. README và build script ưu tiên fat JAR
+
+Theo yêu cầu nộp bài, README hiện hướng dẫn chạy bằng:
+
+```bash
+java -jar server/target/server-1.0-SNAPSHOT-jar-with-dependencies.jar
+java -jar client/target/client-1.0-SNAPSHOT-jar-with-dependencies.jar
+```
+
+Script `build-fat-jar.bat` đã đổi sang dùng `mvn` từ `PATH`, không hardcode đường dẫn máy cá nhân.
+
+---
+
 ## ❓ FAQ cho Hoàng
 
 **Q: Tại sao flush() sau khi tạo ObjectOutputStream?**  

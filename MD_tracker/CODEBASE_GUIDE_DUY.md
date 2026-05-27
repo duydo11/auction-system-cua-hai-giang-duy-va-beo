@@ -539,6 +539,57 @@ synchronized(lock_session_1)          synchronized(lock_session_1)
 
 ---
 
+## 🔄 Cập nhật source mới nhất Duy cần biết
+
+### 1. Client RPC đã được serialize để tránh `Socket closed`
+
+File chính: `client/src/main/java/com/auction/client/network/ClientProtocolHandler.java`
+
+Client dùng `ClientConnection` singleton, nhưng nhiều controller có thể gọi request cùng lúc.
+Để tránh controller này disconnect socket trong lúc controller khác đang write, `ClientProtocolHandler` hiện có lock chung:
+
+```java
+private static final Object RPC_LOCK = new Object();
+```
+
+Mọi RPC đi qua lock này. Cách này đơn giản, hy sinh một ít song song nhưng tăng ổn định cho app demo.
+
+### 2. AutoBidService thay thế config cũ
+
+File chính: `server/src/main/java/com/auction/server/service/AutoBidService.java`
+
+`registerAutoBid(config)` hiện xóa config cũ của cùng bidder/session trước khi add config mới:
+
+```java
+queue.removeIf(existing -> existing.getBidderId() == config.getBidderId());
+queue.add(config);
+```
+
+Mục đích:
+
+- tránh một bidder có nhiều config trùng trên cùng phiên;
+- tránh tick/start auto-bid nhiều lần làm server tự bid lặp bất thường.
+
+### 3. Auction list không kéo bids trong dashboard
+
+File chính: `server/src/main/java/com/auction/server/dao/AuctionSessionDAO.java`
+
+Các hàm list đã tối ưu bằng summary `JOIN`, không gọi `getSessionById()` từng dòng nữa.
+Điểm cần nhớ khi viết test/perf:
+
+- list/dashboard nhanh hơn vì không load bid history;
+- bid history chỉ load ở detail;
+- nếu test kỳ vọng `session.getBids()` có đủ data từ list thì cần đổi test sang gọi `getSessionById()` hoặc `getBidHistory()`.
+
+### 4. Bidder dashboard polling giảm tải
+
+File chính: `client/src/main/java/com/auction/client/controller/BidderScene/BidderDashboardController.java`
+
+Polling đã đổi từ 3 giây/lần sang 10 giây/lần để giảm tải DB cloud.
+Realtime push vẫn cập nhật ngay khi có auction/bid update.
+
+---
+
 ## ❓ FAQ cho Duy
 
 **Q: Nếu thêm session mới, khi nào lock object trong `SESSION_BID_LOCKS` bị xóa?**  

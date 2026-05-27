@@ -347,18 +347,26 @@ public class AuctionDetailsforBidderController implements Initializable {
             return;
         }
 
-        String amountText = txtBidAmount.getText();
-        if (amountText == null || amountText.trim().isEmpty()) {
-            showAlert("Warning", "Please enter a bid amount.");
-            return;
-        }
-
+        boolean autoBidEnabled = chboxAutobid != null && chboxAutobid.isSelected();
         double bidAmount;
-        try {
-            bidAmount = Double.parseDouble(amountText.trim());
-        } catch (NumberFormatException e) {
-            showAlert("Error", "Invalid bid amount format.");
-            return;
+        if (autoBidEnabled) {
+            Double preparedAutoBid = prepareAutoBidStartAmount();
+            if (preparedAutoBid == null) {
+                return;
+            }
+            bidAmount = preparedAutoBid;
+        } else {
+            String amountText = txtBidAmount.getText();
+            if (amountText == null || amountText.trim().isEmpty()) {
+                showAlert("Warning", "Please enter a bid amount.");
+                return;
+            }
+            try {
+                bidAmount = Double.parseDouble(amountText.trim());
+            } catch (NumberFormatException e) {
+                showAlert("Error", "Invalid bid amount format.");
+                return;
+            }
         }
 
         if (bidAmount <= session.getCurrentPrice()) {
@@ -366,10 +374,10 @@ public class AuctionDetailsforBidderController implements Initializable {
             return;
         }
 
-        // Disable button để tránh double-click
+        // Disable button để tránh double-click khi đang gửi bid/autobid lên server.
         btnPlaceBid.setDisable(true);
 
-        // Gọi backend ở background thread
+        // Gọi backend ở background thread.
         FxAsync.run("place-bid-" + session.getId(),
                 () -> protocol.placeBidOrError(session.getId(), currentUser.getId(), bidAmount),
                 errorMsg -> {
@@ -379,17 +387,43 @@ public class AuctionDetailsforBidderController implements Initializable {
                         return;
                     }
 
-                    // Nếu autobid được chọn, đăng ký nó
-                    if (chboxAutobid.isSelected()) {
+                    // Nếu auto-bid được chọn, đăng ký config ngay sau bid mở đầu thành công.
+                    if (autoBidEnabled) {
                         registerAutoBidAsync(currentUser, bidAmount);
                     } else {
-                        // Refresh UI và hiển thị thông báo thành công
                         txtBidAmount.clear();
                         refreshAuctionDataAsync();
                         showAlert("Success", "Bid placed successfully!");
                         btnPlaceBid.setDisable(false);
                     }
                 });
+    }
+
+    private Double prepareAutoBidStartAmount() {
+        try {
+            double maxAmount = Double.parseDouble(txtMaxBidAmount.getText().trim());
+            double increment = Double.parseDouble(txtIncrementAmount.getText().trim());
+            double nextBid = Math.min(session.getCurrentPrice() + increment, maxAmount);
+
+            if (increment <= 0) {
+                showAlert("Warning", "Auto-bid increment must be greater than 0.");
+                return null;
+            }
+            if (maxAmount <= session.getCurrentPrice()) {
+                showAlert("Warning", "Maximum bid must be greater than the current price.");
+                return null;
+            }
+            if (nextBid <= session.getCurrentPrice()) {
+                showAlert("Warning", "Auto-bid cannot start because the next bid is not high enough.");
+                return null;
+            }
+            // Điền bid mở đầu để người dùng nhìn thấy số tiền sẽ được gửi khi bấm nút start/place bid.
+            txtBidAmount.setText(String.valueOf(nextBid));
+            return nextBid;
+        } catch (NumberFormatException e) {
+            showAlert("Error", "Please enter valid maximum bid and increment values.");
+            return null;
+        }
     }
 
     /**
@@ -399,27 +433,34 @@ public class AuctionDetailsforBidderController implements Initializable {
         try {
             double maxAmount = Double.parseDouble(txtMaxBidAmount.getText().trim());
             double increment = Double.parseDouble(txtIncrementAmount.getText().trim());
-            
-            if (maxAmount > initialBidAmount && increment > 0) {
-                AutoBidConfig config = new AutoBidConfig(0, currentUser.getId(), session.getId(), maxAmount, increment);
-                
-                FxAsync.run("auto-bid-" + session.getId(),
-                        () -> {
-                            protocol.registerAutoBid(config);
-                            return null;
-                        },
-                        result -> {
-                            txtBidAmount.clear();
-                            refreshAuctionDataAsync();
-                            showAlert("Success", "Bid placed successfully with auto-bid enabled!");
-                            btnPlaceBid.setDisable(false);
-                        });
-            } else {
+
+            if (maxAmount <= initialBidAmount || increment <= 0) {
                 txtBidAmount.clear();
                 refreshAuctionDataAsync();
                 showAlert("Success", "Bid placed successfully!");
                 btnPlaceBid.setDisable(false);
+                return;
             }
+
+            AutoBidConfig config = new AutoBidConfig(0, currentUser.getId(), session.getId(), maxAmount, increment);
+            FxAsync.run("auto-bid-" + session.getId(),
+                    () -> protocol.registerAutoBid(config),
+                    success -> {
+                        txtBidAmount.clear();
+                        refreshAuctionDataAsync();
+                        if (Boolean.TRUE.equals(success)) {
+                            showAlert("Success", "Auto-bid started successfully!");
+                        } else {
+                            showAlert("Warning", "Bid placed, but auto-bid could not be started.");
+                        }
+                        btnPlaceBid.setDisable(false);
+                    },
+                    error -> {
+                        txtBidAmount.clear();
+                        refreshAuctionDataAsync();
+                        showAlert("Warning", "Bid placed, but auto-bid could not be started: " + error.getMessage());
+                        btnPlaceBid.setDisable(false);
+                    });
         } catch (NumberFormatException e) {
             txtBidAmount.clear();
             refreshAuctionDataAsync();
