@@ -6,13 +6,16 @@ echo.
 
 echo Checking Java and Maven...
 java -version
-mvn -version
+where mvn >nul 2>nul
 if errorlevel 1 (
     echo.
-    echo Maven was not found. Please install Maven 3.9+ and add it to PATH.
+    echo Maven was not found in PATH.
+    echo Please install Maven 3.9+ and add Maven bin directory to PATH.
     pause
     exit /b 1
 )
+
+mvn -version
 
 echo.
 echo [1/2] Cleaning previous builds...
