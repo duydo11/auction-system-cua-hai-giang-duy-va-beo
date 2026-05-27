@@ -5,6 +5,7 @@ import com.auction.client.controller.Card.AuctionResult1CardController;
 import com.auction.client.controller.Card.AuctionResult2CardController;
 import com.auction.client.controller.Card.BidderHistoryCardController;
 import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.util.FxAsync;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.auction.Bid;
@@ -32,16 +33,19 @@ import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
 /**
- * Controller for the seller auction detail screen.
+ * Controller cho màn chi tiết auction (seller view).
  *
- * <p>The seller sees the same live auction data as bidders but from the owner perspective:</p>
+ * <p>Seller thấy dữ liệu auction realtime giống bidder nhưng từ góc nhìn chủ sở hữu:</p>
  * <ul>
- *   <li>binds product, seller, price, bid count and auction status,</li>
- *   <li>renders bid history and the price history chart,</li>
- *   <li>listens for realtime server pushes to keep the view synchronized,</li>
- *   <li>shows anti-sniping/ending-soon messages,</li>
- *   <li>loads the final result card when the auction is finished.</li>
+ *   <li>Bind thông tin sản phẩm, seller, giá, số bid và trạng thái auction</li>
+ *   <li>Render bid history và price history chart</li>
+ *   <li>Lắng nghe realtime server pushes để giữ view đồng bộ</li>
+ *   <li>Hiển thị cảnh báo anti-sniping/ending-soon</li>
+ *   <li>Load result card khi auction kết thúc</li>
  * </ul>
+ *
+ * <p><strong>Async strategy:</strong> Tất cả thao tác network (load bid history)
+ * chạy ở background thread để UI không bị đơ.</p>
  */
 public class AuctionDetailsforSellerController implements Initializable {
 
@@ -76,8 +80,10 @@ public class AuctionDetailsforSellerController implements Initializable {
 
         this.lastKnownEndTime = session.getEndTime();
         bindBasicInfo();
-        loadBidHistoryChart();
-        loadBidHistoryCards();
+        
+        // Load bid history async để không block UI khi mở dialog
+        loadBidHistoryAsync();
+        
         loadAuctionResult();
         startCountdownTimer();
         setupRealtimeListener();
@@ -112,12 +118,51 @@ public class AuctionDetailsforSellerController implements Initializable {
         }
     }
 
-    private void loadBidHistoryChart() {
+    /**
+     * Load bid history ở background thread để tránh đơ UI khi mở dialog.
+     */
+    private void loadBidHistoryAsync() {
+        if (session == null) return;
+        
+        // Hiển thị trạng thái loading
+        showLoadingState();
+        
+        // Fetch bid history ở background
+        FxAsync.run("seller-bid-history-" + session.getId(),
+                () -> protocol.getBidHistory(session.getId()),
+                bids -> {
+                    renderBidHistoryChart(bids);
+                    renderBidHistoryCards(bids);
+                },
+                error -> {
+                    System.err.println("Error loading bid history: " + error);
+                    clearLoadingState();
+                });
+    }
+
+    private void showLoadingState() {
+        if (containerBidHistory != null) {
+            containerBidHistory.getChildren().clear();
+            Label loading = new Label("Loading bid history...");
+            loading.setStyle("-fx-text-fill: #6b7280;");
+            containerBidHistory.getChildren().add(loading);
+        }
+    }
+
+    private void clearLoadingState() {
+        if (containerBidHistory != null) {
+            containerBidHistory.getChildren().clear();
+        }
+    }
+
+    /**
+     * Render chart từ danh sách bid đã load.
+     */
+    private void renderBidHistoryChart(List<Bid> bids) {
         if (lcPriceHistory == null || session == null) return;
 
         try {
             lcPriceHistory.getData().clear();
-            List<Bid> bids = protocol.getBidHistory(session.getId());
 
             XYChart.Series<String, Number> series = new XYChart.Series<>();
             series.setName("Price History");
@@ -144,12 +189,14 @@ public class AuctionDetailsforSellerController implements Initializable {
         }
     }
 
-    private void loadBidHistoryCards() {
-        if (containerBidHistory == null || session == null) return;
+    /**
+     * Render bid history cards từ danh sách bid đã load.
+     */
+    private void renderBidHistoryCards(List<Bid> bids) {
+        if (containerBidHistory == null) return;
 
         containerBidHistory.getChildren().clear();
         try {
-            List<Bid> bids = protocol.getBidHistory(session.getId());
             bids.sort((b1, b2) -> b2.getTime().compareTo(b1.getTime()));
 
             for (Bid bid : bids) {
@@ -170,7 +217,7 @@ public class AuctionDetailsforSellerController implements Initializable {
 
         containerResult.getChildren().clear();
 
-        // Only load result card if session is ended (FINISHED or PAID or CANCELED)
+        // Chỉ load result card nếu session đã kết thúc (FINISHED hoặc PAID hoặc CANCELED)
         if (session.getStatus() == AuctionStatus.OPEN || session.getStatus() == AuctionStatus.RUNNING) {
             containerResult.setVisible(false);
             return;
@@ -231,7 +278,7 @@ public class AuctionDetailsforSellerController implements Initializable {
             }
             if (countdownTimer != null) countdownTimer.stop();
 
-            // Reload results when countdown ends
+            // Reload results khi countdown kết thúc
             loadAuctionResult();
         } else {
             long hours = seconds / 3600;
@@ -268,8 +315,7 @@ public class AuctionDetailsforSellerController implements Initializable {
             session = updatedSession;
             lastKnownEndTime = updatedSession.getEndTime();
             bindBasicInfo();
-            loadBidHistoryChart();
-            loadBidHistoryCards();
+            loadBidHistoryAsync();
             loadAuctionResult();
             updateTimeLabels();
             if (lblWarning != null && previousEnd != null && updatedSession.getEndTime() != null

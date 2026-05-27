@@ -47,7 +47,6 @@ public class SocketServer {
             stop();
         }
     }
-
     public void stop() {
         isRunning = false;
         try {

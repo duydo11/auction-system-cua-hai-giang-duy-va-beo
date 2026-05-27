@@ -5,9 +5,9 @@ import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
@@ -18,12 +18,6 @@ import java.time.temporal.ChronoUnit;
 
 /**
  * Controller cho ProductCard — bind data từ AuctionSession.
- * Giang cần thêm fx:id vào FXML:
- * - lblItemName (tên sản phẩm)
- * - lblCurrentPrice (giá hiện tại)
- * - lblTimeRemaining (thời gian còn lại)
- * - lblStatus (trạng thái: OPEN/RUNNING/FINISHED)
- * - btnViewDetails (nút xem chi tiết)
  */
 public class ProductCardController {
 
@@ -38,10 +32,6 @@ public class ProductCardController {
     private AuctionSession session;
     private Timeline countdownTimer;
 
-    /**
-     * Gọi từ BidderDashboard sau khi load FXML.
-     * Bind data từ AuctionSession vào UI.
-     */
     public void setAuctionSession(AuctionSession session) {
         this.session = session;
 
@@ -49,40 +39,29 @@ public class ProductCardController {
             return;
         }
 
-        // Bind item name
         if (lblItemName != null && session.getItem() != null) {
             lblItemName.setText(session.getItem().getName());
         }
 
-        // Bind current price
         if (lblCurrentPrice != null) {
             updatePrice(session.getCurrentPrice());
         }
 
-        // Bind status
         if (lblStatus != null) {
             updateStatus();
         }
 
         updateStartTime();
         updateProductImage();
-
-        // Start countdown timer
         startCountdownTimer();
     }
 
-    /**
-     * Update giá khi có bid mới (gọi từ RealtimeAuctionBus).
-     */
     public void updatePrice(double newPrice) {
         if (lblCurrentPrice != null) {
             lblCurrentPrice.setText(String.format("%,.0f $", newPrice));
         }
     }
 
-    /**
-     * Update status badge.
-     */
     private void updateStatus() {
         if (session == null || lblStatus == null) {
             return;
@@ -108,18 +87,12 @@ public class ProductCardController {
         }
     }
 
-    /**
-     * Shows when the auction starts, so bidders can see scheduled auctions clearly.
-     */
     private void updateStartTime() {
         if (lblStartTime != null && session != null && session.getStartTime() != null) {
             lblStartTime.setText("Start: " + session.getStartTime().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm")));
         }
     }
 
-    /**
-     * Uses the seller-selected local image when available; otherwise keeps the FXML placeholder.
-     */
     private void updateProductImage() {
         if (imgProduct == null || session == null || session.getItem() == null) {
             return;
@@ -129,21 +102,17 @@ public class ProductCardController {
             return;
         }
         try {
-            imgProduct.setImage(new Image(imagePath, true));
+            imgProduct.setImage(new Image(imagePath, 220, 140, true, true, true));
         } catch (RuntimeException e) {
             System.err.println("Cannot load product image: " + imagePath);
         }
     }
 
-    /**
-     * Countdown timer — update mỗi giây.
-     */
     private void startCountdownTimer() {
         if (session == null || lblTimeRemaining == null) {
             return;
         }
 
-        // Stop old timer if exists
         if (countdownTimer != null) {
             countdownTimer.stop();
         }
@@ -153,14 +122,9 @@ public class ProductCardController {
         }));
         countdownTimer.setCycleCount(Animation.INDEFINITE);
         countdownTimer.play();
-
-        // Initial update
         updateTimeRemaining();
     }
 
-    /**
-     * Update time remaining label.
-     */
     private void updateTimeRemaining() {
         if (session == null || lblTimeRemaining == null) {
             return;
@@ -178,13 +142,11 @@ public class ProductCardController {
                 countdownTimer.stop();
             }
         } else if (seconds < 300) {
-            // < 5 phút: hiển thị đỏ cảnh báo
             long mins = seconds / 60;
             long secs = seconds % 60;
-            lblTimeRemaining.setText(String.format("⚠️ %d:%02d", mins, secs));
+            lblTimeRemaining.setText(String.format("Ending soon %d:%02d", mins, secs));
             lblTimeRemaining.setStyle("-fx-text-fill: #c62828; -fx-font-weight: bold;");
         } else {
-            // Bình thường
             long hours = seconds / 3600;
             long mins = (seconds % 3600) / 60;
             lblTimeRemaining.setText(String.format("%dh %dm", hours, mins));
@@ -192,19 +154,12 @@ public class ProductCardController {
         }
     }
 
-    /**
-     * Cleanup khi card bị remove.
-     */
     public void cleanup() {
         if (countdownTimer != null) {
             countdownTimer.stop();
         }
     }
 
-    /**
-     * Handle "View Details" button click.
-     * Giang cần wire button trong FXML: onAction="#handleViewDetails"
-     */
     @FXML
     private void handleViewDetails() {
         if (session == null) {
@@ -218,15 +173,12 @@ public class ProductCardController {
             controller.setAuctionSession(session);
 
             Stage dialogStage = new Stage();
-            dialogStage.setTitle("Chi tiết phiên đấu giá: " + (session.getItem() != null ? session.getItem().getName() : ""));
+            dialogStage.setTitle("Auction details: " + (session.getItem() != null ? session.getItem().getName() : ""));
             dialogStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
 
             Scene scene = new Scene(root);
             dialogStage.setScene(scene);
-
-            // Clean up when dialog closes
             dialogStage.setOnCloseRequest(event -> controller.cleanup());
-
             dialogStage.showAndWait();
 
         } catch (java.io.IOException e) {

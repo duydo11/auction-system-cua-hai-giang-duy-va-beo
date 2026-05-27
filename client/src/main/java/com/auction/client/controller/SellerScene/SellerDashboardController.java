@@ -3,6 +3,8 @@ package com.auction.client.controller.SellerScene;
 import com.auction.client.SessionContext;
 import com.auction.client.controller.Card.ProductCardController;
 import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.util.AuctionCache;
+import com.auction.client.util.FxAsync;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.auction.AuctionSession;
@@ -21,7 +23,10 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 /**
- * Seller dashboard that shows the current seller's listed auctions.
+ * Dashboard cho seller, hiển thị các phiên đấu giá thuộc về người bán hiện tại.
+ *
+ * <p>Các request tới server/cơ sở dữ liệu được chạy ở task nền để
+ * JavaFX Application Thread không bị block khi dữ liệu tải chậm.</p>
  */
 public class SellerDashboardController implements Initializable {
 
@@ -35,25 +40,42 @@ public class SellerDashboardController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         User u = SessionContext.getCurrentUser();
         lblUsername.setText(u != null ? u.getUsername() : "Guest");
-        loadSellerAuctions();
+        loadSellerAuctionsAsync();
     }
 
-    private void loadSellerAuctions() {
-        if (containerTopPicks != null) containerTopPicks.getChildren().clear();
-        if (containerEndingSoon != null) containerEndingSoon.getChildren().clear();
-
+    private void loadSellerAuctionsAsync() {
+        clearContainers();
         User current = SessionContext.getCurrentUser();
         if (current == null) {
-            showMessage("Bạn chưa đăng nhập.");
+            showMessage("You are not logged in.");
             return;
         }
 
-        List<AuctionSession> auctions = protocol.getActiveAuctions().stream()
-                .filter(s -> s.getSeller() != null && s.getSeller().getId() == current.getId())
-                .toList();
+        if (AuctionCache.hasData()) {
+            renderSellerAuctions(filterSellerAuctions(AuctionCache.get(), current));
+        } else {
+            showMessage("Loading your listings...");
+        }
 
+        if (AuctionCache.isStale()) {
+            // getActiveAuctions() có thể phải chờ server/DB, nên không chạy trên UI thread.
+            FxAsync.run("seller-dashboard-load", protocol::getActiveAuctions,
+                    auctions -> {
+                        AuctionCache.update(auctions);
+                        renderSellerAuctions(filterSellerAuctions(auctions, current));
+                    },
+                    error -> {
+                        if (!AuctionCache.hasData()) {
+                            showMessage("Could not load seller listings.");
+                        }
+                    });
+        }
+    }
+
+    private void renderSellerAuctions(List<AuctionSession> auctions) {
+        clearContainers();
         if (auctions.isEmpty()) {
-            showMessage("Bạn chưa có sản phẩm nào đang lên sàn.");
+            showMessage("You do not have any active listings yet.");
             return;
         }
 
@@ -63,6 +85,17 @@ public class SellerDashboardController implements Initializable {
                 loadProductCard(auctions.get(i), target);
             }
         }
+    }
+
+    private List<AuctionSession> filterSellerAuctions(List<AuctionSession> auctions, User seller) {
+        return auctions.stream()
+                .filter(s -> s.getSeller() != null && s.getSeller().getId() == seller.getId())
+                .toList();
+    }
+
+    private void clearContainers() {
+        if (containerTopPicks != null) containerTopPicks.getChildren().clear();
+        if (containerEndingSoon != null) containerEndingSoon.getChildren().clear();
     }
 
     private void loadProductCard(AuctionSession session, HBox container) {
@@ -80,6 +113,7 @@ public class SellerDashboardController implements Initializable {
     private void showMessage(String message) {
         HBox target = containerTopPicks != null ? containerTopPicks : containerEndingSoon;
         if (target != null) {
+            target.getChildren().clear();
             Label label = new Label(message);
             label.setStyle("-fx-font-family: 'Montserrat'; -fx-font-size: 14; -fx-text-fill: #666666;");
             target.getChildren().add(label);
@@ -109,6 +143,6 @@ public class SellerDashboardController implements Initializable {
 
     @FXML
     public void switchMylisting(MouseEvent mouseEvent) {
-        SceneNavigator.loadScene(SceneNavigator.MY_LISTING, "shipping home");
+        SceneNavigator.loadScene(SceneNavigator.MY_LISTING, "my listings");
     }
 }

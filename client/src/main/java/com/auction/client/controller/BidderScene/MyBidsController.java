@@ -3,6 +3,7 @@ package com.auction.client.controller.BidderScene;
 import com.auction.client.SessionContext;
 import com.auction.client.controller.Card.HistoryCardController;
 import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.util.FxAsync;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.auction.AuctionSession;
@@ -25,6 +26,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.ResourceBundle;
 
+/**
+ * Màn hình My Bids.
+ *
+ * <p>Việc tải lịch sử bid có thể phát sinh nhiều request tới backend, nên màn hình này
+ * gom chúng vào task nền rồi mới render UI để tránh làm đơ cửa sổ.</p>
+ */
 public class MyBidsController implements Initializable {
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
 
@@ -37,8 +44,7 @@ public class MyBidsController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        loadBidHistory();
-        loadActiveBidAuctions();
+        loadBidDataAsync();
         if (TotalPane != null) {
             TotalPane.toFront();
         }
@@ -83,57 +89,72 @@ public class MyBidsController implements Initializable {
         }
     }
 
-    private void loadBidHistory() {
+    private void loadBidDataAsync() {
         containerTotal.getChildren().clear();
+        containerActive.getChildren().clear();
         if (SessionContext.getCurrentUser() == null) {
-            showEmptyState(containerTotal, "Bạn chưa đăng nhập.");
+            showEmptyState(containerTotal, "You are not logged in.");
+            showEmptyState(containerActive, "You are not logged in.");
             return;
         }
 
+        showEmptyState(containerTotal, "Loading bid history...");
+        showEmptyState(containerActive, "Loading active bids...");
+
+        // Gom toàn bộ request lịch sử bid vào task nền để mở scene không bị đứng.
+        FxAsync.run("my-bids-load", this::buildBidSnapshot,
+                this::renderBidSnapshot,
+                error -> {
+                    showEmptyState(containerTotal, "Could not load bid history.");
+                    showEmptyState(containerActive, "Could not load active bids.");
+                });
+    }
+
+    private BidSnapshot buildBidSnapshot() {
         int myId = SessionContext.getCurrentUser().getId();
         List<Bid> myBids = new ArrayList<>();
+        List<String> activeBidLabels = new ArrayList<>();
+
         for (AuctionSession session : protocol.getActiveAuctions()) {
-            for (Bid bid : protocol.getBidHistory(session.getId())) {
+            List<Bid> sessionBids = protocol.getBidHistory(session.getId());
+            boolean hasMyBid = false;
+            for (Bid bid : sessionBids) {
                 if (bid.getBidder() != null && bid.getBidder().getId() == myId) {
                     myBids.add(bid);
+                    hasMyBid = true;
                 }
+            }
+            if (hasMyBid) {
+                activeBidLabels.add(
+                        "Session #" + session.getId() + " · " +
+                        (session.getItem() != null ? session.getItem().getName() : "Unknown item") +
+                        " · Current price: " + String.format("%.0f VND", session.getCurrentPrice())
+                );
             }
         }
 
         myBids.sort(Comparator.comparing(Bid::getTime).reversed());
-        if (myBids.isEmpty()) {
-            showEmptyState(containerTotal, "Chưa có lịch sử bid nào.");
-            return;
-        }
-
-        for (Bid bid : myBids) {
-            loadHistoryCard(bid);
-        }
+        return new BidSnapshot(myBids, activeBidLabels);
     }
 
-    private void loadActiveBidAuctions() {
+    private void renderBidSnapshot(BidSnapshot snapshot) {
+        containerTotal.getChildren().clear();
         containerActive.getChildren().clear();
-        if (SessionContext.getCurrentUser() == null) {
-            showEmptyState(containerActive, "Bạn chưa đăng nhập.");
-            return;
-        }
 
-        int myId = SessionContext.getCurrentUser().getId();
-        boolean found = false;
-        for (AuctionSession session : protocol.getActiveAuctions()) {
-            boolean hasMyBid = protocol.getBidHistory(session.getId()).stream()
-                    .anyMatch(b -> b.getBidder() != null && b.getBidder().getId() == myId);
-            if (hasMyBid) {
-                found = true;
-                containerActive.getChildren().add(new Label(
-                        "Phiên #" + session.getId() + " · " +
-                        (session.getItem() != null ? session.getItem().getName() : "Unknown item") +
-                        " · Giá hiện tại: " + String.format("%.0f VND", session.getCurrentPrice())
-                ));
+        if (snapshot.bidHistory().isEmpty()) {
+            showEmptyState(containerTotal, "No bid history yet.");
+        } else {
+            for (Bid bid : snapshot.bidHistory()) {
+                loadHistoryCard(bid);
             }
         }
-        if (!found) {
-            showEmptyState(containerActive, "Không có phiên đang hoạt động mà bạn đã bid.");
+
+        if (snapshot.activeBidLabels().isEmpty()) {
+            showEmptyState(containerActive, "You do not have any active auctions with bids.");
+        } else {
+            for (String labelText : snapshot.activeBidLabels()) {
+                containerActive.getChildren().add(new Label(labelText));
+            }
         }
     }
 
@@ -145,14 +166,22 @@ public class MyBidsController implements Initializable {
             controller.setBid(bid);
             containerTotal.getChildren().add(card);
         } catch (IOException e) {
-            Label fallback = new Label("Phiên #" + bid.getAuctionSession().getId() + " · " + bid.getAmount());
+            Label fallback = new Label("Session #" + bid.getAuctionSession().getId() + " · " + bid.getAmount());
             containerTotal.getChildren().add(fallback);
         }
     }
 
     private void showEmptyState(VBox container, String message) {
+        container.getChildren().clear();
         Label label = new Label(message);
         label.setStyle("-fx-font-family: 'Montserrat'; -fx-font-size: 14; -fx-text-fill: #666666;");
         container.getChildren().add(label);
+    }
+
+    /**
+     * Snapshot dữ liệu nhỏ dùng để chuyển kết quả đã tải từ worker thread
+     * về lại JavaFX thread trong một object duy nhất.
+     */
+    private record BidSnapshot(List<Bid> bidHistory, List<String> activeBidLabels) {
     }
 }

@@ -3,6 +3,7 @@ package com.auction.client.controller.SellerScene;
 import com.auction.client.SessionContext;
 import com.auction.client.controller.Card.TransHisCardController;
 import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.util.FxAsync;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.user.Seller;
@@ -26,6 +27,12 @@ import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
 
+/**
+ * Controller cho màn Wallet (seller).
+ *
+ * <p>Hiển thị số dư tài khoản và lịch sử giao dịch.
+ * Tất cả thao tác load dữ liệu chạy async để UI không bị đơ.</p>
+ */
 public class Wallet2Controller implements Initializable {
 
     @FXML private Label lblUsername;
@@ -42,25 +49,67 @@ public class Wallet2Controller implements Initializable {
         var u = SessionContext.getCurrentUser();
         lblUsername.setText(u != null ? u.getUsername() : "Guest");
 
-        loadWalletData();
+        // Load wallet data async
+        loadWalletDataAsync();
     }
 
-    private void loadWalletData() {
+    /**
+     * Load dữ liệu wallet ở background thread.
+     */
+    private void loadWalletDataAsync() {
         var u = SessionContext.getCurrentUser();
         if (u == null) return;
 
-        // Fetch latest user details from server to sync balance
-        User latest = protocol.getUserInfo(u.getId());
-        if (latest != null) {
-            u = latest;
-            SessionContext.setCurrentUser(latest);
-        }
+        // Hiển thị trạng thái loading
+        showLoadingState();
+
+        // Fetch user info và transactions ở background
+        FxAsync.run("seller-wallet-load",
+                () -> {
+                    User latest = protocol.getUserInfo(u.getId());
+                    if (latest == null) latest = u;
+                    
+                    List<Transaction> transactions = protocol.getTransactions(latest.getId());
+                    
+                    return new WalletData(latest, transactions);
+                },
+                this::renderWalletData,
+                error -> {
+                    System.err.println("Error loading wallet data: " + error);
+                    showErrorState();
+                });
+    }
+
+    /**
+     * Hiển thị trạng thái loading.
+     */
+    private void showLoadingState() {
+        lblTotalBalance.setText("Loading...");
+        lblAvailabe.setText("Loading...");
+        lblReserved.setText("$0.00");
+        containerTrans.getChildren().clear();
+    }
+
+    /**
+     * Hiển thị trạng thái lỗi.
+     */
+    private void showErrorState() {
+        lblTotalBalance.setText("Error");
+        lblAvailabe.setText("Error");
+        lblReserved.setText("$0.00");
+    }
+
+    /**
+     * Render dữ liệu wallet sau khi load xong.
+     */
+    private void renderWalletData(WalletData data) {
+        User u = data.user;
+        SessionContext.setCurrentUser(u);
 
         double totalBalance = 0.0;
-        double reservedBalance = 0.0; // Sellers do not place bids
+        double reservedBalance = 0.0; // Sellers không đặt bid nên không có reserved
 
-        if (u instanceof Seller) {
-            Seller seller = (Seller) u;
+        if (u instanceof Seller seller) {
             totalBalance = seller.getAccountBalance();
         }
 
@@ -70,10 +119,9 @@ public class Wallet2Controller implements Initializable {
         lblAvailabe.setText("$" + String.format("%,.2f", availableBalance));
         lblReserved.setText("$" + String.format("%,.2f", reservedBalance));
 
-        // Load transaction history
+        // Render transaction history
         containerTrans.getChildren().clear();
-        List<Transaction> transactions = protocol.getTransactions(u.getId());
-        for (Transaction trans : transactions) {
+        for (Transaction trans : data.transactions) {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/TransHisCard.fxml"));
                 Node card = loader.load();
@@ -86,6 +134,11 @@ public class Wallet2Controller implements Initializable {
             }
         }
     }
+
+    /**
+     * Data class để truyền dữ liệu từ background thread.
+     */
+    private record WalletData(User user, List<Transaction> transactions) {}
 
     @FXML
     public void handleDeposit(MouseEvent mouseEvent) {
@@ -105,8 +158,8 @@ public class Wallet2Controller implements Initializable {
             dialogStage.showAndWait();
             overlayPane.setVisible(false);
 
-            // Reload wallet data
-            loadWalletData();
+            // Reload wallet data async
+            loadWalletDataAsync();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -131,8 +184,8 @@ public class Wallet2Controller implements Initializable {
             dialogStage.showAndWait();
             overlayPane.setVisible(false);
 
-            // Reload wallet data
-            loadWalletData();
+            // Reload wallet data async
+            loadWalletDataAsync();
 
         } catch (IOException e) {
             e.printStackTrace();

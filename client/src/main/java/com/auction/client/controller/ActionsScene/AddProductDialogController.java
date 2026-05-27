@@ -2,8 +2,9 @@ package com.auction.client.controller.ActionsScene;
 
 import com.auction.client.SessionContext;
 import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.util.AuctionCache;
+import com.auction.client.util.FxAsync;
 import com.auction.shared.model.auction.AuctionSession;
-import com.auction.shared.model.item.Electronics;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.item.ItemFactory;
 import com.auction.shared.model.user.Seller;
@@ -16,6 +17,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.stage.FileChooser;
 
 import java.io.File;
@@ -29,6 +31,8 @@ import java.util.ResourceBundle;
  *
  * <p>Cho phép seller nhập tên, mô tả, chọn category, giá khởi điểm,
  * thời gian bắt đầu/kết thúc, và chọn ảnh sản phẩm từ máy tính.</p>
+ *
+ * <p>Thao tác tạo auction chạy async để UI không bị đơ khi chờ server.</p>
  */
 public class AddProductDialogController implements Initializable {
     @FXML private TextArea txtProductName;
@@ -40,6 +44,7 @@ public class AddProductDialogController implements Initializable {
     @FXML private ComboBox<String> cbEndHour, cbEndMin, cbEndAMPM;
     @FXML private Label lblMessage;
     @FXML private ImageView imgPreview;
+    @FXML private HBox btnConfirm;
 
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
     /** Đường dẫn file ảnh đã chọn (null nếu chưa chọn). */
@@ -49,30 +54,23 @@ public class AddProductDialogController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         cbCategory.getItems().addAll("Arts", "Vehicles", "Electronics", "Others");
 
-        // Đổ dữ liệu cho giờ (1-12)
         ObservableList<String> hours = FXCollections.observableArrayList();
         for (int i = 1; i <= 12; i++) hours.add(String.format("%02d", i));
         cbStartHour.setItems(hours);
         cbEndHour.setItems(hours);
 
-        // Đổ dữ liệu cho phút (00-59)
         ObservableList<String> minutes = FXCollections.observableArrayList();
         for (int i = 0; i < 60; i++) minutes.add(String.format("%02d", i));
         cbStartMin.setItems(minutes);
         cbEndMin.setItems(minutes);
 
-        // Đổ dữ liệu AM/PM
         ObservableList<String> ampm = FXCollections.observableArrayList("AM", "PM");
         cbStartAMPM.setItems(ampm);
         cbEndAMPM.setItems(ampm);
 
-        // Prompt cho starting price
-        txtStartingPrice.setPromptText("Nhập số (x.000 VND)");
+        txtStartingPrice.setPromptText("Enter numbers only (x.000 VND)");
     }
 
-    /**
-     * Ghép date + hour/minute/ampm thành LocalDateTime.
-     */
     private LocalDateTime combineDateTime(DatePicker datePicker, ComboBox<String> hourCB,
                                            ComboBox<String> minCB, ComboBox<String> ampmCB) {
         LocalDate date = datePicker.getValue();
@@ -84,13 +82,10 @@ public class AddProductDialogController implements Initializable {
         return date.atTime(hour, minute);
     }
 
-    /**
-     * Mở FileChooser để chọn ảnh sản phẩm (JPG/PNG) từ máy tính.
-     */
     @FXML
     private void handleChooseImage(MouseEvent mouseEvent) {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Chọn ảnh sản phẩm");
+        fileChooser.setTitle("Choose product image");
         fileChooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
         );
@@ -103,35 +98,29 @@ public class AddProductDialogController implements Initializable {
         }
     }
 
-    /**
-     * Tạo phiên đấu giá khi user ấn Confirm.
-     */
     @FXML
     private void handleCreateAuction(MouseEvent mouseEvent) {
         try {
-            // 1. Lấy thông tin cơ bản
             String name = txtProductName.getText().trim();
             String desc = txtProductDetails.getText().trim();
             String priceStr = txtStartingPrice.getText().trim().replace(",", "");
 
-            // 2. Validate starting price: chỉ được nhập số
             if (priceStr.isEmpty()) {
-                lblMessage.setText("Vui lòng nhập giá khởi điểm.");
+                lblMessage.setText("Please enter a starting price.");
                 return;
             }
             double price;
             try {
                 price = Double.parseDouble(priceStr);
             } catch (NumberFormatException e) {
-                lblMessage.setText("Invalid number! Chỉ được nhập số cho giá khởi điểm.");
+                lblMessage.setText("Invalid number. Starting price must contain digits only.");
                 return;
             }
             if (price <= 0) {
-                lblMessage.setText("Giá khởi điểm phải lớn hơn 0.");
+                lblMessage.setText("Starting price must be greater than 0.");
                 return;
             }
 
-            // 3. Lấy thời gian
             LocalDateTime start = combineDateTime(dpStartDate, cbStartHour, cbStartMin, cbStartAMPM);
             LocalDateTime end = combineDateTime(dpEndDate, cbEndHour, cbEndMin, cbEndAMPM);
 
@@ -140,43 +129,69 @@ public class AddProductDialogController implements Initializable {
                 return;
             }
 
-            // 4. Kiểm tra user có phải Seller hay không
             User u = SessionContext.getCurrentUser();
             if (!(u instanceof Seller seller)) {
-                lblMessage.setText("You are not seller!");
+                lblMessage.setText("You are not in seller mode. Please switch to the Seller tab first.");
                 return;
             }
             if (name.isEmpty()) {
-                lblMessage.setText("Vui lòng nhập tên sản phẩm.");
+                lblMessage.setText("Please enter a product name.");
                 return;
             }
 
-            // 5. Tạo phiên đấu giá
             String selectedType = cbCategory.getValue();
             if (selectedType == null) {
                 lblMessage.setText("Vui lòng chọn loại sản phẩm.");
                 return;
             }
-            Item item = null;
+
+            Item item;
             try {
-                // Gọi Factory để tạo Object cụ thể (Art, Vehicle, hay Electronics)
-                // Truyền null cho extraParam để Factory dùng giá trị mặc định
                 item = ItemFactory.create(selectedType, 0, name, desc, seller, null);
             } catch (IllegalArgumentException e) {
                 lblMessage.setText("Lỗi loại sản phẩm: " + e.getMessage());
                 return;
             }
+            if (selectedImageFile != null) {
+                item.setImagePath(selectedImageFile.toURI().toString());
+            }
             AuctionSession session = new AuctionSession(0, seller, item, price, start, end);
-            String err = protocol.createAuctionOrError(session);
-            if (err == null) {
-                lblMessage.setStyle("-fx-text-fill: #2e7d32;");
-                lblMessage.setText("Tạo phiên đấu giá thành công!");
-            } else {
-                lblMessage.setText(err);
+
+            if (btnConfirm != null) {
+                btnConfirm.setDisable(true);
             }
 
+            lblMessage.setStyle("-fx-text-fill: #1976d2;");
+            lblMessage.setText("Creating auction...");
+
+            FxAsync.run("create-auction",
+                    () -> protocol.createAuctionOrError(session),
+                    err -> {
+                        if (err == null) {
+                            AuctionCache.invalidate();
+                            lblMessage.setStyle("-fx-text-fill: #2e7d32;");
+                            lblMessage.setText("Auction created successfully.");
+                            lblMessage.getScene().getWindow().hide();
+                        } else {
+                            lblMessage.setStyle("-fx-text-fill: #c62828;");
+                            lblMessage.setText(err);
+                        }
+
+                        if (btnConfirm != null) {
+                            btnConfirm.setDisable(false);
+                        }
+                    },
+                    error -> {
+                        lblMessage.setStyle("-fx-text-fill: #c62828;");
+                        lblMessage.setText("Error: " + error);
+
+                        if (btnConfirm != null) {
+                            btnConfirm.setDisable(false);
+                        }
+                    });
+
         } catch (Exception e) {
-            lblMessage.setText("Vui lòng kiểm tra lại thông tin nhập vào!");
+            lblMessage.setText("Please review the form and try again.");
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.auction.client.controller.AdminScene;
 
 import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.util.FxAsync;
 import com.auction.client.util.SceneNavigator;
 import com.auction.shared.model.user.User;
 import javafx.beans.property.SimpleStringProperty;
@@ -16,15 +17,21 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 /**
- * UserManagement — hiển thị danh sách user, ban/unban.
- * Giang cần thêm TableView vào FXML:
- * - tableUsers (TableView<User>)
- * - colId (TableColumn<User, Integer>)
- * - colUsername (TableColumn<User, String>)
- * - colEmail (TableColumn<User, String>)
- * - colRole (TableColumn<User, String>)
- * - btnBan (Button)
- * - lblMessage (Label)
+ * Controller cho màn User Management (admin).
+ *
+ * <p>Hiển thị danh sách user trong TableView, cho phép ban/unban user.
+ * Tất cả thao tác network chạy async để UI không bị đơ.</p>
+ *
+ * <p>FXML cần có các component:</p>
+ * <ul>
+ *   <li>tableUsers (TableView&lt;User&gt;)</li>
+ *   <li>colId (TableColumn&lt;User, Integer&gt;)</li>
+ *   <li>colUsername (TableColumn&lt;User, String&gt;)</li>
+ *   <li>colEmail (TableColumn&lt;User, String&gt;)</li>
+ *   <li>colRole (TableColumn&lt;User, String&gt;)</li>
+ *   <li>btnBan (Button)</li>
+ *   <li>lblMessage (Label)</li>
+ * </ul>
  */
 public class UserManagementController implements Initializable {
     
@@ -41,7 +48,8 @@ public class UserManagementController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setupTableColumns();
-        loadAllUsers();
+        // Load users async để không block UI khi mở màn
+        loadAllUsersAsync();
     }
     
     /**
@@ -74,31 +82,50 @@ public class UserManagementController implements Initializable {
     }
     
     /**
-     * Load all users từ backend.
+     * Load tất cả users từ backend ở background thread.
      */
-    private void loadAllUsers() {
-        try {
-            List<User> users = protocol.getAllUsers();
-            
-            if (tableUsers != null) {
-                ObservableList<User> data = FXCollections.observableArrayList(users);
-                tableUsers.setItems(data);
-            }
-            
-            if (lblMessage != null) {
-                lblMessage.setText("Đã tải " + users.size() + " users");
-                lblMessage.setStyle("-fx-text-fill: #2e7d32;");
-            }
-            
-        } catch (Exception e) {
-            System.err.println("Error loading users: " + e.getMessage());
-            e.printStackTrace();
-            
-            if (lblMessage != null) {
-                lblMessage.setText("Không thể kết nối server");
-                lblMessage.setStyle("-fx-text-fill: #c62828;");
-            }
+    private void loadAllUsersAsync() {
+        // Hiển thị trạng thái loading
+        if (lblMessage != null) {
+            lblMessage.setText("Loading users...");
+            lblMessage.setStyle("-fx-text-fill: #1976d2;");
         }
+        
+        // Disable button khi đang load
+        if (btnBan != null) {
+            btnBan.setDisable(true);
+        }
+        
+        // Fetch users ở background
+        FxAsync.run("admin-load-users",
+                protocol::getAllUsers,
+                users -> {
+                    if (tableUsers != null) {
+                        ObservableList<User> data = FXCollections.observableArrayList(users);
+                        tableUsers.setItems(data);
+                    }
+                    
+                    if (lblMessage != null) {
+                        lblMessage.setText("Loaded " + users.size() + " users");
+                        lblMessage.setStyle("-fx-text-fill: #2e7d32;");
+                    }
+                    
+                    if (btnBan != null) {
+                        btnBan.setDisable(false);
+                    }
+                },
+                error -> {
+                    System.err.println("Error loading users: " + error);
+                    
+                    if (lblMessage != null) {
+                        lblMessage.setText("Could not connect to server");
+                        lblMessage.setStyle("-fx-text-fill: #c62828;");
+                    }
+                    
+                    if (btnBan != null) {
+                        btnBan.setDisable(false);
+                    }
+                });
     }
     
     /**
@@ -112,34 +139,56 @@ public class UserManagementController implements Initializable {
         
         User selected = tableUsers.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            lblMessage.setText("Chọn user cần ban");
+            lblMessage.setText("Select a user to ban");
             lblMessage.setStyle("-fx-text-fill: #f57c00;");
             return;
         }
         
         // Confirm dialog
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Xác nhận");
+        confirm.setTitle("Confirm");
         confirm.setHeaderText("Ban user: " + selected.getUsername());
-        confirm.setContentText("Bạn có chắc muốn ban user này?");
+        confirm.setContentText("Are you sure you want to ban this user?");
         
         if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
             return;
         }
         
-        // Call backend
-        boolean success = protocol.banUser(selected.getId());
-        
-        if (success) {
-            lblMessage.setText("Đã ban user: " + selected.getUsername());
-            lblMessage.setStyle("-fx-text-fill: #2e7d32;");
-            
-            // Reload table
-            loadAllUsers();
-        } else {
-            lblMessage.setText("Không thể ban user (lỗi server)");
-            lblMessage.setStyle("-fx-text-fill: #c62828;");
+        // Disable button để tránh double-click
+        if (btnBan != null) {
+            btnBan.setDisable(true);
         }
+        
+        lblMessage.setText("Banning user...");
+        lblMessage.setStyle("-fx-text-fill: #1976d2;");
+        
+        // Gọi backend ở background thread
+        FxAsync.run("admin-ban-user",
+                () -> protocol.banUser(selected.getId()),
+                success -> {
+                    if (success) {
+                        lblMessage.setText("Banned user: " + selected.getUsername());
+                        lblMessage.setStyle("-fx-text-fill: #2e7d32;");
+                        
+                        // Reload table
+                        loadAllUsersAsync();
+                    } else {
+                        lblMessage.setText("Could not ban user (server error)");
+                        lblMessage.setStyle("-fx-text-fill: #c62828;");
+                        
+                        if (btnBan != null) {
+                            btnBan.setDisable(false);
+                        }
+                    }
+                },
+                error -> {
+                    lblMessage.setText("Error: " + error);
+                    lblMessage.setStyle("-fx-text-fill: #c62828;");
+                    
+                    if (btnBan != null) {
+                        btnBan.setDisable(false);
+                    }
+                });
     }
     
     /**
@@ -147,7 +196,7 @@ public class UserManagementController implements Initializable {
      */
     @FXML
     private void handleRefresh() {
-        loadAllUsers();
+        loadAllUsersAsync();
     }
     
     // ==================== Navigation ====================
