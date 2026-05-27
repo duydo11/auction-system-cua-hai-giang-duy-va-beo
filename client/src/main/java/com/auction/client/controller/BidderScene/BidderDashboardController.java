@@ -169,8 +169,8 @@ public class BidderDashboardController implements Initializable {
 
     private void startRefreshTimer() {
         if (refreshTimer != null) return;
-        // Poll nhẹ 3 giây/lần khi màn đang mở để đảm bảo 2 bidder + admin luôn gần realtime.
-        refreshTimer = new Timeline(new KeyFrame(Duration.seconds(3), event -> loadActiveAuctionsAsync()));
+        // Poll nhẹ 10 giây/lần để giảm tải DB cloud; realtime push vẫn cập nhật ngay khi có auction mới.
+        refreshTimer = new Timeline(new KeyFrame(Duration.seconds(10), event -> loadActiveAuctionsAsync()));
         refreshTimer.setCycleCount(Timeline.INDEFINITE);
         refreshTimer.play();
     }
