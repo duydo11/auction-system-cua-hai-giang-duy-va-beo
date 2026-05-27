@@ -20,6 +20,8 @@ import javafx.scene.layout.HBox;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,18 +82,31 @@ public class BidderDashboardController implements Initializable {
         clearContainers();
         cardControllers.clear();
 
-        if (auctions.isEmpty()) {
+        List<AuctionSession> active = auctions.stream()
+                .filter(this::isBiddableNow)
+                .toList();
+        if (active.isEmpty()) {
             showDashboardMessage("No active auctions are available yet.", "#757575");
             return;
         }
 
-        for (int i = 0; i < auctions.size(); i++) {
-            AuctionSession session = auctions.get(i);
-            HBox targetContainer = i % 2 == 0 ? containerTopPicks : containerEndingSoon;
-            if (targetContainer != null) {
-                loadProductCard(session, targetContainer);
-            }
+        for (AuctionSession session : active) {
+            loadProductCard(session, containerTopPicks);
         }
+
+        active.stream()
+                .sorted(Comparator.comparing(AuctionSession::getEndTime))
+                .limit(4)
+                .forEach(session -> loadProductCard(session, containerEndingSoon));
+    }
+
+    private boolean isBiddableNow(AuctionSession session) {
+        if (session == null || session.getStartTime() == null || session.getEndTime() == null) {
+            return false;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        return now.isAfter(session.getStartTime()) && now.isBefore(session.getEndTime())
+                && session.getStatus() != com.auction.shared.model.auction.AuctionStatus.CANCELED;
     }
 
     private void clearContainers() {
