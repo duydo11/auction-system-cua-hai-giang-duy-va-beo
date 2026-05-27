@@ -88,6 +88,8 @@ public class AuctionDetailsforBidderController implements Initializable {
         if (paneAutobid != null) {
             paneAutobid.setDisable(true);
         }
+        showLoadingState();
+        loadBidHistoryAsync();
     }
 
     public void setAuctionSession(AuctionSession session) {
@@ -126,12 +128,26 @@ public class AuctionDetailsforBidderController implements Initializable {
     }
 
     private void updateStatus() {
-        if (session == null || lblStatus == null) return;
+        if (session == null || lblStatus == null) {
+            return;
+        }
         switch (session.getStatus()) {
-            case OPEN -> lblStatus.setText("Coming");
-            case RUNNING -> lblStatus.setText("Live");
-            case FINISHED, PAID -> lblStatus.setText("Ended");
-            case CANCELED -> lblStatus.setText("Canceled");
+            case OPEN -> {
+                lblStatus.setText("COMING");
+                lblStatus.setStyle("-fx-background-color: #e6e64c; -fx-text-fill: #8f8f03; -fx-border-color: #8f8f03; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case RUNNING -> {
+                lblStatus.setText("RUNNING");
+                lblStatus.setStyle("-fx-background-color: #388e3c; -fx-text-fill: #115214; -fx-border-color: #115214; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case FINISHED -> {
+                lblStatus.setText("ENDED");
+                lblStatus.setStyle("-fx-background-color: #c2185b; -fx-text-fill: #780826; -fx-border-color: #780826; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case CANCELED -> {
+                lblStatus.setText("CANCELED");
+                lblStatus.setStyle("-fx-background-color: #757575; -fx-text-fill: #474141; -fx-border-color: #474141; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
         }
     }
 
@@ -150,10 +166,10 @@ public class AuctionDetailsforBidderController implements Initializable {
      */
     private void loadBidHistoryAsync() {
         if (session == null) return;
-        
+
         // Hiển thị trạng thái loading
         showLoadingState();
-        
+
         // Fetch bid history ở background
         FxAsync.run("bid-history-" + session.getId(),
                 () -> protocol.getBidHistory(session.getId()),

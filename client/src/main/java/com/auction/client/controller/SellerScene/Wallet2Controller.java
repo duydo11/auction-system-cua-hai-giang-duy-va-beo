@@ -104,6 +104,9 @@ public class Wallet2Controller implements Initializable {
      */
     private void renderWalletData(WalletData data) {
         User u = data.user;
+        System.out.println("Wallet updated! New Balance: " + ((Seller)u).getAccountBalance());
+
+        SessionContext.setCurrentUser(u);
         SessionContext.setCurrentUser(u);
 
         double totalBalance = 0.0;
@@ -148,17 +151,18 @@ public class Wallet2Controller implements Initializable {
 
             Stage dialogStage = new Stage();
             dialogStage.setTitle("Deposit Funds");
-
             dialogStage.initModality(Modality.APPLICATION_MODAL);
-            dialogStage.setResizable(false);
-            overlayPane.setVisible(true);
 
-            Scene scene = new Scene(root);
-            dialogStage.setScene(scene);
+            overlayPane.setVisible(true);
+            dialogStage.setScene(new Scene(root));
+
+            // Đợi cửa sổ đóng
             dialogStage.showAndWait();
+
             overlayPane.setVisible(false);
 
-            // Reload wallet data async
+            // QUAN TRỌNG: Xóa cache thủ công nếu có hoặc gọi trực tiếp từ protocol
+            System.out.println("Reloading wallet after deposit...");
             loadWalletDataAsync();
 
         } catch (IOException e) {

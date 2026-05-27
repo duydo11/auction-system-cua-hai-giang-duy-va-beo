@@ -10,6 +10,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -31,7 +32,8 @@ public class ProductCardController {
 
     private AuctionSession session;
     private Timeline countdownTimer;
-
+    @FXML
+    private VBox ProductCard;
     public void setAuctionSession(AuctionSession session) {
         this.session = session;
 
@@ -54,6 +56,15 @@ public class ProductCardController {
         updateStartTime();
         updateProductImage();
         startCountdownTimer();
+        ProductCard.setOnMouseEntered(e -> {
+            ProductCard.setStyle("-fx-border-color: #2b3759; " +
+                    "-fx-border-radius: 15; " +
+                    "-fx-background-radius: 15; ");
+        });
+
+        ProductCard.setOnMouseExited(e -> {
+            ProductCard.setStyle("-fx-border-color: transparent;");
+        });
     }
 
     public void updatePrice(double newPrice) {
@@ -66,7 +77,6 @@ public class ProductCardController {
         if (session == null || lblStatus == null) {
             return;
         }
-
         switch (session.getStatus()) {
             case OPEN -> {
                 lblStatus.setText("COMING");
@@ -162,24 +172,48 @@ public class ProductCardController {
 
     @FXML
     private void handleViewDetails() {
-        if (session == null) {
+        if (session == null || session.getItem() == null) {
             return;
         }
         try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/ActionsScene/AuctionDetailsforBidder.fxml"));
-            javafx.scene.Parent root = loader.load();
+            String currentUser = com.auction.client.SessionContext.getCurrentUser().getUsername();
+            String sellerName = session.getItem().getSellerUsername();
+            String fxmlPath;
+            boolean isOwner = (currentUser != null && currentUser.equals(sellerName));
+            if (isOwner) {
+                fxmlPath = "/fxml/ActionsScene/AuctionDetailsforSeller.fxml";
+            } else {
+                fxmlPath = "/fxml/ActionsScene/AuctionDetailsforBidder.fxml";
+            }
 
-            com.auction.client.controller.ActionsScene.AuctionDetailsforBidderController controller = loader.getController();
-            controller.setAuctionSession(session);
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource(fxmlPath));
+            javafx.scene.Parent root = loader.load();
+            Object controller = loader.getController();
+            if (isOwner) {
+                com.auction.client.controller.ActionsScene.AuctionDetailsforSellerController sellerCtrl = (com.auction.client.controller.ActionsScene.AuctionDetailsforSellerController) controller;
+                sellerCtrl.setAuctionSession(session);
+            } else {
+                com.auction.client.controller.ActionsScene.AuctionDetailsforBidderController bidderCtrl = (com.auction.client.controller.ActionsScene.AuctionDetailsforBidderController) controller;
+                bidderCtrl.setAuctionSession(session);
+            }
 
             Stage dialogStage = new Stage();
-            dialogStage.setTitle("Auction details: " + (session.getItem() != null ? session.getItem().getName() : ""));
+            dialogStage.setTitle(isOwner ? "Manage Your Auction" : "Auction Details");
             dialogStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            dialogStage.setScene(new Scene(root));
 
-            Scene scene = new Scene(root);
-            dialogStage.setScene(scene);
-            dialogStage.setOnCloseRequest(event -> controller.cleanup());
+            // 6. Tự động gọi hàm cleanup khi đóng cửa sổ để tránh rò rỉ bộ nhớ
+            dialogStage.setOnCloseRequest(event -> {
+                if (isOwner) {
+                    ((com.auction.client.controller.ActionsScene.AuctionDetailsforSellerController) controller).cleanup();
+                } else {
+                    ((com.auction.client.controller.ActionsScene.AuctionDetailsforBidderController) controller).cleanup();
+                }
+            });
+
             dialogStage.showAndWait();
+
+
 
         } catch (java.io.IOException e) {
             System.err.println("Error loading details dialog: " + e.getMessage());

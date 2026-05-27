@@ -80,12 +80,12 @@ public class MyBidsController implements Initializable {
     public void switchTab(ActionEvent event) {
         if (event.getSource() == btnTotalPane) {
             TotalPane.toFront();
-            btnTotalPane.setStyle("-fx-background-color: #3a3386; -fx-text-fill: white; -fx-border-color: white");
-            btnActivePane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color: #3a3386");
+            btnTotalPane.setStyle("-fx-background-color: #3a3386; -fx-text-fill: white; -fx-border-color: white; -fx-background-radius:20; -fx-border-radius: 20 ");
+            btnActivePane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color: #3a3386; -fx-background-radius:20; -fx-border-radius: 20 ");
         } else if (event.getSource() == btnActivePane) {
             ActivePane.toFront();
-            btnActivePane.setStyle("-fx-background-color: #3a3386; -fx-text-fill: white; -fx-border-color: white");
-            btnTotalPane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color: #3a3386");
+            btnActivePane.setStyle("-fx-background-color: #3a3386; -fx-text-fill: white; -fx-border-color: white; -fx-background-radius:20; -fx-border-radius: 20 ");
+            btnTotalPane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color: #3a3386; -fx-background-radius:20; -fx-border-radius: 20 ");
         }
     }
 

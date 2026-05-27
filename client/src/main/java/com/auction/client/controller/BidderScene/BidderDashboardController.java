@@ -60,18 +60,20 @@ public class BidderDashboardController implements Initializable {
             showDashboardMessage("Loading active auctions...", "#757575");
         }
 
-        if (AuctionCache.isStale()) {
-            FxAsync.run("bidder-dashboard-load", protocol::getActiveAuctions,
-                    auctions -> {
+
+        FxAsync.run("bidder-dashboard-load", protocol::getActiveAuctions,
+                auctions -> {
+                    if (auctions != null) {
                         AuctionCache.update(auctions);
-                        renderAuctions(auctions);
-                    },
-                    error -> {
-                        if (!AuctionCache.hasData()) {
-                            showDashboardMessage("Could not connect to the server.", "#c62828");
-                        }
-                    });
-        }
+                        renderAuctions(auctions); // Cập nhật lại UI với dữ liệu mới nhất
+                    }
+                },
+                error -> {
+                    if (!AuctionCache.hasData()) {
+                        showDashboardMessage("Could not connect to the server.", "#c62828");
+                    }
+                });
+
     }
 
     private void renderAuctions(List<AuctionSession> auctions) {

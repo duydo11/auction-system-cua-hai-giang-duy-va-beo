@@ -29,4 +29,8 @@ public abstract class Item extends Entity {
     }
 
     public abstract String getItemType();
+
+    public String getSellerUsername() {
+        return seller.getUsername();
+    }
 }

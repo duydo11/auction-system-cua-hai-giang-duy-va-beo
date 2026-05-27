@@ -1,17 +1,19 @@
 package com.auction.client.controller.BidderScene;
 
-import com.auction.client.MockData.DataStore;
 import com.auction.client.SessionContext;
+import com.auction.client.controller.Card.ProductCardController;
 import com.auction.client.network.ClientProtocolHandler;
-import com.auction.client.ui.AuctionRowFactory;
 import com.auction.client.util.AuctionCache;
 import com.auction.client.util.FxAsync;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.auction.AuctionSession;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
@@ -20,32 +22,29 @@ import javafx.scene.layout.FlowPane;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
-/**
- * Controller cho màn Items (danh sách sản phẩm đấu giá).
- */
 public class ItemsController implements Initializable {
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
+    private final List<ProductCardController> cardControllers = new ArrayList<>();
 
     @FXML private Label lblUsername;
+
+    // Các container chứa thẻ sản phẩm cho từng danh mục
     @FXML private FlowPane containerArt;
-    @FXML private Button btnArtPane;
-    @FXML private Button btnElecPane;
-    @FXML private Button btnVehiclePane;
-    @FXML private Button btnOtherPane;
-    @FXML private AnchorPane ArtPane;
-    @FXML private AnchorPane ElecPane;
-    @FXML private AnchorPane VehiclePane;
-    @FXML private AnchorPane OtherPane;
+    @FXML private FlowPane containerElec;
+    @FXML private FlowPane containerVehicle;
+    @FXML private FlowPane containerOther;
+
+    @FXML private Button btnArtPane, btnElecPane, btnVehiclePane, btnOtherPane;
+    @FXML private AnchorPane ArtPane, ElecPane, VehiclePane, OtherPane;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         if (SessionContext.getCurrentUser() != null) {
             lblUsername.setText(SessionContext.getCurrentUser().getUsername());
-        } else if (DataStore.currentUser != null) {
-            lblUsername.setText(DataStore.currentUser.getUsername());
         } else {
             lblUsername.setText("Guest User");
         }
@@ -55,101 +54,126 @@ public class ItemsController implements Initializable {
 
     private void loadAuctionsAsync() {
         if (AuctionCache.hasData()) {
-            renderAuctionRows(AuctionCache.get());
+            renderAllCategories(AuctionCache.get());
         } else {
-            containerArt.getChildren().clear();
-            showLoadingMessage("Loading items...");
+            showStatusMessage("Loading items...", "#757575");
         }
 
         if (AuctionCache.isStale()) {
             FxAsync.run("items-load", protocol::getActiveAuctions,
                     auctions -> {
                         AuctionCache.update(auctions);
-                        renderAuctionRows(auctions);
+                        Platform.runLater(() -> renderAllCategories(auctions));
                     },
-                    error -> {
+                    error -> Platform.runLater(() -> {
                         if (!AuctionCache.hasData()) {
-                            showLoadingMessage("Could not load items. Please try again.");
+                            showStatusMessage("Could not connect to server.", "#c62828");
                         }
-                    });
-        }
-    }
-
-    private void renderAuctionRows(List<AuctionSession> auctions) {
-        containerArt.getChildren().clear();
-
-        if (auctions.isEmpty()) {
-            showLoadingMessage("No items available at the moment.");
-            return;
-        }
-
-        Runnable refresh = this::loadAuctionsAsync;
-        for (AuctionSession session : auctions) {
-            containerArt.getChildren().add(
-                    AuctionRowFactory.bidRow(session, protocol, refresh)
+                    })
             );
         }
     }
 
-    private void showLoadingMessage(String message) {
+    private void renderAllCategories(List<AuctionSession> auctions) {
+        // Dọn dẹp tất cả container trước khi nạp mới
+        clearAllContainers();
+        cleanupCards();
+
+        if (auctions == null || auctions.isEmpty()) {
+            showStatusMessage("No auctions available.", "#757575");
+            return;
+        }
+
+        for (AuctionSession session : auctions) {
+            String type = session.getItem().getItemType().toString().toUpperCase();
+
+            // Phân loại sản phẩm vào đúng FlowPane dựa trên ItemType
+            if (type.contains("ART")) {
+                loadProductCard(session, containerArt);
+            } else if (type.contains("ELEC")) {
+                loadProductCard(session, containerElec);
+            } else if (type.contains("VEHICLE")) {
+                loadProductCard(session, containerVehicle);
+            } else {
+                loadProductCard(session, containerOther);
+            }
+        }
+    }
+
+    private void loadProductCard(AuctionSession session, FlowPane container) {
+        if (container == null) return;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/ProductCard.fxml"));
+            Node card = loader.load();
+
+            ProductCardController controller = loader.getController();
+            controller.setAuctionSession(session);
+            cardControllers.add(controller);
+
+            container.getChildren().add(card);
+        } catch (IOException e) {
+            System.err.println("Error loading ProductCard: " + e.getMessage());
+        }
+    }
+
+    private void clearAllContainers() {
+        if (containerArt != null) containerArt.getChildren().clear();
+        if (containerElec != null) containerElec.getChildren().clear();
+        if (containerVehicle != null) containerVehicle.getChildren().clear();
+        if (containerOther != null) containerOther.getChildren().clear();
+    }
+
+    private void showStatusMessage(String message, String color) {
+        // Hiển thị tin nhắn ở container mặc định (Art)
+        if (containerArt == null) return;
         containerArt.getChildren().clear();
         Label label = new Label(message);
-        label.setStyle("-fx-font-family: 'Montserrat'; -fx-font-size: 14; -fx-text-fill: #666666;");
+        label.setStyle("-fx-font-family: 'Montserrat'; -fx-font-size: 14; -fx-text-fill: " + color + ";");
         containerArt.getChildren().add(label);
     }
 
     @FXML
-    public void switchSellerDB(MouseEvent mouseEvent) {
-        UserRoleSwitcher.switchToSellerRole();
-        SceneNavigator.loadScene(SceneNavigator.SELLER_DASHBOARD, "seller dashboard");
-    }
+    public void switchTab(ActionEvent event) {
+        Object source = event.getSource();
+        resetTabStyles();
 
-    @FXML
-    public void switchMyBids(MouseEvent mouseEvent) {
-        SceneNavigator.loadScene(SceneNavigator.MY_BIDS, "my bids");
-    }
-
-    @FXML
-    private void switchHomePane(MouseEvent event) throws IOException {
-        SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "home");
-    }
-
-    @FXML
-    private void switchWalletPane(MouseEvent event) throws IOException {
-        SceneNavigator.loadScene(SceneNavigator.WALLET1, "wallet");
-    }
-
-    @FXML
-    private void switchSettingsPane(MouseEvent event) throws IOException {
-        SceneNavigator.loadScene(SceneNavigator.SETTING1, "Setting");
-    }
-
-    @FXML
-    public void switchTab(ActionEvent event) throws IOException {
-        if (event.getSource() == btnArtPane) {
+        if (source == btnArtPane) {
             ArtPane.toFront();
-            btnArtPane.setStyle("-fx-background-color: #e0e0e0; -fx-background-radius: 50");
-            btnElecPane.setStyle("-fx-background-color: white");
-            btnVehiclePane.setStyle("-fx-background-color: white");
-            btnOtherPane.setStyle("-fx-background-color: white");
-        } else if (event.getSource() == btnElecPane) {
+            setActiveTabStyle(btnArtPane);
+        } else if (source == btnElecPane) {
             ElecPane.toFront();
-            btnElecPane.setStyle("-fx-background-color: #e0e0e0; -fx-background-radius: 50");
-            btnArtPane.setStyle("-fx-background-color: white");
-            btnVehiclePane.setStyle("-fx-background-color: white");
-            btnOtherPane.setStyle("-fx-background-color: white");
-        } else if  (event.getSource() == btnVehiclePane) {
+            setActiveTabStyle(btnElecPane);
+        } else if (source == btnVehiclePane) {
             VehiclePane.toFront();
-            btnVehiclePane.setStyle("-fx-background-color: #e0e0e0; -fx-background-radius: 50");
-            btnArtPane.setStyle("-fx-background-color: white");
-            btnElecPane.setStyle("-fx-background-color: white");
-            btnOtherPane.setStyle("-fx-background-color: white");
-        }  else if (event.getSource() == btnOtherPane) {
+            setActiveTabStyle(btnVehiclePane);
+        } else if (source == btnOtherPane) {
             OtherPane.toFront();
-            btnOtherPane.setStyle("-fx-background-color: #e0e0e0; -fx-background-radius: 50");
-            btnArtPane.setStyle("-fx-background-color: white");
-            btnElecPane.setStyle("-fx-background-color: white");
-            btnVehiclePane.setStyle("-fx-background-color: white");
+            setActiveTabStyle(btnOtherPane);
         }
     }
+
+    private void resetTabStyles() {
+        String defaultStyle = "-fx-background-color: white; -fx-text-fill: black;";
+        btnArtPane.setStyle(defaultStyle);
+        btnElecPane.setStyle(defaultStyle);
+        btnVehiclePane.setStyle(defaultStyle);
+        btnOtherPane.setStyle(defaultStyle);
+    }
+
+    private void setActiveTabStyle(Button btn) {
+        btn.setStyle("-fx-background-color: #e0e0e0; -fx-background-radius: 50;");
+    }
+
+    private void cleanupCards() {
+        for (ProductCardController controller : cardControllers) {
+            controller.cleanup();
+        }
+        cardControllers.clear();
+    }
+
+    @FXML public void switchHomePane(MouseEvent event) { cleanupCards(); SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "Home"); }
+    @FXML public void switchMyBids(MouseEvent event) { cleanupCards(); SceneNavigator.loadScene(SceneNavigator.MY_BIDS, "My Bids"); }
+    @FXML public void switchWalletPane(MouseEvent event) { cleanupCards(); SceneNavigator.loadScene(SceneNavigator.WALLET1, "Wallet"); }
+    @FXML public void switchSettingsPane(MouseEvent event) { cleanupCards(); SceneNavigator.loadScene(SceneNavigator.SETTING1, "Settings"); }
+    @FXML public void switchSellerDB(MouseEvent event) { cleanupCards(); UserRoleSwitcher.switchToSellerRole(); SceneNavigator.loadScene(SceneNavigator.SELLER_DASHBOARD, "Seller Dashboard"); }
 }
