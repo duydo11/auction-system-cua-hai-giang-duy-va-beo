@@ -23,8 +23,23 @@ import java.util.List;
  * </ul>
  */
 public class UserDAO {
+    private static volatile boolean initialized = false;
 
     public UserDAO() {
+        // Chỉ chạy migration/seed một lần để admin/user/category không bị chậm vì ALTER lặp lại.
+        if (initialized) {
+            return;
+        }
+        synchronized (UserDAO.class) {
+            if (initialized) {
+                return;
+            }
+            initializeSchema();
+            initialized = true;
+        }
+    }
+
+    private void initializeSchema() {
         Connection conn = DatabaseConnection.getConnection();
         // Chỉ đóng Statement; connection singleton cần sống tiếp cho các request sau.
         try (java.sql.Statement stmt = conn.createStatement()) {
@@ -86,7 +101,7 @@ public class UserDAO {
 
     /** ID tiếp theo cho đăng ký (schema users.id kiểu INT). */
     public int allocateNextUserId() {
-        String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM users";
+        String sql = "SELECT COALESCE(MAX(CAST(id AS UNSIGNED)), 0) + 1 AS next_id FROM users";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -263,7 +278,86 @@ public class UserDAO {
             return admin;
         }
 
+        // Fallback: nếu users có row nhưng bảng role bị thiếu, admin vẫn phải thấy user để debug/sửa dữ liệu.
+        return getUserBaseAsBidder(id);
+    }
+
+    private User getUserBaseAsBidder(int id) {
+        String sql = "SELECT id, username, password, email FROM users WHERE id = ?";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new Bidder(rs.getInt("id"), rs.getString("username"),
+                        rs.getString("password"), rs.getString("email"), 0.0);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Cannot load base user #" + id, e);
+        }
         return null;
+    }
+
+    public boolean ensureSellerRole(int userId) {
+        String existsSql = "SELECT 1 FROM sellers WHERE user_id = ? LIMIT 1";
+        String insertSql = "INSERT INTO sellers (user_id, rating, account_balance) VALUES (?, 0.0, ?)";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement exists = conn.prepareStatement(existsSql)) {
+            exists.setInt(1, userId);
+            try (ResultSet rs = exists.executeQuery()) {
+                if (rs.next()) {
+                    return true;
+                }
+            }
+            double balance = readBidderBalance(userId);
+            try (PreparedStatement insert = conn.prepareStatement(insertSql)) {
+                insert.setInt(1, userId);
+                insert.setDouble(2, balance);
+                return insert.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Cannot create seller role for user #" + userId, e);
+        }
+    }
+
+    public boolean ensureBidderRole(int userId) {
+        String existsSql = "SELECT 1 FROM bidders WHERE user_id = ? LIMIT 1";
+        String insertSql = "INSERT INTO bidders (user_id, account_balance) VALUES (?, ?)";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement exists = conn.prepareStatement(existsSql)) {
+            exists.setInt(1, userId);
+            try (ResultSet rs = exists.executeQuery()) {
+                if (rs.next()) {
+                    return true;
+                }
+            }
+            double balance = readSellerBalance(userId);
+            try (PreparedStatement insert = conn.prepareStatement(insertSql)) {
+                insert.setInt(1, userId);
+                insert.setDouble(2, balance);
+                return insert.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Cannot create bidder role for user #" + userId, e);
+        }
+    }
+
+    private double readBidderBalance(int userId) throws SQLException {
+        return readBalance("SELECT account_balance FROM bidders WHERE user_id = ?", userId);
+    }
+
+    private double readSellerBalance(int userId) throws SQLException {
+        return readBalance("SELECT account_balance FROM sellers WHERE user_id = ?", userId);
+    }
+
+    private double readBalance(String sql, int userId) throws SQLException {
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getDouble("account_balance") : 0.0;
+            }
+        }
     }
 
     // cap nhat user

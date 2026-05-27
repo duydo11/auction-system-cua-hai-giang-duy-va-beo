@@ -62,10 +62,10 @@ public class CategoryManagementController implements Initializable {
             colEnd.setCellValueFactory(cell -> new SimpleStringProperty(formatTime(cell.getValue().getEndTime())));
         }
         if (colActions != null) {
-            colActions.setCellValueFactory(cell -> new SimpleStringProperty("Xóa"));
+            colActions.setCellValueFactory(cell -> new SimpleStringProperty("Delete"));
             // Cột action có nút xóa thật để admin có thể dọn sản phẩm lỗi khi test.
             colActions.setCellFactory(column -> new TableCell<>() {
-                private final Button btnDelete = new Button("Xóa");
+                private final Button btnDelete = new Button("Delete");
                 {
                     btnDelete.setOnAction(event -> {
                         AuctionSession session = getTableView().getItems().get(getIndex());
@@ -83,6 +83,13 @@ public class CategoryManagementController implements Initializable {
     }
 
     private void loadAuctionsAsync() {
+        if (lblMessage != null) {
+            lblMessage.setText("Loading auctions...");
+            lblMessage.setStyle("-fx-text-fill: #1976d2;");
+        }
+        if (btnRefresh != null) {
+            btnRefresh.setDisable(true);
+        }
         FxAsync.run("admin-category-load",
                 protocol::getAllAuctions,
                 auctions -> {
@@ -91,12 +98,20 @@ public class CategoryManagementController implements Initializable {
                         tableView.setItems(data);
                     }
                     if (lblMessage != null) {
-                        lblMessage.setText("Đã tải " + auctions.size() + " sản phẩm");
+                        lblMessage.setText("Loaded " + auctions.size() + " auctions");
+                        lblMessage.setStyle("-fx-text-fill: #2e7d32;");
+                    }
+                    if (btnRefresh != null) {
+                        btnRefresh.setDisable(false);
                     }
                 },
                 error -> {
                     if (lblMessage != null) {
-                        lblMessage.setText("Không tải được dữ liệu category");
+                        lblMessage.setText("Could not load category data: " + error.getMessage());
+                        lblMessage.setStyle("-fx-text-fill: #c62828;");
+                    }
+                    if (btnRefresh != null) {
+                        btnRefresh.setDisable(false);
                     }
                 });
     }
@@ -106,30 +121,30 @@ public class CategoryManagementController implements Initializable {
             return;
         }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Xác nhận xóa");
-        confirm.setHeaderText("Xóa sản phẩm: " + session.getItem().getName());
-        confirm.setContentText("Admin sẽ xóa sản phẩm và các phiên/bid liên quan. Bạn có chắc không?");
+        confirm.setTitle("Confirm deletion");
+        confirm.setHeaderText("Delete product: " + session.getItem().getName());
+        confirm.setContentText("Admin will delete this product and related sessions/bids. Are you sure?");
         if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
             return;
         }
 
         int itemId = session.getItem().getId();
         if (lblMessage != null) {
-            lblMessage.setText("Đang xóa sản phẩm...");
+            lblMessage.setText("Deleting product...");
         }
         // Gọi server ở background để UI admin không bị đơ.
         FxAsync.run("admin-delete-item",
                 () -> protocol.deleteItemOrError(itemId),
                 errorMessage -> {
                     if (errorMessage == null || errorMessage.isBlank()) {
-                        if (lblMessage != null) lblMessage.setText("Đã xóa sản phẩm");
+                        if (lblMessage != null) lblMessage.setText("Product deleted");
                         loadAuctionsAsync();
                     } else if (lblMessage != null) {
-                        lblMessage.setText("Xóa thất bại: " + errorMessage);
+                        lblMessage.setText("Delete failed: " + errorMessage);
                     }
                 },
                 error -> {
-                    if (lblMessage != null) lblMessage.setText("Xóa thất bại: " + error);
+                    if (lblMessage != null) lblMessage.setText("Delete failed: " + error.getMessage());
                 });
     }
 

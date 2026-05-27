@@ -43,6 +43,7 @@ public class BidderDashboardController implements Initializable {
     private final Map<Integer, ProductCardController> cardControllers = new HashMap<>();
     private Consumer<AuctionSession> realtimeListener;
     private Timeline refreshTimer;
+    private boolean isLoadingActive;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -58,6 +59,10 @@ public class BidderDashboardController implements Initializable {
     }
 
     private void loadActiveAuctionsAsync() {
+        if (isLoadingActive) {
+            return;
+        }
+        isLoadingActive = true;
         if (AuctionCache.hasActiveData()) {
             renderAuctions(AuctionCache.getActive());
         } else {
@@ -68,8 +73,12 @@ public class BidderDashboardController implements Initializable {
 
         // Luôn refresh nền, không chờ TTL. Đây là lưới an toàn nếu push realtime bị miss.
         FxAsync.run("bidder-dashboard-load", protocol::getActiveAuctions,
-                this::renderAuctions,
+                auctions -> {
+                    isLoadingActive = false;
+                    renderAuctions(auctions);
+                },
                 error -> {
+                    isLoadingActive = false;
                     if (!AuctionCache.hasActiveData()) {
                         showDashboardMessage("Could not connect to the server.", "#c62828");
                     }

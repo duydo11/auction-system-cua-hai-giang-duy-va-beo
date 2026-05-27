@@ -26,7 +26,7 @@ public class ItemDAO {
     }
 
     public int allocateNextItemId() {
-        String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM items";
+        String sql = "SELECT COALESCE(MAX(CAST(id AS UNSIGNED)), 0) + 1 AS next_id FROM items";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -82,12 +82,13 @@ public class ItemDAO {
                 conn.commit();
             } catch (SQLException e) {
                 conn.rollback();
-                e.printStackTrace();
+                // Không nuốt lỗi SQL, để service/protocol trả message thật cho UI Add Product.
+                throw new RuntimeException("Cannot save item #" + item.getId(), e);
             } finally {
                 conn.setAutoCommit(true);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Cannot save item #" + item.getId(), e);
         }
     }
 
@@ -200,12 +201,13 @@ public class ItemDAO {
                 conn.commit();
             } catch (SQLException e) {
                 conn.rollback();
-                e.printStackTrace();
+                // Không nuốt lỗi xóa để admin biết delete fail vì ràng buộc DB nào.
+                throw new RuntimeException("Cannot delete item #" + itemId, e);
             } finally {
                 conn.setAutoCommit(true);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Cannot delete item #" + itemId, e);
         }
     }
 

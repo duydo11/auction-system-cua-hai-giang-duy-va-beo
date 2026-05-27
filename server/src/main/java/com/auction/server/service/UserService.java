@@ -70,6 +70,16 @@ public class UserService {
         return userDAO.getUserById(userId);
     }
 
+    public boolean ensureSellerRole(int userId) {
+        // UI có thể switch Bidder -> Seller trong memory, server phải tạo row sellers thật trước khi lưu item.
+        return userDAO.ensureSellerRole(userId);
+    }
+
+    public boolean ensureBidderRole(int userId) {
+        // Tạo row bidders khi cần để wallet/bidder flow không bị thiếu dữ liệu role.
+        return userDAO.ensureBidderRole(userId);
+    }
+
     public boolean updateUser(User user) {
         try {
             userDAO.updateUser(user);

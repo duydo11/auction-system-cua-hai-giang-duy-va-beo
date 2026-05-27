@@ -133,6 +133,11 @@ public class ServerProtocolHandler {
 
     private Message handleCreateAuction(Object data) throws Exception {
         AuctionSession auction = (AuctionSession) data;
+        if (auction == null || auction.getSeller() == null) {
+            return new Message(MessageType.CREATE_AUCTION_RESPONSE, "Missing seller information");
+        }
+        // UI có thể switch sang Seller chỉ trong memory; server phải đảm bảo DB có row sellers thật.
+        userService.ensureSellerRole(auction.getSeller().getId());
         boolean success = auctionService.createAuction(auction);
 
         if (success) {

@@ -29,7 +29,7 @@ public class AuctionSessionDAO {
     }
 
     public int allocateNextSessionId() {
-        String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM auction_sessions";
+        String sql = "SELECT COALESCE(MAX(CAST(id AS UNSIGNED)), 0) + 1 AS next_id FROM auction_sessions";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
