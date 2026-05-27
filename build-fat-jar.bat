@@ -15,6 +15,20 @@ if errorlevel 1 (
     exit /b 1
 )
 
+for /f "tokens=3" %%v in ('java -version 2^>^&1 ^| findstr /i "version"') do set JAVA_VERSION=%%~v
+echo Detected Java version: %JAVA_VERSION%
+echo %JAVA_VERSION% | findstr /b "21." >nul
+if errorlevel 1 (
+    echo.
+    echo ERROR: This project must be built with JDK 21.
+    echo Current Java version is %JAVA_VERSION%.
+    echo.
+    echo Please install JDK 21 and make sure java -version shows 21.x before running this script.
+    echo If multiple JDKs are installed, update JAVA_HOME and PATH to point to JDK 21.
+    pause
+    exit /b 1
+)
+
 where mvn >nul 2>nul
 if errorlevel 1 (
     echo.
