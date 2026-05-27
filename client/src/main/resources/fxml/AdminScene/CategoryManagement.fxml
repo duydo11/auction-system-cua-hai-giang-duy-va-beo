@@ -101,7 +101,7 @@
                                         </HBox>
                                         <AnchorPane prefHeight="521.0" prefWidth="871.0" style="-fx-border-color: black;">
                                             <children>
-                                                <TableView layoutX="2.0" layoutY="2.0" prefHeight="494.0" prefWidth="824.0" style="-fx-background-color: white; -fx-background-radius: 10;">
+                                                <TableView fx:id="tableView" layoutX="2.0" layoutY="2.0" prefHeight="494.0" prefWidth="824.0" style="-fx-background-color: white; -fx-background-radius: 10;">
                                                     <columns>
                                                         <TableColumn fx:id="colId" prefWidth="99.20001220703125" text="ID" />
                                                         <TableColumn fx:id="colProduct" prefWidth="224.0" text="PRODUCT NAME" />
@@ -112,6 +112,7 @@
                                                 </TableView>
                                             </children>
                                         </AnchorPane>
+                                        <Label fx:id="lblMessage" prefHeight="24.0" prefWidth="824.0" textFill="#666666" />
                                     </children>
                                 </VBox>
                             </children>

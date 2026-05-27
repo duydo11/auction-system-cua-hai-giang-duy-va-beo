@@ -20,6 +20,7 @@ import javafx.scene.layout.FlowPane;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -78,17 +79,29 @@ public class ItemsController implements Initializable {
     private void renderAuctionRows(List<AuctionSession> auctions) {
         containerArt.getChildren().clear();
 
-        if (auctions.isEmpty()) {
+        List<AuctionSession> active = auctions.stream()
+                .filter(this::isBiddableNow)
+                .toList();
+        if (active.isEmpty()) {
             showLoadingMessage("No items available at the moment.");
             return;
         }
 
         Runnable refresh = this::loadAuctionsAsync;
-        for (AuctionSession session : auctions) {
+        for (AuctionSession session : active) {
             containerArt.getChildren().add(
                     AuctionRowFactory.bidRow(session, protocol, refresh)
             );
         }
+    }
+
+    private boolean isBiddableNow(AuctionSession session) {
+        if (session == null || session.getStartTime() == null || session.getEndTime() == null) {
+            return false;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        return now.isAfter(session.getStartTime()) && now.isBefore(session.getEndTime())
+                && session.getStatus() != com.auction.shared.model.auction.AuctionStatus.CANCELED;
     }
 
     private void showLoadingMessage(String message) {

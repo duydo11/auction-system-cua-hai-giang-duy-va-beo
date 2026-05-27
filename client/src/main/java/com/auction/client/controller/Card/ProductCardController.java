@@ -67,24 +67,24 @@ public class ProductCardController {
             return;
         }
 
-        switch (session.getStatus()) {
-            case OPEN -> {
-                lblStatus.setText("COMING");
-                lblStatus.setStyle("-fx-background-color: #e6e64c; -fx-text-fill: #8f8f03; -fx-border-color: #8f8f03; -fx-background-radius: 20; -fx-border-radius: 20 ");
-            }
-            case RUNNING -> {
-                lblStatus.setText("RUNNING");
-                lblStatus.setStyle("-fx-background-color: #388e3c; -fx-text-fill: #115214; -fx-border-color: #115214; -fx-background-radius: 20; -fx-border-radius: 20 ");
-            }
-            case FINISHED -> {
-                lblStatus.setText("ENDED");
-                lblStatus.setStyle("-fx-background-color: #c2185b; -fx-text-fill: #780826; -fx-border-color: #780826; -fx-background-radius: 20; -fx-border-radius: 20 ");
-            }
-            case CANCELED -> {
-                lblStatus.setText("CANCELED");
-                lblStatus.setStyle("-fx-background-color: #757575; -fx-text-fill: #474141; -fx-border-color: #474141; -fx-background-radius: 20; -fx-border-radius: 20 ");
-            }
+        LocalDateTime now = LocalDateTime.now();
+        if (session.getStartTime() != null && now.isBefore(session.getStartTime())) {
+            lblStatus.setText("COMING");
+            lblStatus.setStyle("-fx-background-color: #e6e64c; -fx-text-fill: #8f8f03; -fx-border-color: #8f8f03; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            return;
         }
+        if (session.getEndTime() != null && now.isAfter(session.getEndTime())) {
+            lblStatus.setText("ENDED");
+            lblStatus.setStyle("-fx-background-color: #c2185b; -fx-text-fill: #780826; -fx-border-color: #780826; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            return;
+        }
+        if (session.getStatus() == com.auction.shared.model.auction.AuctionStatus.CANCELED) {
+            lblStatus.setText("CANCELED");
+            lblStatus.setStyle("-fx-background-color: #757575; -fx-text-fill: #474141; -fx-border-color: #474141; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            return;
+        }
+        lblStatus.setText("RUNNING");
+        lblStatus.setStyle("-fx-background-color: #388e3c; -fx-text-fill: #115214; -fx-border-color: #115214; -fx-background-radius: 20; -fx-border-radius: 20 ");
     }
 
     private void updateStartTime() {
