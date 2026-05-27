@@ -1,4 +1,6 @@
 @echo off
+setlocal
+
 echo ========================================
 echo Building Auction System Fat JARs
 echo ========================================
@@ -6,6 +8,13 @@ echo.
 
 echo Checking Java and Maven...
 java -version
+if errorlevel 1 (
+    echo.
+    echo Java was not found. Please install JDK 21 and add it to PATH.
+    pause
+    exit /b 1
+)
+
 where mvn >nul 2>nul
 if errorlevel 1 (
     echo.
@@ -16,6 +25,7 @@ if errorlevel 1 (
 )
 
 call mvn -version
+if errorlevel 1 goto build_failed
 
 echo.
 echo [1/2] Cleaning previous builds...
@@ -24,7 +34,7 @@ if errorlevel 1 goto build_failed
 
 echo.
 echo [2/2] Building fat JARs (this may take a few minutes)...
-call mvn -DskipTests package
+call mvn -Dmaven.test.skip=true package
 if errorlevel 1 goto build_failed
 
 echo.
