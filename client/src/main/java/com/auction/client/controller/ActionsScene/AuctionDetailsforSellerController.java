@@ -32,21 +32,6 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
-/**
- * Controller cho màn chi tiết auction (seller view).
- *
- * <p>Seller thấy dữ liệu auction realtime giống bidder nhưng từ góc nhìn chủ sở hữu:</p>
- * <ul>
- *   <li>Bind thông tin sản phẩm, seller, giá, số bid và trạng thái auction</li>
- *   <li>Render bid history và price history chart</li>
- *   <li>Lắng nghe realtime server pushes để giữ view đồng bộ</li>
- *   <li>Hiển thị cảnh báo anti-sniping/ending-soon</li>
- *   <li>Load result card khi auction kết thúc</li>
- * </ul>
- *
- * <p><strong>Async strategy:</strong> Tất cả thao tác network (load bid history)
- * chạy ở background thread để UI không bị đơ.</p>
- */
 public class AuctionDetailsforSellerController implements Initializable {
 
     @FXML private Label lblItemName;
@@ -107,13 +92,29 @@ public class AuctionDetailsforSellerController implements Initializable {
         }
         if (lblCurrentBids != null) {
             lblCurrentBids.setText(String.valueOf(session.getBids().size()));
+
         }
-        if (lblStatus != null && session.getStatus() != null) {
-            switch (session.getStatus()) {
-                case OPEN -> lblStatus.setText("Coming");
-                case RUNNING -> lblStatus.setText("Live");
-                case FINISHED, PAID -> lblStatus.setText("Ended");
-                case CANCELED -> lblStatus.setText("Canceled");
+    }
+    private void updateStatus() {
+        if (session == null || lblStatus == null) {
+            return;
+        }
+        switch (session.getStatus()) {
+            case OPEN -> {
+                lblStatus.setText("COMING");
+                lblStatus.setStyle("-fx-background-color: #e6e64c; -fx-text-fill: #8f8f03; -fx-border-color: #8f8f03; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case RUNNING -> {
+                lblStatus.setText("RUNNING");
+                lblStatus.setStyle("-fx-background-color: #388e3c; -fx-text-fill: #115214; -fx-border-color: #115214; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case FINISHED -> {
+                lblStatus.setText("ENDED");
+                lblStatus.setStyle("-fx-background-color: #c2185b; -fx-text-fill: #780826; -fx-border-color: #780826; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case CANCELED -> {
+                lblStatus.setText("CANCELED");
+                lblStatus.setStyle("-fx-background-color: #757575; -fx-text-fill: #474141; -fx-border-color: #474141; -fx-background-radius: 20; -fx-border-radius: 20 ");
             }
         }
     }

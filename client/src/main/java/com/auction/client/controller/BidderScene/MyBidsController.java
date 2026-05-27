@@ -80,12 +80,12 @@ public class MyBidsController implements Initializable {
     public void switchTab(ActionEvent event) {
         if (event.getSource() == btnTotalPane) {
             TotalPane.toFront();
-            btnTotalPane.setStyle("-fx-background-color: #3a3386; -fx-text-fill: white; -fx-border-color: white");
-            btnActivePane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color: #3a3386");
+            btnTotalPane.setStyle("-fx-background-color: #3a3386; -fx-text-fill: white; -fx-border-color: white; -fx-background-radius:20; -fx-border-radius: 20 ");
+            btnActivePane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color: #3a3386; -fx-background-radius:20; -fx-border-radius: 20 ");
         } else if (event.getSource() == btnActivePane) {
             ActivePane.toFront();
-            btnActivePane.setStyle("-fx-background-color: #3a3386; -fx-text-fill: white; -fx-border-color: white");
-            btnTotalPane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color: #3a3386");
+            btnActivePane.setStyle("-fx-background-color: #3a3386; -fx-text-fill: white; -fx-border-color: white; -fx-background-radius:20; -fx-border-radius: 20 ");
+            btnTotalPane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color: #3a3386; -fx-background-radius:20; -fx-border-radius: 20 ");
         }
     }
 
@@ -112,62 +112,70 @@ public class MyBidsController implements Initializable {
 
     private BidSnapshot buildBidSnapshot() {
         int myId = SessionContext.getCurrentUser().getId();
-        List<Bid> myBids = new ArrayList<>();
-        List<String> activeBidLabels = new ArrayList<>();
+        List<Bid> myBidsHistory = new ArrayList<>(); // Tất cả lịch sử
+        List<Bid> myActiveBids = new ArrayList<>();  // Các bid trong phiên đang chạy
 
         for (AuctionSession session : protocol.getActiveAuctions()) {
             List<Bid> sessionBids = protocol.getBidHistory(session.getId());
-            boolean hasMyBid = false;
+
+            Bid myLastBidInSession = null;
             for (Bid bid : sessionBids) {
                 if (bid.getBidder() != null && bid.getBidder().getId() == myId) {
-                    myBids.add(bid);
-                    hasMyBid = true;
+                    myBidsHistory.add(bid);
+                    // Lưu lại bid cuối cùng của mình trong session này để hiện ở tab Active
+                    if (myLastBidInSession == null || bid.getTime().isAfter(myLastBidInSession.getTime())) {
+                        myLastBidInSession = bid;
+                    }
                 }
             }
-            if (hasMyBid) {
-                activeBidLabels.add(
-                        "Session #" + session.getId() + " · " +
-                        (session.getItem() != null ? session.getItem().getName() : "Unknown item") +
-                        " · Current price: " + String.format("%.0f VND", session.getCurrentPrice())
-                );
+
+            if (myLastBidInSession != null) {
+                myActiveBids.add(myLastBidInSession);
             }
         }
 
-        myBids.sort(Comparator.comparing(Bid::getTime).reversed());
-        return new BidSnapshot(myBids, activeBidLabels);
+        myBidsHistory.sort(Comparator.comparing(Bid::getTime).reversed());
+        myActiveBids.sort(Comparator.comparing(Bid::getTime).reversed());
+
+        return new BidSnapshot(myBidsHistory, myActiveBids);
     }
 
     private void renderBidSnapshot(BidSnapshot snapshot) {
         containerTotal.getChildren().clear();
         containerActive.getChildren().clear();
 
+        // Render Tab Total History
         if (snapshot.bidHistory().isEmpty()) {
             showEmptyState(containerTotal, "No bid history yet.");
         } else {
             for (Bid bid : snapshot.bidHistory()) {
-                loadHistoryCard(bid);
+                loadHistoryCard(bid, containerTotal); // Thêm tham số container
             }
         }
 
-        if (snapshot.activeBidLabels().isEmpty()) {
+        // Render Tab Active Bids
+        if (snapshot.activeBids().isEmpty()) {
             showEmptyState(containerActive, "You do not have any active auctions with bids.");
         } else {
-            for (String labelText : snapshot.activeBidLabels()) {
-                containerActive.getChildren().add(new Label(labelText));
+            for (Bid bid : snapshot.activeBids()) {
+                loadHistoryCard(bid, containerActive); // Thêm tham số container
             }
         }
     }
 
-    private void loadHistoryCard(Bid bid) {
+    private void loadHistoryCard(Bid bid, VBox container) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/HistoryCard.fxml"));
             Node card = loader.load();
+
             HistoryCardController controller = loader.getController();
             controller.setBid(bid);
-            containerTotal.getChildren().add(card);
+
+            container.getChildren().add(card);
         } catch (IOException e) {
-            Label fallback = new Label("Session #" + bid.getAuctionSession().getId() + " · " + bid.getAmount());
-            containerTotal.getChildren().add(fallback);
+            Label fallback = new Label("Session #" + bid.getAuctionSession().getId() + " · " + String.format("%.0f $", bid.getAmount()));
+            fallback.setStyle("-fx-padding: 10; -fx-background-color: #f4f4f4; -fx-background-radius: 10;");
+            container.getChildren().add(fallback);
         }
     }
 
@@ -182,6 +190,8 @@ public class MyBidsController implements Initializable {
      * Snapshot dữ liệu nhỏ dùng để chuyển kết quả đã tải từ worker thread
      * về lại JavaFX thread trong một object duy nhất.
      */
-    private record BidSnapshot(List<Bid> bidHistory, List<String> activeBidLabels) {
+    // Sửa Record ở cuối file
+    private record BidSnapshot(List<Bid> bidHistory, List<Bid> activeBids) {
+
     }
 }

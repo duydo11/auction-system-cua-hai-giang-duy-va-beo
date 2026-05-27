@@ -70,7 +70,7 @@ public class MyListingController {
     private void renderSellerListings(List<AuctionSession> auctions) {
         containerList.getChildren().clear();
         if (auctions.isEmpty()) {
-            showMessage("Chưa có sản phẩm nào được list.");
+            showMessage("You don't have any product");
             return;
         }
 
@@ -81,15 +81,15 @@ public class MyListingController {
 
     private HBox createSellerHistoryRow(AuctionSession session) {
         String itemName = session.getItem() != null ? session.getItem().getName() : "Unknown product";
-        String buyer = session.getWinner() != null ? session.getWinner().getUsername() : "Chưa bán / chưa có người thắng";
+        String buyer = session.getWinner() != null ? session.getWinner().getUsername() : "No Bidders Yet";
         String start = formatTime(session.getStartTime());
         String end = formatTime(session.getEndTime());
 
         Label name = new Label(itemName);
         name.setStyle("-fx-font-family: 'Montserrat'; -fx-font-size: 15; -fx-font-weight: bold; -fx-text-fill: #2f5f90;");
-        Label buyerLabel = new Label("Người mua: " + buyer);
-        Label price = new Label(String.format("Giá bán: %,.0f $", session.getCurrentPrice()));
-        Label time = new Label("Bắt đầu: " + start + "  •  Kết thúc: " + end);
+        Label buyerLabel = new Label("Bidder: " + buyer);
+        Label price = new Label(String.format("Current price: %,.0f $", session.getCurrentPrice()));
+        Label time = new Label("Start: " + start + "  •  End: " + end);
         Label status = new Label(session.getStatus() != null ? session.getStatus().name() : "OPEN");
         status.setStyle("-fx-background-color: #eaf4ff; -fx-text-fill: #438bcf; -fx-background-radius: 12; -fx-padding: 4 10 4 10;");
 
@@ -100,6 +100,36 @@ public class MyListingController {
         HBox row = new HBox(12, info, spacer, status);
         row.setStyle("-fx-background-color: #ffffff; -fx-border-color: #d7e7f7; -fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 14;");
         row.setPrefWidth(900);
+        row.setOnMouseClicked(event -> {
+            try {
+                // 1. Load file FXML của trang chi tiết người bán
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/ActionsScene/AuctionDetailsforSeller.fxml"));
+                javafx.scene.Parent root = loader.load();
+
+                // 2. Truyền dữ liệu session sang Controller của trang chi tiết
+                com.auction.client.controller.ActionsScene.AuctionDetailsforSellerController controller = loader.getController();
+                controller.setAuctionSession(session);
+
+                // 3. Tạo một cửa sổ mới (Stage) để hiển thị
+                javafx.stage.Stage stage = new javafx.stage.Stage();
+                stage.setTitle("Auction Management: " + (session.getItem() != null ? session.getItem().getName() : "Details"));
+                stage.initModality(javafx.stage.Modality.APPLICATION_MODAL); // Hiện dạng Pop-up ghi đè
+                stage.setScene(new javafx.scene.Scene(root));
+
+                // Dọn dẹp listener khi đóng cửa sổ
+                stage.setOnCloseRequest(e -> controller.cleanup());
+
+                stage.show();
+            } catch (java.io.IOException e) {
+                System.err.println("Error opening Auction Details for Seller: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+
+        // Thêm hiệu ứng đổi màu chuột khi di chuyển qua hàng để người dùng biết có thể ấn được
+        row.setOnMouseEntered(e -> row.setStyle(row.getStyle() + "-fx-background-color: #f0f7ff; -fx-cursor: hand;"));
+        row.setOnMouseExited(e -> row.setStyle(row.getStyle() + "-fx-background-color: #ffffff;"));
+
         return row;
     }
 
