@@ -51,8 +51,8 @@ Theo dõi các thay đổi đang làm để ổn định phần database/network
 
 - [x] Compile sau merge.
 - [x] Nếu compile lỗi, sửa conflict logic/UI còn sót.
-- [ ] Commit merge local.
-- [ ] Push sau khi compile pass.
+- [x] Commit merge local.
+- [x] Push sau khi compile pass.
 
 ## Ghi chú
 
