@@ -196,7 +196,7 @@
                                        <children>
                                           <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="970.0" vbarPolicy="NEVER">
                                              <content>
-                                                <HBox fx:id="containerTopPicks" alignment="CENTER_LEFT" prefHeight="198.0" prefWidth="1100.0" spacing="10.0" />
+                                                <HBox fx:id="containerTopPicks" alignment="CENTER_LEFT" prefHeight="197.0" prefWidth="1100.0" spacing="10.0" />
                                              </content>
                                           </ScrollPane>
                                        </children>

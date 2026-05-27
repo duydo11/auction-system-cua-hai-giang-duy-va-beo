@@ -59,8 +59,8 @@ public class BidderDashboardController implements Initializable {
         
         // Listen for realtime updates
         setupRealtimeListener();
+        loadActiveAuctions();
     }
-    
     /**
      * Load active auctions từ backend.
      */
@@ -73,7 +73,6 @@ public class BidderDashboardController implements Initializable {
                 showDashboardMessage("Chưa có phiên đấu giá nào", "#757575");
                 return;
             }
-            
             // Clear containers
             if (containerTopPicks != null) {
                 containerTopPicks.getChildren().clear();

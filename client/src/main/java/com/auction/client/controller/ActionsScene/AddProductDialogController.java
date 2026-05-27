@@ -4,6 +4,8 @@ import com.auction.client.SessionContext;
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.item.Electronics;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.model.item.ItemFactory;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.User;
 import javafx.collections.FXCollections;
@@ -141,7 +143,7 @@ public class AddProductDialogController implements Initializable {
             // 4. Kiểm tra user có phải Seller hay không
             User u = SessionContext.getCurrentUser();
             if (!(u instanceof Seller seller)) {
-                lblMessage.setText("You are not seller! Hãy chuyển sang tab Seller trước.");
+                lblMessage.setText("You are not seller!");
                 return;
             }
             if (name.isEmpty()) {
@@ -150,12 +152,21 @@ public class AddProductDialogController implements Initializable {
             }
 
             // 5. Tạo phiên đấu giá
-            Electronics item = new Electronics(0, name, desc, seller, 12);
-            if (selectedImageFile != null) {
-                item.setImagePath(selectedImageFile.toURI().toString());
+            String selectedType = cbCategory.getValue();
+            if (selectedType == null) {
+                lblMessage.setText("Vui lòng chọn loại sản phẩm.");
+                return;
+            }
+            Item item = null;
+            try {
+                // Gọi Factory để tạo Object cụ thể (Art, Vehicle, hay Electronics)
+                // Truyền null cho extraParam để Factory dùng giá trị mặc định
+                item = ItemFactory.create(selectedType, 0, name, desc, seller, null);
+            } catch (IllegalArgumentException e) {
+                lblMessage.setText("Lỗi loại sản phẩm: " + e.getMessage());
+                return;
             }
             AuctionSession session = new AuctionSession(0, seller, item, price, start, end);
-
             String err = protocol.createAuctionOrError(session);
             if (err == null) {
                 lblMessage.setStyle("-fx-text-fill: #2e7d32;");

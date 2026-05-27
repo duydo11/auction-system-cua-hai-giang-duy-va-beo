@@ -76,7 +76,7 @@ public class ProductCardController {
      */
     public void updatePrice(double newPrice) {
         if (lblCurrentPrice != null) {
-            lblCurrentPrice.setText(String.format("%.0f VND", newPrice));
+            lblCurrentPrice.setText(String.format("%,.0f $", newPrice));
         }
     }
 
@@ -90,20 +90,20 @@ public class ProductCardController {
 
         switch (session.getStatus()) {
             case OPEN -> {
-                lblStatus.setText("Chưa bắt đầu");
-                lblStatus.setStyle("-fx-background-color: #e3f2fd; -fx-text-fill: #1976d2;");
+                lblStatus.setText("COMING");
+                lblStatus.setStyle("-fx-background-color: #e6e64c; -fx-text-fill: #8f8f03; -fx-border-color: #8f8f03; -fx-background-radius: 20; -fx-border-radius: 20 ");
             }
             case RUNNING -> {
-                lblStatus.setText("Đang đấu giá");
-                lblStatus.setStyle("-fx-background-color: #e8f5e9; -fx-text-fill: #388e3c;");
+                lblStatus.setText("RUNNING");
+                lblStatus.setStyle("-fx-background-color: #388e3c; -fx-text-fill: #115214; -fx-border-color: #115214; -fx-background-radius: 20; -fx-border-radius: 20 ");
             }
             case FINISHED -> {
-                lblStatus.setText("Đã kết thúc");
-                lblStatus.setStyle("-fx-background-color: #fce4ec; -fx-text-fill: #c2185b;");
+                lblStatus.setText("ENDED");
+                lblStatus.setStyle("-fx-background-color: #c2185b; -fx-text-fill: #780826; -fx-border-color: #780826; -fx-background-radius: 20; -fx-border-radius: 20 ");
             }
             case CANCELED -> {
-                lblStatus.setText("Đã hủy");
-                lblStatus.setStyle("-fx-background-color: #f5f5f5; -fx-text-fill: #757575;");
+                lblStatus.setText("CANCELED");
+                lblStatus.setStyle("-fx-background-color: #757575; -fx-text-fill: #474141; -fx-border-color: #474141; -fx-background-radius: 20; -fx-border-radius: 20 ");
             }
         }
     }
@@ -172,7 +172,7 @@ public class ProductCardController {
         long seconds = ChronoUnit.SECONDS.between(now, end);
 
         if (seconds < 0) {
-            lblTimeRemaining.setText("Đã kết thúc");
+            lblTimeRemaining.setText("ENDED");
             lblTimeRemaining.setStyle("-fx-text-fill: #c62828;");
             if (countdownTimer != null) {
                 countdownTimer.stop();

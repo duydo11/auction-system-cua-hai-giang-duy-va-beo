@@ -2,11 +2,16 @@ package com.auction.client.controller.BidderScene;
 
 import com.auction.client.MockData.DataStore;
 import com.auction.client.SessionContext;
+import com.auction.client.controller.Card.ProductCardController;
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.client.ui.AuctionRowFactory;
 import com.auction.client.util.SceneNavigator;
 import com.auction.client.util.UserRoleSwitcher;
 import com.auction.shared.model.auction.AuctionSession;
+import com.auction.shared.model.item.Art;
+import com.auction.shared.model.item.Electronics;
+import com.auction.shared.model.item.Item;
+import com.auction.shared.model.item.Vehicle;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -19,6 +24,7 @@ import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import java.io.IOException;
 import java.net.URL;
@@ -129,28 +135,57 @@ public class ItemsController implements Initializable {
     @FXML
     private FlowPane containerArt;
 
+    @FXML
+    private FlowPane containerElec;
+
+    @FXML
+    private FlowPane containerOther;
+
+    @FXML
+    private FlowPane containerVehicle;
+
     private void reloadAuctionsOrFallback() {
-        containerArt.getChildren().clear();
+        if (containerArt != null) containerArt.getChildren().clear();
+        if (containerVehicle != null) containerVehicle.getChildren().clear();
+        if (containerElec != null) containerElec.getChildren().clear();
+        if (containerOther != null) containerOther.getChildren().clear();
+
+        // 2. Lấy dữ liệu từ server
         List<AuctionSession> auctions = protocol.getActiveAuctions();
-        if (auctions.isEmpty()) {
-            testLoadCards();
-            return;
-        }
-        Runnable refresh = this::reloadAuctionsOrFallback;
+
+        // 3. Phân loại và nạp card vào đúng container
         for (AuctionSession session : auctions) {
-            containerArt.getChildren().add(AuctionRowFactory.bidRow(session, protocol, refresh));
+            Item item = session.getItem();
+            Pane targetContainer = null;
+
+            // Phân loại dựa trên class thực tế của Item (Dùng mẫu Model bạn đã có)
+            if (item instanceof Art) {
+                targetContainer = containerArt;
+            } else if (item instanceof Vehicle) {
+                targetContainer = containerVehicle;
+            } else if (item instanceof Electronics) {
+                targetContainer = containerElec;
+            }
+
+            // Nạp Card vào
+            if (targetContainer != null) {
+                loadProductCard(session, targetContainer);
+            }
         }
     }
-
-    private void testLoadCards() {
+    private void loadProductCard(AuctionSession session, Pane targetContainer) {
         try {
-            for (int i = 0; i < 6; i++) {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/ProductCard.fxml"));
-                Node card = loader.load();
-                containerArt.getChildren().add(card);
-            }
+            // Load file FXML của mẫu Card
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/ProductCard.fxml"));
+            Node card = loader.load();
+
+            // Lấy controller của Card để truyền dữ liệu vào
+            ProductCardController controller = loader.getController();
+            controller.setAuctionSession(session); // Đảm bảo ProductCardController có hàm setData này
+
+            // Thêm card vào UI
+            targetContainer.getChildren().add(card);
         } catch (IOException e) {
-            System.out.println("Lỗi rồi: Không tìm thấy file CardItems.fxml");
             e.printStackTrace();
         }
     }
