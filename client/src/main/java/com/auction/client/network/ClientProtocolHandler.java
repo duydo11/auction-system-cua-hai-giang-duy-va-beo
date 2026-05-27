@@ -23,6 +23,7 @@ public class ClientProtocolHandler {
     private static final Logger logger = Logger.getLogger(ClientProtocolHandler.class.getName());
 
     private final ClientConnection connection;
+    private static final Object RPC_LOCK = new Object();
     private volatile String lastTransportError;
 
     public ClientProtocolHandler() {
@@ -34,26 +35,29 @@ public class ClientProtocolHandler {
     }
 
     private Message send(MessageType type, Object payload) {
-        lastTransportError = null;
-        Message request = new Message(type, payload);
-        Message response = sendOnce(request);
-        if (response != null) {
+        synchronized (RPC_LOCK) {
+            // Nhiều controller dùng chung singleton socket; serialize RPC để request này không đóng socket của request khác.
+            lastTransportError = null;
+            Message request = new Message(type, payload);
+            Message response = sendOnce(request);
+            if (response != null) {
+                return response;
+            }
+
+            // Retry một lần sau khi reconnect để xử lý socket cũ bị server/client đóng.
+            connection.disconnect();
+            if (!connection.connect()) {
+                lastTransportError = "Cannot connect to server " + connection.getHost() + ":" + connection.getPort();
+                logger.warning("✗ " + lastTransportError);
+                return null;
+            }
+            response = sendOnce(request);
+            if (response == null) {
+                lastTransportError = "Connection lost or timed out while sending " + type;
+                logger.warning("✗ " + lastTransportError);
+            }
             return response;
         }
-
-        // Retry once after reconnect to avoid transient socket drop breaking the UI flow.
-        connection.disconnect();
-        if (!connection.connect()) {
-            lastTransportError = "Không thể kết nối server " + connection.getHost() + ":" + connection.getPort();
-            logger.warning("✗ " + lastTransportError);
-            return null;
-        }
-        response = sendOnce(request);
-        if (response == null) {
-            lastTransportError = "Mất kết nối hoặc timeout khi gửi " + type;
-            logger.warning("✗ " + lastTransportError);
-        }
-        return response;
     }
 
     private Message sendOnce(Message request) {

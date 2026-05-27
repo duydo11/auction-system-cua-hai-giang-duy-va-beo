@@ -207,6 +207,6 @@ public class SocketClient {
     }
 
     public boolean isConnected() {
-        return isConnected;
+        return isConnected && socket != null && socket.isConnected() && !socket.isClosed();
     }
 }
