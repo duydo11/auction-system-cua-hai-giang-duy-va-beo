@@ -15,7 +15,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-mvn -version
+call mvn -version
 
 echo.
 echo [1/2] Cleaning previous builds...
