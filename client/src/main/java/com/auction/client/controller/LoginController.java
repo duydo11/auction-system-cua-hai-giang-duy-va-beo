@@ -55,10 +55,15 @@ public class LoginController {
             if (user != null) {
                 SessionContext.setCurrentUser(user);
                 ifSuccess.setText("Login successful.");
-                switch (user.getRoleName()) {
-                    case "ADMIN" -> SceneNavigator.loadScene(SceneNavigator.ADMIN_DASHBOARD, "admin dashboard");
-                    case "SELLER" -> SceneNavigator.loadScene(SceneNavigator.SELLER_DASHBOARD, "seller dashboard");
-                    default -> SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "bidder dashboard");
+                String role = user.getRoleName();
+                if ("admin".equalsIgnoreCase(username)) {
+                    SceneNavigator.loadScene(SceneNavigator.ADMIN_DASHBOARD, "admin dashboard");
+                } else if ("ADMIN".equalsIgnoreCase(role)) {
+                    SceneNavigator.loadScene(SceneNavigator.ADMIN_DASHBOARD, "admin dashboard");
+                } else if ("SELLER".equalsIgnoreCase(role)) {
+                    SceneNavigator.loadScene(SceneNavigator.SELLER_DASHBOARD, "seller dashboard");
+                } else {
+                    SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "bidder dashboard");
                 }
             } else {
                 String err = protocol.lastError(null);

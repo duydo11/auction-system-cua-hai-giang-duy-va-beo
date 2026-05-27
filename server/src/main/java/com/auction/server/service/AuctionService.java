@@ -17,6 +17,10 @@ public class AuctionService {
         return auctionSessionDAO.findAllActiveSessions();
     }
 
+    public List<AuctionSession> getAllAuctions() {
+        return auctionSessionDAO.findAllSessions();
+    }
+
     public AuctionSession getSessionById(int sessionId) {
         return auctionSessionDAO.getSessionById(sessionId);
     }

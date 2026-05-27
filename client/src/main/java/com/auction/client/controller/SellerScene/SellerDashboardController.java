@@ -58,8 +58,7 @@ public class SellerDashboardController implements Initializable {
         }
 
         if (AuctionCache.isStale()) {
-            // getActiveAuctions() có thể phải chờ server/DB, nên không chạy trên UI thread.
-            FxAsync.run("seller-dashboard-load", protocol::getActiveAuctions,
+            FxAsync.run("seller-dashboard-load", protocol::getAllAuctions,
                     auctions -> {
                         AuctionCache.update(auctions);
                         renderSellerAuctions(filterSellerAuctions(auctions, current));
@@ -75,7 +74,7 @@ public class SellerDashboardController implements Initializable {
     private void renderSellerAuctions(List<AuctionSession> auctions) {
         clearContainers();
         if (auctions.isEmpty()) {
-            showMessage("You do not have any active listings yet.");
+            showMessage("Bạn chưa tạo sản phẩm nào.");
             return;
         }
 

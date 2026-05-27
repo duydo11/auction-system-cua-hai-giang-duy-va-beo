@@ -47,6 +47,7 @@ public class ServerProtocolHandler {
 
                 // Auction
                 case VIEW_AUCTIONS_REQUEST -> handleViewAuctions();
+                case GET_ALL_AUCTIONS_REQUEST -> handleGetAllAuctions();
                 case CREATE_AUCTION_REQUEST -> handleCreateAuction(message.getData());
 
                 // Bidding
@@ -123,6 +124,11 @@ public class ServerProtocolHandler {
     private Message handleViewAuctions() throws Exception {
         List<AuctionSession> auctions = auctionService.getActiveAuctions();
         return new Message(MessageType.VIEW_AUCTIONS_RESPONSE, auctions);
+    }
+
+    private Message handleGetAllAuctions() throws Exception {
+        List<AuctionSession> auctions = auctionService.getAllAuctions();
+        return new Message(MessageType.GET_ALL_AUCTIONS_RESPONSE, auctions);
     }
 
     private Message handleCreateAuction(Object data) throws Exception {

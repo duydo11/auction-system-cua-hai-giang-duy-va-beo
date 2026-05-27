@@ -165,16 +165,16 @@ public class AddProductDialogController implements Initializable {
             lblMessage.setText("Creating auction...");
 
             FxAsync.run("create-auction",
-                    () -> protocol.createAuctionOrError(session),
-                    err -> {
-                        if (err == null) {
-                            AuctionCache.invalidate();
+                    () -> protocol.createAuctionLocalFallback(session),
+                    ok -> {
+                        if (ok) {
+                            AuctionCache.addOrReplace(session);
                             lblMessage.setStyle("-fx-text-fill: #2e7d32;");
                             lblMessage.setText("Auction created successfully.");
                             lblMessage.getScene().getWindow().hide();
                         } else {
                             lblMessage.setStyle("-fx-text-fill: #c62828;");
-                            lblMessage.setText(err);
+                            lblMessage.setText("Could not create auction.");
                         }
 
                         if (btnConfirm != null) {

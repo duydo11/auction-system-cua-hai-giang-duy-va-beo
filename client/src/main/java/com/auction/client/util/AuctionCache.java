@@ -2,6 +2,7 @@ package com.auction.client.util;
 
 import com.auction.shared.model.auction.AuctionSession;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -78,5 +79,19 @@ public final class AuctionCache {
     public static void invalidate() {
         cached = null;
         fetchedAtMs = 0L;
+    }
+
+    public static synchronized void addOrReplace(AuctionSession auction) {
+        if (auction == null) {
+            return;
+        }
+        List<AuctionSession> next = new ArrayList<>(get());
+        if (auction.getId() <= 0) {
+            int maxId = next.stream().mapToInt(AuctionSession::getId).max().orElse(0);
+            auction.setId(maxId + 1);
+        }
+        next.removeIf(existing -> existing.getId() == auction.getId());
+        next.add(0, auction);
+        update(next);
     }
 }

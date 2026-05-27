@@ -96,6 +96,24 @@ public class AuctionSessionDAO {
         return list;
     }
 
+    public List<AuctionSession> findAllSessions() {
+        List<AuctionSession> list = new ArrayList<>();
+        String sql = "SELECT id FROM auction_sessions ORDER BY start_time DESC, id DESC";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                AuctionSession session = getSessionById(rs.getInt("id"));
+                if (session != null) {
+                    list.add(session);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
     // Lay thong tin cua phien dau gia
     public AuctionSession getSessionById(int id) {
         String sql = "SELECT * FROM auction_sessions WHERE id = ?";

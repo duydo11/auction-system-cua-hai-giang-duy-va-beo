@@ -1,5 +1,6 @@
 package com.auction.client.network;
 
+import com.auction.client.util.AuctionCache;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.AutoBidConfig;
 import com.auction.shared.model.auction.Bid;
@@ -115,9 +116,34 @@ public class ClientProtocolHandler {
         return Collections.emptyList();
     }
 
+    @SuppressWarnings("unchecked")
+    public List<AuctionSession> getAllAuctions() {
+        Message response = send(MessageType.GET_ALL_AUCTIONS_REQUEST, null);
+        if (response == null || !response.isSuccess()) {
+            return AuctionCache.get();
+        }
+        Object data = response.getData();
+        if (data instanceof List<?> list && list.isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (data instanceof List<?> list && list.get(0) instanceof AuctionSession) {
+            return (List<AuctionSession>) data;
+        }
+        return Collections.emptyList();
+    }
+
     public boolean createAuction(AuctionSession auction) {
         Message response = send(MessageType.CREATE_AUCTION_REQUEST, auction);
         return response != null && response.isSuccess();
+    }
+
+    public boolean createAuctionLocalFallback(AuctionSession auction) {
+        Message response = send(MessageType.CREATE_AUCTION_REQUEST, auction);
+        if (response != null && response.isSuccess()) {
+            return true;
+        }
+        AuctionCache.addOrReplace(auction);
+        return true;
     }
 
     /** @return {@code null} nếu tạo phiên thành công */
