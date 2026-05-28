@@ -185,6 +185,7 @@ public class AuctionDetailsforSellerController implements Initializable {
         FxAsync.run("seller-bid-history-" + session.getId(),
                 () -> protocol.getBidHistory(session.getId()),
                 bids -> {
+                    updateBidCount(bids);
                     renderBidHistoryChart(bids);
                     renderBidHistoryCards(bids);
                 },
@@ -206,6 +207,12 @@ public class AuctionDetailsforSellerController implements Initializable {
     private void clearLoadingState() {
         if (containerBidHistory != null) {
             containerBidHistory.getChildren().clear();
+        }
+    }
+
+    private void updateBidCount(List<Bid> bids) {
+        if (lblCurrentBids != null) {
+            lblCurrentBids.setText(String.valueOf(bids == null ? 0 : bids.size()));
         }
     }
 
