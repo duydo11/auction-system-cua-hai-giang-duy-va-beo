@@ -115,7 +115,7 @@ public class AuctionDetailsforBidderController implements Initializable {
                 },
                 error -> { Không có config hoặc lỗi, giữ nguyên mặc định }); */
     @FXML
-    public void handleCfAutoBid(ActionEvent event) {
+    public void handleCfAutoBid(MouseEvent event) {
         User currentUser = SessionContext.getCurrentUser();
         if (currentUser == null || session == null) {
             showAlert("Error", "Please login to use Auto-bid.");
@@ -287,18 +287,18 @@ public class AuctionDetailsforBidderController implements Initializable {
             XYChart.Series<String, Number> series = new XYChart.Series<>();
             series.setName("Price History");
 
-            // Thêm giá khởi điểm làm baseline
-            series.getData().add(new XYChart.Data<>("Start", session.getStartingPrice()));
+            List<Bid> chartBids = bids.stream()
+                    .filter(bid -> bid.getTime() != null)
+                    .sorted((b1, b2) -> b1.getTime().compareTo(b2.getTime()))
+                    .toList();
 
-            // Format thời gian hoặc index tuần tự
-            for (int i = 0; i < bids.size(); i++) {
-                Bid bid = bids.get(i);
-                String label;
-                if (bid.getTime() != null) {
-                    label = bid.getTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-                } else {
-                    label = "Bid #" + (i + 1);
-                }
+            // Thêm giá khởi điểm làm baseline; prefix số thứ tự để CategoryAxis không bị trùng label.
+            series.getData().add(new XYChart.Data<>("00 Start", session.getStartingPrice()));
+
+            for (int i = 0; i < chartBids.size(); i++) {
+                Bid bid = chartBids.get(i);
+                String label = String.format("%02d %s", i + 1,
+                        bid.getTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
                 series.getData().add(new XYChart.Data<>(label, bid.getAmount()));
             }
 
@@ -319,8 +319,13 @@ public class AuctionDetailsforBidderController implements Initializable {
 
         containerBidHistory.getChildren().clear();
         try {
-            // Sắp xếp bid mới nhất lên đầu
-            bids.sort((b1, b2) -> b2.getTime().compareTo(b1.getTime()));
+            // Sắp xếp bid mới nhất lên đầu; null time được đưa xuống cuối để tránh crash.
+            bids.sort((b1, b2) -> {
+                if (b1.getTime() == null && b2.getTime() == null) return 0;
+                if (b1.getTime() == null) return 1;
+                if (b2.getTime() == null) return -1;
+                return b2.getTime().compareTo(b1.getTime());
+            });
 
             for (Bid bid : bids) {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/BidderHistoryCard.fxml"));

@@ -77,16 +77,20 @@ public class AuctionDetailsforSellerController implements Initializable {
         loadAuctionResult();
         startCountdownTimer();
         setupRealtimeListener();
-        FxAsync.run("refresh-session",
-                () -> protocol.getAuctionDetail(session.getId()), // Bạn nên có hàm lấy chi tiết 1 session
+        FxAsync.run("refresh-session-" + session.getId(),
+                () -> protocol.getAuctionDetail(session.getId()),
                 latestSession -> {
-                    this.session = (latestSession != null) ? (AuctionSession) latestSession : session;
+                    this.session = latestSession != null ? latestSession : session;
                     this.lastKnownEndTime = this.session.getEndTime();
+                    bindBasicInfo();
+                    loadBidHistoryAsync();
+                    loadAuctionResult();
                 },
                 error -> {
-                    // Nếu lỗi mạng, dùng tạm session cũ
+                    // Nếu lỗi mạng, dùng tạm session cũ.
                     this.session = session;
                     bindBasicInfo();
+                    loadAuctionResult();
                 });
     }
 
@@ -217,16 +221,17 @@ public class AuctionDetailsforSellerController implements Initializable {
             XYChart.Series<String, Number> series = new XYChart.Series<>();
             series.setName("Price History");
 
-            series.getData().add(new XYChart.Data<>("Start", session.getStartingPrice()));
+            List<Bid> chartBids = bids.stream()
+                    .filter(bid -> bid.getTime() != null)
+                    .sorted((b1, b2) -> b1.getTime().compareTo(b2.getTime()))
+                    .toList();
 
-            for (int i = 0; i < bids.size(); i++) {
-                Bid bid = bids.get(i);
-                String label;
-                if (bid.getTime() != null) {
-                    label = bid.getTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-                } else {
-                    label = "Bid #" + (i + 1);
-                }
+            series.getData().add(new XYChart.Data<>("00 Start", session.getStartingPrice()));
+
+            for (int i = 0; i < chartBids.size(); i++) {
+                Bid bid = chartBids.get(i);
+                String label = String.format("%02d %s", i + 1,
+                        bid.getTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
                 series.getData().add(new XYChart.Data<>(label, bid.getAmount()));
             }
 
@@ -247,7 +252,12 @@ public class AuctionDetailsforSellerController implements Initializable {
 
         containerBidHistory.getChildren().clear();
         try {
-            bids.sort((b1, b2) -> b2.getTime().compareTo(b1.getTime()));
+            bids.sort((b1, b2) -> {
+                if (b1.getTime() == null && b2.getTime() == null) return 0;
+                if (b1.getTime() == null) return 1;
+                if (b2.getTime() == null) return -1;
+                return b2.getTime().compareTo(b1.getTime());
+            });
 
             for (Bid bid : bids) {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/BidderHistoryCard.fxml"));

@@ -7,6 +7,7 @@ import com.auction.server.network.ClientBroadcastHub;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.AutoBidConfig;
 import com.auction.shared.model.auction.Bid;
+import com.auction.shared.model.user.User;
 import com.auction.shared.protocol.Message;
 import com.auction.shared.protocol.MessageType;
 
@@ -130,10 +131,18 @@ public class AutoBidService {
 
             // Check if we can outbid
             if (nextBid > currentPrice && nextBid <= config.getMaxBid()) {
+                User autoBidder = userDAO.getUserById(config.getBidderId());
+                if (!(autoBidder instanceof com.auction.shared.model.user.Bidder bidderAccount)
+                        || bidderAccount.getAccountBalance() < nextBid) {
+                    // Nếu tài khoản không đủ số dư thì giữ config, nhưng không đặt bid vượt tiền hiện có.
+                    toRequeue.add(config);
+                    continue;
+                }
+
                 // Place auto-bid
                 Bid autoBid = new Bid(
                         bidDAO.allocateNextBidId(),
-                        userDAO.getUserById(config.getBidderId()),
+                        autoBidder,
                         session,
                         nextBid
                 );

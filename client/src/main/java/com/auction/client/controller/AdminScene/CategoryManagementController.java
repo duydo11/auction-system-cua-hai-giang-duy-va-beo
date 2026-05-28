@@ -16,6 +16,7 @@ import javafx.scene.input.MouseEvent;
 import java.net.URL;
 import java.time.format.DateTimeFormatter;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
 
 public class CategoryManagementController implements Initializable {
     @FXML private TableView<AuctionSession> tableView;
@@ -31,11 +32,14 @@ public class CategoryManagementController implements Initializable {
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("dd/MM HH:mm");
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
+    private Consumer<AuctionSession> realtimeListener;
+    private javafx.animation.Timeline refreshTimer;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setupColumns();
         loadAuctionsAsync();
+        setupRealtimeRefresh();
     }
 
     private void setupColumns() {
@@ -114,6 +118,28 @@ public class CategoryManagementController implements Initializable {
                         btnRefresh.setDisable(false);
                     }
                 });
+    }
+
+    private void setupRealtimeRefresh() {
+        if (realtimeListener == null) {
+            realtimeListener = ignored -> loadAuctionsAsync();
+            com.auction.client.RealtimeAuctionBus.addAuctionListener(realtimeListener);
+        }
+        refreshTimer = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.seconds(5), event -> loadAuctionsAsync())
+        );
+        refreshTimer.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        refreshTimer.play();
+    }
+
+    public void cleanup() {
+        if (refreshTimer != null) {
+            refreshTimer.stop();
+        }
+        if (realtimeListener != null) {
+            com.auction.client.RealtimeAuctionBus.removeAuctionListener(realtimeListener);
+            realtimeListener = null;
+        }
     }
 
     private void handleDeleteAuction(AuctionSession session) {
