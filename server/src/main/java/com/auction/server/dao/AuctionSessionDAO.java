@@ -80,7 +80,7 @@ public class AuctionSessionDAO {
     public List<AuctionSession> findAllActiveSessions() {
         LocalDateTime now = LocalDateTime.now();
         String sql = baseSummarySql() +
-                " WHERE s.start_time < ? AND s.end_time > ? AND s.status IN ('OPEN', 'RUNNING')" +
+                " WHERE s.start_time < ? AND s.end_time > ? AND s.status NOT IN ('FINISHED', 'PAID', 'CANCELED')" +
                 " ORDER BY s.end_time ASC, s.id DESC";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {

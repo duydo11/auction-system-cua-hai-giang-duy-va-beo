@@ -14,15 +14,20 @@ public class AuctionService {
     private final ItemDAO itemDAO = new ItemDAO();
 
     public List<AuctionSession> getActiveAuctions() {
-        return auctionSessionDAO.findAllActiveSessions();
+        return auctionSessionDAO.findAllActiveSessions().stream()
+                .map(this::normalizeStatus)
+                .filter(AuctionSession::isActive)
+                .toList();
     }
 
     public List<AuctionSession> getAllAuctions() {
-        return auctionSessionDAO.findAllSessions();
+        return auctionSessionDAO.findAllSessions().stream()
+                .map(this::normalizeStatus)
+                .toList();
     }
 
     public AuctionSession getSessionById(int sessionId) {
-        return auctionSessionDAO.getSessionById(sessionId);
+        return normalizeStatus(auctionSessionDAO.getSessionById(sessionId));
     }
 
     /**
@@ -133,6 +138,32 @@ public class AuctionService {
             return false;
         }
     }
+    private AuctionSession normalizeStatus(AuctionSession session) {
+        if (session == null || session.getStartTime() == null || session.getEndTime() == null) {
+            return session;
+        }
+        AuctionStatus current = session.getStatus();
+        if (current == AuctionStatus.CANCELED || current == AuctionStatus.PAID) {
+            return session;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        AuctionStatus normalized;
+        if (now.isBefore(session.getStartTime())) {
+            normalized = AuctionStatus.OPEN;
+        } else if (now.isBefore(session.getEndTime())) {
+            normalized = AuctionStatus.RUNNING;
+        } else {
+            normalized = session.getWinner() != null ? AuctionStatus.PAID : AuctionStatus.FINISHED;
+        }
+
+        if (current != normalized) {
+            session.setStatus(normalized);
+            auctionSessionDAO.updateSession(session);
+        }
+        return session;
+    }
+
     public boolean cancelAuction(int sessionId) {
         try {
             AuctionSession session = auctionSessionDAO.getSessionById(sessionId);

@@ -112,8 +112,11 @@ public class BidderDashboardController implements Initializable {
             return false;
         }
         LocalDateTime now = LocalDateTime.now();
-        return now.isAfter(session.getStartTime()) && now.isBefore(session.getEndTime())
-                && session.getStatus() != com.auction.shared.model.auction.AuctionStatus.CANCELED;
+        com.auction.shared.model.auction.AuctionStatus status = session.getStatus();
+        return !now.isBefore(session.getStartTime()) && now.isBefore(session.getEndTime())
+                && status != com.auction.shared.model.auction.AuctionStatus.CANCELED
+                && status != com.auction.shared.model.auction.AuctionStatus.FINISHED
+                && status != com.auction.shared.model.auction.AuctionStatus.PAID;
     }
 
     private void clearContainers() {

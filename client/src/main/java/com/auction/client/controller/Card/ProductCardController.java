@@ -77,23 +77,22 @@ public class ProductCardController {
         if (session == null || lblStatus == null) {
             return;
         }
-        switch (session.getStatus()) {
-            case OPEN -> {
-                lblStatus.setText("COMING");
-                lblStatus.setStyle("-fx-background-color: #e6e64c; -fx-text-fill: #8f8f03; -fx-border-color: #8f8f03; -fx-background-radius: 20; -fx-border-radius: 20 ");
-            }
-            case RUNNING -> {
-                lblStatus.setText("RUNNING");
-                lblStatus.setStyle("-fx-background-color: #388e3c; -fx-text-fill: #115214; -fx-border-color: #115214; -fx-background-radius: 20; -fx-border-radius: 20 ");
-            }
-            case FINISHED -> {
-                lblStatus.setText("ENDED");
-                lblStatus.setStyle("-fx-background-color: #c2185b; -fx-text-fill: #780826; -fx-border-color: #780826; -fx-background-radius: 20; -fx-border-radius: 20 ");
-            }
-            case CANCELED -> {
-                lblStatus.setText("CANCELED");
-                lblStatus.setStyle("-fx-background-color: #757575; -fx-text-fill: #474141; -fx-border-color: #474141; -fx-background-radius: 20; -fx-border-radius: 20 ");
-            }
+        com.auction.shared.model.auction.AuctionStatus status = session.getStatus();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        if (status == com.auction.shared.model.auction.AuctionStatus.CANCELED) {
+            lblStatus.setText("CANCELED");
+            lblStatus.setStyle("-fx-background-color: #757575; -fx-text-fill: #474141; -fx-border-color: #474141; -fx-background-radius: 20; -fx-border-radius: 20 ");
+        } else if (status == com.auction.shared.model.auction.AuctionStatus.FINISHED
+                || status == com.auction.shared.model.auction.AuctionStatus.PAID
+                || now.isAfter(session.getEndTime())) {
+            lblStatus.setText("ENDED");
+            lblStatus.setStyle("-fx-background-color: #c2185b; -fx-text-fill: #780826; -fx-border-color: #780826; -fx-background-radius: 20; -fx-border-radius: 20 ");
+        } else if (now.isBefore(session.getStartTime())) {
+            lblStatus.setText("COMING");
+            lblStatus.setStyle("-fx-background-color: #e6e64c; -fx-text-fill: #8f8f03; -fx-border-color: #8f8f03; -fx-background-radius: 20; -fx-border-radius: 20 ");
+        } else {
+            lblStatus.setText("RUNNING");
+            lblStatus.setStyle("-fx-background-color: #388e3c; -fx-text-fill: #115214; -fx-border-color: #115214; -fx-background-radius: 20; -fx-border-radius: 20 ");
         }
     }
 
@@ -141,25 +140,34 @@ public class ProductCardController {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime end = session.getEndTime();
-
-        long seconds = ChronoUnit.SECONDS.between(now, end);
-
-        if (seconds < 0) {
+        if (session.getStatus() == com.auction.shared.model.auction.AuctionStatus.CANCELED) {
+            lblTimeRemaining.setText("CANCELED");
+            lblTimeRemaining.setStyle("-fx-text-fill: #757575;");
+            if (countdownTimer != null) countdownTimer.stop();
+            return;
+        }
+        if (session.getStatus() == com.auction.shared.model.auction.AuctionStatus.FINISHED
+                || session.getStatus() == com.auction.shared.model.auction.AuctionStatus.PAID
+                || now.isAfter(session.getEndTime())) {
             lblTimeRemaining.setText("ENDED");
             lblTimeRemaining.setStyle("-fx-text-fill: #c62828;");
-            if (countdownTimer != null) {
-                countdownTimer.stop();
-            }
-        } else if (seconds < 300) {
+            if (countdownTimer != null) countdownTimer.stop();
+            return;
+        }
+
+        LocalDateTime target = now.isBefore(session.getStartTime()) ? session.getStartTime() : session.getEndTime();
+        long seconds = ChronoUnit.SECONDS.between(now, target);
+        String prefix = now.isBefore(session.getStartTime()) ? "Starts in " : "";
+
+        if (seconds < 300) {
             long mins = seconds / 60;
             long secs = seconds % 60;
-            lblTimeRemaining.setText(String.format("Ending soon %d:%02d", mins, secs));
+            lblTimeRemaining.setText(String.format("%s%d:%02d", prefix, mins, secs));
             lblTimeRemaining.setStyle("-fx-text-fill: #c62828; -fx-font-weight: bold;");
         } else {
             long hours = seconds / 3600;
             long mins = (seconds % 3600) / 60;
-            lblTimeRemaining.setText(String.format("%dh %dm", hours, mins));
+            lblTimeRemaining.setText(String.format("%s%dh %dm", prefix, hours, mins));
             lblTimeRemaining.setStyle("-fx-text-fill: #424242;");
         }
     }
