@@ -9,9 +9,15 @@ import com.auction.shared.model.user.User;
 import com.auction.shared.model.user.Transaction;
 import com.auction.shared.protocol.Message;
 import com.auction.shared.protocol.MessageType;
+import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.XYChart;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -404,5 +410,28 @@ public class ClientProtocolHandler {
 
     public String getLastTransportError() {
         return lastTransportError;
+    }
+    // Thêm vào trong class ClientProtocolHandler
+    private boolean sendRequest(String command, Object data) {
+        try {
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean cancelAuction(int sessionId) {
+        return sendRequest("CANCEL_AUCTION", sessionId);
+    }
+
+    public AuctionSession getAuctionDetail(int id) {
+        Object response = sendRequest("GET_AUCTION_DETAIL", id);
+
+        if (response instanceof AuctionSession) {
+            return (AuctionSession) response;
+        }
+
+        return null;
     }
 }

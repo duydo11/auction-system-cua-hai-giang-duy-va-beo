@@ -18,7 +18,11 @@ import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -48,6 +52,7 @@ public class AuctionDetailsforSellerController implements Initializable {
     @FXML private HBox containerResult;
     @FXML private Label lblStatus;
     @FXML private Label lblWarning;
+    @FXML private ImageView imgProduct;
 
     private AuctionSession session;
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
@@ -68,10 +73,21 @@ public class AuctionDetailsforSellerController implements Initializable {
         
         // Load bid history async để không block UI khi mở dialog
         loadBidHistoryAsync();
-        
+        updateProductImage();
         loadAuctionResult();
         startCountdownTimer();
         setupRealtimeListener();
+        FxAsync.run("refresh-session",
+                () -> protocol.getAuctionDetail(session.getId()), // Bạn nên có hàm lấy chi tiết 1 session
+                latestSession -> {
+                    this.session = (latestSession != null) ? (AuctionSession) latestSession : session;
+                    this.lastKnownEndTime = this.session.getEndTime();
+                },
+                error -> {
+                    // Nếu lỗi mạng, dùng tạm session cũ
+                    this.session = session;
+                    bindBasicInfo();
+                });
     }
 
     private void bindBasicInfo() {
@@ -92,8 +108,8 @@ public class AuctionDetailsforSellerController implements Initializable {
         }
         if (lblCurrentBids != null) {
             lblCurrentBids.setText(String.valueOf(session.getBids().size()));
-
         }
+        updateStatus();
     }
     private void updateStatus() {
         if (session == null || lblStatus == null) {
@@ -114,8 +130,41 @@ public class AuctionDetailsforSellerController implements Initializable {
             }
             case CANCELED -> {
                 lblStatus.setText("CANCELED");
+                if (btnCancelAuction != null) btnCancelAuction.setVisible(false);
                 lblStatus.setStyle("-fx-background-color: #757575; -fx-text-fill: #474141; -fx-border-color: #474141; -fx-background-radius: 20; -fx-border-radius: 20 ");
             }
+
+        }
+        if (session == null || lblStatus == null) return;
+
+        // ... (Giữ nguyên phần code Switch case đổi màu Label của bạn) ...
+
+        // Xử lý nút Cancel
+        if (btnCancelAuction != null) {
+            // Chỉ hiển thị nút Cancel nếu trạng thái là OPEN
+            if (session.getStatus() == AuctionStatus.OPEN) {
+                btnCancelAuction.setVisible(true);
+                btnCancelAuction.setDisable(false);
+            } else {
+                // Nếu là RUNNING, FINISHED, CANCELED thì ẩn đi hoặc disable
+                btnCancelAuction.setVisible(false);
+            }
+        }
+    }
+
+    //Update image
+    private void updateProductImage() {
+        if (imgProduct == null || session == null || session.getItem() == null) {
+            return;
+        }
+        String imagePath = session.getItem().getImagePath();
+        if (imagePath == null || imagePath.isBlank()) {
+            return;
+        }
+        try {
+            imgProduct.setImage(new Image(imagePath, 648, 380, true, true, true));
+        } catch (RuntimeException e) {
+            System.err.println("Cannot load product image: " + imagePath);
         }
     }
 
@@ -337,4 +386,21 @@ public class AuctionDetailsforSellerController implements Initializable {
             realtimeListener = null;
         }
     }
+    @FXML
+    private HBox btnCancelAuction;
+    @FXML
+    private Label lblAlert;
+    @FXML
+    private void handleCancelAuction() {
+        boolean success = protocol.cancelAuction(session.getId());
+        if (success) {
+            lblAlert.setText("Auction has been canceled successfully");
+            session.setStatus(AuctionStatus.CANCELED);
+            updateStatus(); // Cập nhật lại màu sắc label trạng thái
+        } else {
+            lblAlert.setText("Could not cancel the auction. Please try again.");
+        }
+    }
+
+
 }

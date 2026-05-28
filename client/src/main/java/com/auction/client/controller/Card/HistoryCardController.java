@@ -94,7 +94,7 @@ public class HistoryCardController {
             return;
         }
         try {
-            imgProduct.setImage(new Image(imagePath, 220, 140, true, true, true));
+            imgProduct.setImage(new Image(imagePath, 207, 150, true, true, true));
         } catch (RuntimeException e) {
             System.err.println("Cannot load history image: " + imagePath);
         }

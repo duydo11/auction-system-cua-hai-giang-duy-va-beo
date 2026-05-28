@@ -24,6 +24,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -75,6 +77,8 @@ public class AuctionDetailsforBidderController implements Initializable {
     @FXML private LineChart<String, Number> lcPriceHistory;
     @FXML private VBox containerBidHistory;
     @FXML private Label lblWarning;
+    @FXML private ImageView imgProduct;
+
 
     private AuctionSession session;
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
@@ -92,6 +96,63 @@ public class AuctionDetailsforBidderController implements Initializable {
         loadBidHistoryAsync();
     }
 
+    /* Kiểm tra trạng thái autobid
+    private void loadExistingAutoBidConfig() {
+        User currentUser = SessionContext.getCurrentUser();
+        if (currentUser == null || session == null) return;
+
+        // Chạy async để lấy config cũ nếu có
+        FxAsync.run("get-autobid-" + session.getId(),
+                () -> protocol.getAutoBidConfig(session.getId(), currentUser.getId()),
+                config -> {
+                    if (config != null) {
+                        // Nếu có config, hiển thị lên UI
+                        chboxAutobid.setSelected(true);
+                        paneAutobid.setDisable(false);
+                        txtMaxBidAmount.setText(String.valueOf(config.getMaxAmount()));
+                        txtIncrementAmount.setText(String.valueOf(config.getIncrement()));
+                    }
+                },
+                error -> { Không có config hoặc lỗi, giữ nguyên mặc định }); */
+    @FXML
+    public void handleCfAutoBid(ActionEvent event) {
+        User currentUser = SessionContext.getCurrentUser();
+        if (currentUser == null || session == null) {
+            showAlert("Error", "Please login to use Auto-bid.");
+            return;
+        }
+        try {
+            double maxAmount = Double.parseDouble(txtMaxBidAmount.getText().trim());
+            double increment = Double.parseDouble(txtIncrementAmount.getText().trim());
+            // Validate dữ liệu
+            if (increment <= 0) {
+                showAlert("Warning", "Increment must be greater than 0.");
+                return;
+            }
+            if (maxAmount <= session.getCurrentPrice()) {
+                showAlert("Warning", "Max Bid must be higher than current price.");
+                return;
+            }
+
+            AutoBidConfig config = new AutoBidConfig(0, currentUser.getId(), session.getId(), maxAmount, increment);
+            // Gọi Async để lưu cấu hình
+            FxAsync.run("save-autobid",
+                    () -> protocol.registerAutoBid(config),
+                    success -> {
+                        if (Boolean.TRUE.equals(success)) {
+                            showAlert("Success", "Auto-bid configuration saved and activated!");
+                        } else {
+                            showAlert("Error", "Failed to save Auto-bid settings.");
+                        }
+                    },
+                    error -> showAlert("Error", "Network error: " + error.getMessage())
+            );
+
+        } catch (NumberFormatException e) {
+            showAlert("Error", "Please enter valid numbers for Auto-bid settings.");
+        }
+    }
+
     public void setAuctionSession(AuctionSession session) {
         this.session = session;
         if (session == null) return;
@@ -101,7 +162,7 @@ public class AuctionDetailsforBidderController implements Initializable {
         
         // Load bid history async để không block UI khi mở dialog
         loadBidHistoryAsync();
-        
+        updateProductImage();
         startCountdownTimer();
         setupRealtimeListener();
     }
@@ -158,6 +219,22 @@ public class AuctionDetailsforBidderController implements Initializable {
         }
         if (lblCurrentPriceSmall != null) {
             lblCurrentPriceSmall.setText(formatted);
+        }
+    }
+
+    //Update image
+    private void updateProductImage() {
+        if (imgProduct == null || session == null || session.getItem() == null) {
+            return;
+        }
+        String imagePath = session.getItem().getImagePath();
+        if (imagePath == null || imagePath.isBlank()) {
+            return;
+        }
+        try {
+            imgProduct.setImage(new Image(imagePath, 648, 380, true, true, true));
+        } catch (RuntimeException e) {
+            System.err.println("Cannot load product image: " + imagePath);
         }
     }
 

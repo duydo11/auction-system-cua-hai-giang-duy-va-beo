@@ -23,7 +23,7 @@
             </Label>
          </children>
       </HBox>
-      <ScrollPane hmax="0.0" layoutY="61.0" prefHeight="541.0" prefWidth="600.0" vmax="4.0">
+      <ScrollPane hmax="0.0" layoutY="61.0" prefHeight="541.0" prefWidth="600.0" vmax="4.0" vvalue="4.0">
          <content>
             <VBox prefHeight="920.0" prefWidth="582.0" spacing="10.0">
                <children>
@@ -85,7 +85,7 @@
                         <AnchorPane prefHeight="153.0" prefWidth="38.0" />
                         <VBox prefHeight="89.0" prefWidth="520.0" spacing="5.0">
                            <children>
-                               <Label prefHeight="28.0" prefWidth="558.0" text="Starting price (x.000 VND - numbers only)">
+                               <Label prefHeight="28.0" prefWidth="558.0" text="Starting price (numbers only)">
                                  <font>
                                     <Font name="Montserrat Bold" size="14.0" />
                                  </font>

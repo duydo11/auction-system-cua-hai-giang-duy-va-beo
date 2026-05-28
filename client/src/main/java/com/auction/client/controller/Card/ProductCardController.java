@@ -112,7 +112,7 @@ public class ProductCardController {
             return;
         }
         try {
-            imgProduct.setImage(new Image(imagePath, 220, 140, true, true, true));
+            imgProduct.setImage(new Image(imagePath, 247, 90, true, true, true));
         } catch (RuntimeException e) {
             System.err.println("Cannot load product image: " + imagePath);
         }
