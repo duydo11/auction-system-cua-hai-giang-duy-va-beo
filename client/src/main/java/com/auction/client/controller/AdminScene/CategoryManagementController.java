@@ -178,6 +178,12 @@ public class CategoryManagementController implements Initializable {
         if (session == null || session.getStartTime() == null || session.getEndTime() == null) {
             return "UNKNOWN";
         }
+        if (session.getStatus() == com.auction.shared.model.auction.AuctionStatus.CANCELED) {
+            return "CANCELED";
+        }
+        if (session.getStatus() == com.auction.shared.model.auction.AuctionStatus.FINISHED) {
+            return "ENDED";
+        }
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         if (now.isBefore(session.getStartTime())) {
             return "COMING";

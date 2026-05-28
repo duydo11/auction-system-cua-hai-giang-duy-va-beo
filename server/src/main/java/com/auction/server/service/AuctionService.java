@@ -133,5 +133,25 @@ public class AuctionService {
             return false;
         }
     }
+    public boolean cancelAuction(int sessionId) {
+        try {
+            AuctionSession session = auctionSessionDAO.getSessionById(sessionId);
+            if (session == null || session.getStatus() == AuctionStatus.FINISHED
+                    || session.getStatus() == AuctionStatus.CANCELED) {
+                return false;
+            }
+            session.setStatus(AuctionStatus.CANCELED);
+            auctionSessionDAO.updateSession(session);
+            com.auction.server.network.ClientBroadcastHub.broadcast(
+                    new com.auction.shared.protocol.Message(
+                            com.auction.shared.protocol.MessageType.AUCTION_UPDATED_PUSH,
+                            session
+                    )
+            );
+            return true;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
-

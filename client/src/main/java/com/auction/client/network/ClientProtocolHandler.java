@@ -411,27 +411,17 @@ public class ClientProtocolHandler {
     public String getLastTransportError() {
         return lastTransportError;
     }
-    // Thêm vào trong class ClientProtocolHandler
-    private boolean sendRequest(String command, Object data) {
-        try {
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
     public boolean cancelAuction(int sessionId) {
-        return sendRequest("CANCEL_AUCTION", sessionId);
+        Message response = send(MessageType.CANCEL_AUCTION_REQUEST, String.valueOf(sessionId));
+        return response != null && response.isSuccess();
     }
 
     public AuctionSession getAuctionDetail(int id) {
-        Object response = sendRequest("GET_AUCTION_DETAIL", id);
-
-        if (response instanceof AuctionSession) {
-            return (AuctionSession) response;
+        Message response = send(MessageType.AUCTION_DETAILS_REQUEST, String.valueOf(id));
+        if (response == null || !response.isSuccess()) {
+            return null;
         }
-
-        return null;
+        Object data = response.getData();
+        return data instanceof AuctionSession ? (AuctionSession) data : null;
     }
 }

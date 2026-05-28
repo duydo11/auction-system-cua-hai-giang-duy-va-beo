@@ -49,6 +49,8 @@ public class ServerProtocolHandler {
                 case VIEW_AUCTIONS_REQUEST -> handleViewAuctions();
                 case GET_ALL_AUCTIONS_REQUEST -> handleGetAllAuctions();
                 case CREATE_AUCTION_REQUEST -> handleCreateAuction(message.getData());
+                case AUCTION_DETAILS_REQUEST -> handleAuctionDetails(message.getData());
+                case CANCEL_AUCTION_REQUEST -> handleCancelAuction(message.getData());
 
                 // Bidding
                 case PLACE_BID_REQUEST -> handlePlaceBid(message.getData());
@@ -129,6 +131,25 @@ public class ServerProtocolHandler {
     private Message handleGetAllAuctions() throws Exception {
         List<AuctionSession> auctions = auctionService.getAllAuctions();
         return new Message(MessageType.GET_ALL_AUCTIONS_RESPONSE, auctions);
+    }
+
+    private Message handleAuctionDetails(Object data) throws Exception {
+        int sessionId = Integer.parseInt(String.valueOf(data).trim());
+        AuctionSession session = auctionService.getSessionById(sessionId);
+        if (session == null) {
+            return new Message(MessageType.AUCTION_DETAILS_RESPONSE, "Auction not found");
+        }
+        return new Message(MessageType.AUCTION_DETAILS_RESPONSE, session);
+    }
+
+    private Message handleCancelAuction(Object data) throws Exception {
+        int sessionId = Integer.parseInt(String.valueOf(data).trim());
+        boolean success = auctionService.cancelAuction(sessionId);
+        if (success) {
+            logger.info("Auction cancelled: " + sessionId);
+            return new Message(MessageType.CANCEL_AUCTION_RESPONSE, (Object) "Auction cancelled");
+        }
+        return new Message(MessageType.CANCEL_AUCTION_RESPONSE, "Failed to cancel auction");
     }
 
     private Message handleCreateAuction(Object data) throws Exception {
