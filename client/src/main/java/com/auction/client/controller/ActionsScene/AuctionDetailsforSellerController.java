@@ -230,7 +230,10 @@ public class AuctionDetailsforSellerController implements Initializable {
 
             List<Bid> chartBids = bids.stream()
                     .filter(bid -> bid.getTime() != null)
-                    .sorted((b1, b2) -> b1.getTime().compareTo(b2.getTime()))
+                    .sorted((b1, b2) -> {
+                        int byTime = b1.getTime().compareTo(b2.getTime());
+                        return byTime != 0 ? byTime : Integer.compare(b1.getId(), b2.getId());
+                    })
                     .toList();
 
             series.getData().add(new XYChart.Data<>("00 Start", session.getStartingPrice()));

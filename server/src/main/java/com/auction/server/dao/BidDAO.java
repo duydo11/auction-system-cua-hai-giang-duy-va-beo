@@ -51,7 +51,7 @@ public class BidDAO {
     // Lay thong tin bid
     public List<Bid> getBidsBySessionId(int sessionId, AuctionSession session) {
         List<Bid> bids = new ArrayList<>();
-        String sql = "SELECT * FROM bids WHERE auction_session_id = ? ORDER BY time DESC";
+        String sql = "SELECT * FROM bids WHERE auction_session_id = ? ORDER BY time ASC, id ASC";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, sessionId);

@@ -90,7 +90,7 @@ public class MyListingController {
         Label buyerLabel = new Label("Bidder: " + buyer);
         Label price = new Label(String.format("Current price: %,.0f $", session.getCurrentPrice()));
         Label time = new Label("Start: " + start + "  •  End: " + end);
-        Label status = new Label(session.getStatus() != null ? session.getStatus().name() : "OPEN");
+        Label status = new Label(resolveDisplayStatus(session));
         status.setStyle("-fx-background-color: #eaf4ff; -fx-text-fill: #438bcf; -fx-background-radius: 12; -fx-padding: 4 10 4 10;");
 
         VBox info = new VBox(4, name, buyerLabel, price, time);
@@ -137,6 +137,27 @@ public class MyListingController {
         return auctions.stream()
                 .filter(s -> s.getSeller() != null && s.getSeller().getId() == sellerId)
                 .toList();
+    }
+
+    private String resolveDisplayStatus(AuctionSession session) {
+        if (session == null || session.getStartTime() == null || session.getEndTime() == null) {
+            return "UNKNOWN";
+        }
+        var status = session.getStatus();
+        if (status == com.auction.shared.model.auction.AuctionStatus.CANCELED) {
+            return "CANCELED";
+        }
+        if (status == com.auction.shared.model.auction.AuctionStatus.PAID) {
+            return "PAID";
+        }
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        if (status == com.auction.shared.model.auction.AuctionStatus.FINISHED || !now.isBefore(session.getEndTime())) {
+            return "FINISHED";
+        }
+        if (now.isBefore(session.getStartTime())) {
+            return "OPEN";
+        }
+        return "RUNNING";
     }
 
     private String formatTime(java.time.LocalDateTime time) {

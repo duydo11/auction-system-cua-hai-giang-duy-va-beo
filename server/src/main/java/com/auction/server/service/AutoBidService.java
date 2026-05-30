@@ -14,7 +14,10 @@ import com.auction.shared.protocol.MessageType;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 /**
@@ -33,6 +36,14 @@ public class AutoBidService {
 
     // Map: sessionId -> Queue of AutoBidConfig (priority by registration time)
     private final Map<Integer, PriorityBlockingQueue<AutoBidConfig>> autoBidsBySession = new ConcurrentHashMap<>();
+    // Mỗi phiên chỉ có một chuỗi auto-bid đang chờ để tránh đặt giá trùng lặp giữa nhiều client.
+    private final Set<Integer> scheduledSessions = ConcurrentHashMap.newKeySet();
+    private final ScheduledExecutorService autoBidScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "AutoBidScheduler");
+        t.setDaemon(true);
+        return t;
+    });
+    private static final long AUTO_BID_DELAY_SECONDS = 5;
 
     private final AuctionSessionDAO auctionSessionDAO;
     private final BidDAO bidDAO;
@@ -101,6 +112,36 @@ public class AutoBidService {
      * @return true nếu có auto-bid được kích hoạt
      */
     public boolean processAutoBids(int sessionId, double newBidAmount) {
+        return scheduleAutoBidCycle(sessionId);
+    }
+
+    private boolean scheduleAutoBidCycle(int sessionId) {
+        PriorityBlockingQueue<AutoBidConfig> queue = autoBidsBySession.get(sessionId);
+        if (queue == null || queue.isEmpty()) {
+            scheduledSessions.remove(sessionId);
+            return false;
+        }
+        if (!scheduledSessions.add(sessionId)) {
+            return false;
+        }
+
+        autoBidScheduler.schedule(() -> {
+            boolean shouldContinue = false;
+            try {
+                shouldContinue = processOneAutoBid(sessionId);
+            } catch (Exception e) {
+                logger.warning("Auto-bid cycle failed: " + e.getMessage());
+            } finally {
+                scheduledSessions.remove(sessionId);
+                if (shouldContinue) {
+                    scheduleAutoBidCycle(sessionId);
+                }
+            }
+        }, AUTO_BID_DELAY_SECONDS, TimeUnit.SECONDS);
+        return true;
+    }
+
+    private boolean processOneAutoBid(int sessionId) {
         PriorityBlockingQueue<AutoBidConfig> queue = autoBidsBySession.get(sessionId);
         if (queue == null || queue.isEmpty()) {
             return false;
@@ -111,72 +152,90 @@ public class AutoBidService {
             return false;
         }
 
-        boolean anyAutoBidTriggered = false;
         List<AutoBidConfig> toRequeue = new ArrayList<>();
+        boolean placedBid = false;
+        int checked = 0;
+        int total = queue.size();
 
-        // Process each auto-bid config in priority order
-        while (!queue.isEmpty()) {
+        while (checked < total && !queue.isEmpty()) {
             AutoBidConfig config = queue.poll();
-            if (config == null) break;
+            checked++;
+            if (config == null) {
+                continue;
+            }
 
-            // Skip if auto-bid owner is the current winner (no self-bidding)
+            // Không tự bid nếu người bật auto-bid đang là người trả giá cao nhất.
             if (session.getWinner() != null && session.getWinner().getId() == config.getBidderId()) {
                 toRequeue.add(config);
                 continue;
             }
 
-            // Calculate next auto-bid amount
             double currentPrice = session.getCurrentPrice();
             double nextBid = Math.min(currentPrice + config.getIncrement(), config.getMaxBid());
-
-            // Check if we can outbid
-            if (nextBid > currentPrice && nextBid <= config.getMaxBid()) {
-                User autoBidder = userDAO.getUserById(config.getBidderId());
-                if (!(autoBidder instanceof com.auction.shared.model.user.Bidder bidderAccount)
-                        || bidderAccount.getAccountBalance() < nextBid) {
-                    // Nếu tài khoản không đủ số dư thì giữ config, nhưng không đặt bid vượt tiền hiện có.
-                    toRequeue.add(config);
-                    continue;
-                }
-
-                // Place auto-bid
-                Bid autoBid = new Bid(
-                        bidDAO.allocateNextBidId(),
-                        autoBidder,
-                        session,
-                        nextBid
-                );
-                autoBid.setTime(LocalDateTime.now());
-                
-                session.updateCurrentPrice(autoBid);
-                bidDAO.saveBid(autoBid, sessionId);
-                auctionSessionDAO.updateSession(session);
-
-                // Broadcast update
-                ClientBroadcastHub.broadcast(new Message(MessageType.AUCTION_UPDATED_PUSH, session));
-
-                logger.info("Auto-bid triggered: bidderId=" + config.getBidderId() +
-                        ", amount=" + nextBid);
-
-                anyAutoBidTriggered = true;
-
-                // Re-add to queue for potential further bids
+            if (nextBid <= currentPrice || nextBid > config.getMaxBid()) {
                 toRequeue.add(config);
-
-                // Stop after one auto-bid to prevent infinite loop
-                break;
-            } else {
-                // Cannot outbid, but keep config for future
-                toRequeue.add(config);
+                continue;
             }
+
+            User autoBidder = userDAO.getUserById(config.getBidderId());
+            if (!(autoBidder instanceof com.auction.shared.model.user.Bidder bidderAccount)
+                    || bidderAccount.getAccountBalance() < nextBid) {
+                toRequeue.add(config);
+                continue;
+            }
+
+            Bid autoBid = new Bid(
+                    bidDAO.allocateNextBidId(),
+                    autoBidder,
+                    session,
+                    nextBid
+            );
+            autoBid.setTime(LocalDateTime.now());
+
+            session.updateCurrentPrice(autoBid);
+            bidDAO.saveBid(autoBid, sessionId);
+            auctionSessionDAO.updateSession(session);
+            ClientBroadcastHub.broadcast(new Message(MessageType.AUCTION_UPDATED_PUSH, session));
+
+            logger.info("Auto-bid triggered: bidderId=" + config.getBidderId()
+                    + ", amount=" + nextBid + ", next check in " + AUTO_BID_DELAY_SECONDS + "s");
+
+            toRequeue.add(config);
+            placedBid = true;
+            break;
         }
 
-        // Re-add configs to queue
         for (AutoBidConfig config : toRequeue) {
             queue.add(config);
         }
 
-        return anyAutoBidTriggered;
+        return placedBid && hasPotentialResponder(sessionId);
+    }
+
+    private boolean hasPotentialResponder(int sessionId) {
+        PriorityBlockingQueue<AutoBidConfig> queue = autoBidsBySession.get(sessionId);
+        if (queue == null || queue.isEmpty()) {
+            return false;
+        }
+        AuctionSession latest = auctionSessionDAO.getSessionById(sessionId);
+        if (latest == null || !latest.isActive()) {
+            return false;
+        }
+        int winnerId = latest.getWinner() != null ? latest.getWinner().getId() : -1;
+        double currentPrice = latest.getCurrentPrice();
+        for (AutoBidConfig config : queue) {
+            if (config.getBidderId() == winnerId) {
+                continue;
+            }
+            if (Math.min(currentPrice + config.getIncrement(), config.getMaxBid()) > currentPrice) {
+                User autoBidder = userDAO.getUserById(config.getBidderId());
+                if (autoBidder instanceof com.auction.shared.model.user.Bidder bidderAccount
+                        && bidderAccount.getAccountBalance() >= Math.min(currentPrice + config.getIncrement(), config.getMaxBid())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
