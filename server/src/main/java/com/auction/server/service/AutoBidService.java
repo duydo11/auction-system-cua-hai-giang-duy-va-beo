@@ -43,20 +43,26 @@ public class AutoBidService {
         t.setDaemon(true);
         return t;
     });
-    private static final long AUTO_BID_DELAY_SECONDS = 5;
+    private static final long DEFAULT_AUTO_BID_DELAY_SECONDS = 5;
+    private final long autoBidDelaySeconds;
 
     private final AuctionSessionDAO auctionSessionDAO;
     private final BidDAO bidDAO;
     private final UserDAO userDAO;
 
     public AutoBidService() {
-        this(new AuctionSessionDAO(), new BidDAO(), new UserDAO());
+        this(new AuctionSessionDAO(), new BidDAO(), new UserDAO(), DEFAULT_AUTO_BID_DELAY_SECONDS);
     }
 
     public AutoBidService(AuctionSessionDAO auctionSessionDAO, BidDAO bidDAO, UserDAO userDAO) {
+        this(auctionSessionDAO, bidDAO, userDAO, DEFAULT_AUTO_BID_DELAY_SECONDS);
+    }
+
+    AutoBidService(AuctionSessionDAO auctionSessionDAO, BidDAO bidDAO, UserDAO userDAO, long autoBidDelaySeconds) {
         this.auctionSessionDAO = auctionSessionDAO;
         this.bidDAO = bidDAO;
         this.userDAO = userDAO;
+        this.autoBidDelaySeconds = autoBidDelaySeconds;
     }
 
     /**
@@ -121,11 +127,16 @@ public class AutoBidService {
             scheduledSessions.remove(sessionId);
             return false;
         }
+        AuctionSession session = auctionSessionDAO.getSessionById(sessionId);
+        if (session == null || !session.isActive()) {
+            scheduledSessions.remove(sessionId);
+            return false;
+        }
         if (!scheduledSessions.add(sessionId)) {
             return false;
         }
 
-        autoBidScheduler.schedule(() -> {
+        Runnable task = () -> {
             boolean shouldContinue = false;
             try {
                 shouldContinue = processOneAutoBid(sessionId);
@@ -137,7 +148,12 @@ public class AutoBidService {
                     scheduleAutoBidCycle(sessionId);
                 }
             }
-        }, AUTO_BID_DELAY_SECONDS, TimeUnit.SECONDS);
+        };
+        if (autoBidDelaySeconds <= 0) {
+            task.run();
+        } else {
+            autoBidScheduler.schedule(task, autoBidDelaySeconds, TimeUnit.SECONDS);
+        }
         return true;
     }
 
@@ -198,7 +214,7 @@ public class AutoBidService {
             ClientBroadcastHub.broadcast(new Message(MessageType.AUCTION_UPDATED_PUSH, session));
 
             logger.info("Auto-bid triggered: bidderId=" + config.getBidderId()
-                    + ", amount=" + nextBid + ", next check in " + AUTO_BID_DELAY_SECONDS + "s");
+                    + ", amount=" + nextBid + ", next check in " + autoBidDelaySeconds + "s");
 
             toRequeue.add(config);
             placedBid = true;

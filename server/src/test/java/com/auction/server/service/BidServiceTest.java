@@ -53,8 +53,8 @@ class BidServiceTest {
 
         // Tạo dữ liệu test
         seller = new Seller(1, "seller1", "pass", "seller@email.com", 0.0);
-        bidder1 = new Bidder(2, "bidder1", "pass", "b1@email.com", 0.0);
-        bidder2 = new Bidder(3, "bidder2", "pass", "b2@email.com", 0.0);
+        bidder1 = new Bidder(2, "bidder1", "pass", "b1@email.com", 1_000_000.0);
+        bidder2 = new Bidder(3, "bidder2", "pass", "b2@email.com", 1_000_000.0);
         item = new Electronics(1, "Laptop", "Mô tả laptop", seller, 24);
 
         // Tạo phiên đang active
@@ -189,7 +189,7 @@ class BidServiceTest {
         // Mỗi thread có 1 bidder riêng
         List<Bidder> bidders = new ArrayList<>();
         for (int i = 0; i < threadCount; i++) {
-            bidders.add(new Bidder(100 + i, "bidder" + i, "pass", "b" + i + "@email.com", 0.0));
+            bidders.add(new Bidder(100 + i, "bidder" + i, "pass", "b" + i + "@email.com", 1_000_000.0));
         }
 
         // Stub DAO cho concurrent test

@@ -42,11 +42,11 @@ class AutoBidServiceTest {
 
     @BeforeEach
     void setUp() {
-        autoBidService = new AutoBidService(auctionSessionDAO, bidDAO, userDAO);
+        autoBidService = new AutoBidService(auctionSessionDAO, bidDAO, userDAO, 0);
 
         seller = new Seller(1, "seller", "pass", "seller@test.com", 0.0);
-        bidder1 = new Bidder(2, "bidder1", "pass", "b1@test.com", 0.0);
-        bidder2 = new Bidder(3, "bidder2", "pass", "b2@test.com", 0.0);
+        bidder1 = new Bidder(2, "bidder1", "pass", "b1@test.com", 1_000_000.0);
+        bidder2 = new Bidder(3, "bidder2", "pass", "b2@test.com", 1_000_000.0);
         item = new Electronics(1, "Laptop", "Gaming laptop", seller, 24);
 
         LocalDateTime now = LocalDateTime.now();
