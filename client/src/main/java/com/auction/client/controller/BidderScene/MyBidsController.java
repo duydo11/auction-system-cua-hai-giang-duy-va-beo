@@ -115,7 +115,7 @@ public class MyBidsController implements Initializable {
         List<Bid> myBidsHistory = new ArrayList<>(); // Tất cả lịch sử
         List<Bid> myActiveBids = new ArrayList<>();  // Các bid trong phiên đang chạy
 
-        for (AuctionSession session : protocol.getActiveAuctions()) {
+        for (AuctionSession session : protocol.getAllAuctions()) {
             List<Bid> sessionBids = protocol.getBidHistory(session.getId());
 
             Bid myLastBidInSession = null;
@@ -129,7 +129,7 @@ public class MyBidsController implements Initializable {
                 }
             }
 
-            if (myLastBidInSession != null) {
+            if (myLastBidInSession != null && isSessionActive(session)) {
                 myActiveBids.add(myLastBidInSession);
             }
         }
@@ -138,6 +138,19 @@ public class MyBidsController implements Initializable {
         myActiveBids.sort(Comparator.comparing(Bid::getTime).reversed());
 
         return new BidSnapshot(myBidsHistory, myActiveBids);
+    }
+
+    private boolean isSessionActive(AuctionSession session) {
+        if (session == null || session.getStartTime() == null || session.getEndTime() == null) {
+            return false;
+        }
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        var status = session.getStatus();
+        return !now.isBefore(session.getStartTime())
+                && now.isBefore(session.getEndTime())
+                && status != com.auction.shared.model.auction.AuctionStatus.FINISHED
+                && status != com.auction.shared.model.auction.AuctionStatus.PAID
+                && status != com.auction.shared.model.auction.AuctionStatus.CANCELED;
     }
 
     private void renderBidSnapshot(BidSnapshot snapshot) {

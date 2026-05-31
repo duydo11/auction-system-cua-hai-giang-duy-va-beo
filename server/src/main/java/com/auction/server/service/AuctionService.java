@@ -2,6 +2,7 @@ package com.auction.server.service;
 
 import com.auction.server.dao.AuctionSessionDAO;
 import com.auction.server.dao.ItemDAO;
+import com.auction.server.dao.UserDAO;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.item.Item;
@@ -12,6 +13,7 @@ import java.util.List;
 public class AuctionService {
     private final AuctionSessionDAO auctionSessionDAO = new AuctionSessionDAO();
     private final ItemDAO itemDAO = new ItemDAO();
+    private final UserDAO userDAO = new UserDAO();
 
     public List<AuctionSession> getActiveAuctions() {
         return auctionSessionDAO.findAllActiveSessions().stream()
@@ -110,57 +112,78 @@ public class AuctionService {
             if (session == null) {
                 return false;
             }
-
-            LocalDateTime now = LocalDateTime.now();
-            
-            // Kiểm tra nếu hết giờ và chưa FINISHED
-            if (now.isAfter(session.getEndTime()) && 
-                (session.getStatus() == AuctionStatus.OPEN || session.getStatus() == AuctionStatus.RUNNING)) {
-                
-                // Chuyển status → FINISHED
-                session.setStatus(AuctionStatus.FINISHED);
-                
-                // Winner đã được set trong updateCurrentPrice, không cần set lại
-                // Nếu không có bid, winner = null (hợp lệ)
-                
-                // Lưu lại DB
-                auctionSessionDAO.updateSession(session);
-                
-                System.out.println("Auction #" + sessionId + " closed. Winner: " + 
-                    (session.getWinner() != null ? session.getWinner().getUsername() : "None"));
-                
-                return true;
-            }
-            
-            return false;
+            AuctionStatus before = session.getStatus();
+            AuctionSession settled = settleAuctionIfExpired(session);
+            return settled != null && before != settled.getStatus();
         } catch (RuntimeException e) {
             e.printStackTrace();
             return false;
         }
     }
+
     private AuctionSession normalizeStatus(AuctionSession session) {
         if (session == null || session.getStartTime() == null || session.getEndTime() == null) {
             return session;
         }
         AuctionStatus current = session.getStatus();
-        if (current == AuctionStatus.CANCELED || current == AuctionStatus.PAID) {
+        if (current == AuctionStatus.CANCELED || current == AuctionStatus.PAID || current == AuctionStatus.FINISHED) {
             return session;
         }
 
         LocalDateTime now = LocalDateTime.now();
-        AuctionStatus normalized;
-        if (now.isBefore(session.getStartTime())) {
-            normalized = AuctionStatus.OPEN;
-        } else if (now.isBefore(session.getEndTime())) {
-            normalized = AuctionStatus.RUNNING;
-        } else {
-            normalized = session.getWinner() != null ? AuctionStatus.PAID : AuctionStatus.FINISHED;
+        if (!now.isBefore(session.getEndTime())) {
+            return settleAuctionIfExpired(session);
         }
 
+        AuctionStatus normalized = now.isBefore(session.getStartTime()) ? AuctionStatus.OPEN : AuctionStatus.RUNNING;
         if (current != normalized) {
             session.setStatus(normalized);
             auctionSessionDAO.updateSession(session);
         }
+        return session;
+    }
+
+    private AuctionSession settleAuctionIfExpired(AuctionSession session) {
+        if (session == null || session.getEndTime() == null || LocalDateTime.now().isBefore(session.getEndTime())) {
+            return session;
+        }
+        AuctionStatus current = session.getStatus();
+        if (current == AuctionStatus.CANCELED || current == AuctionStatus.PAID || current == AuctionStatus.FINISHED) {
+            return session;
+        }
+
+        if (session.getWinner() == null) {
+            session.setStatus(AuctionStatus.FINISHED);
+            auctionSessionDAO.updateSession(session);
+            return session;
+        }
+
+        com.auction.shared.model.user.User latestWinner = userDAO.getUserById(session.getWinner().getId());
+        com.auction.shared.model.user.User latestSeller = session.getSeller() != null
+                ? userDAO.getUserById(session.getSeller().getId())
+                : null;
+        double price = session.getCurrentPrice();
+
+        // Thanh toán chỉ chạy một lần trước khi chuyển status sang PAID.
+        if (latestWinner instanceof com.auction.shared.model.user.Bidder bidder) {
+            bidder.setAccountBalance(bidder.getAccountBalance() - price);
+            userDAO.updateUser(bidder);
+            userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                    0, bidder.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
+            ));
+            session.setWinner(bidder);
+        }
+        if (latestSeller instanceof com.auction.shared.model.user.Seller seller) {
+            seller.setAccountBalance(seller.getAccountBalance() + price);
+            userDAO.updateUser(seller);
+            userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                    0, seller.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
+            ));
+            session.setSeller(seller);
+        }
+
+        session.setStatus(AuctionStatus.PAID);
+        auctionSessionDAO.updateSession(session);
         return session;
     }
 

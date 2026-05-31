@@ -412,42 +412,42 @@ public class UserDAO {
     }
 
     public boolean banUser(int userId) {
-        String sql = "UPDATE users SET is_banned = TRUE WHERE id = ? AND username <> 'admin'";
-        Connection conn = DatabaseConnection.getConnection();
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, userId);
-            // Không xóa user thật, chỉ khóa login để giữ nguyên lịch sử seller/bidder.
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
+        User user = getUserById(userId);
+        if (user == null || user instanceof Admin || "admin".equalsIgnoreCase(user.getUsername())) {
             return false;
         }
+        return deleteUser(userId);
     }
 
-    // xoa
-    public void deleteUser(int userId) {
+    public boolean deleteUser(int userId) {
         Connection conn = DatabaseConnection.getConnection();
         try {
             conn.setAutoCommit(false);
-            try {
-                // Xóa ở các bảng con trước
-                conn.createStatement().executeUpdate("DELETE FROM bidders WHERE user_id = " + userId);
-                conn.createStatement().executeUpdate("DELETE FROM sellers WHERE user_id = " + userId);
-                conn.createStatement().executeUpdate("DELETE FROM admins WHERE user_id = " + userId);
-
-                // Xóa ở bảng cha sau cùng
-                PreparedStatement ps = conn.prepareStatement("DELETE FROM users WHERE id = ?");
-                ps.setInt(1, userId);
-                ps.executeUpdate();
+            try (PreparedStatement deleteBidder = conn.prepareStatement("DELETE FROM bidders WHERE user_id = ?");
+                 PreparedStatement deleteSeller = conn.prepareStatement("DELETE FROM sellers WHERE user_id = ?");
+                 PreparedStatement deleteAdmin = conn.prepareStatement("DELETE FROM admins WHERE user_id = ?");
+                 PreparedStatement deleteUser = conn.prepareStatement("DELETE FROM users WHERE id = ?")) {
+                // Xóa role rows trước để tránh lỗi khóa ngoại.
+                deleteBidder.setInt(1, userId);
+                deleteBidder.executeUpdate();
+                deleteSeller.setInt(1, userId);
+                deleteSeller.executeUpdate();
+                deleteAdmin.setInt(1, userId);
+                deleteAdmin.executeUpdate();
+                deleteUser.setInt(1, userId);
+                boolean deleted = deleteUser.executeUpdate() > 0;
                 conn.commit();
+                return deleted;
             } catch (SQLException e) {
                 conn.rollback();
                 e.printStackTrace();
+                return false;
             } finally {
                 conn.setAutoCommit(true);
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 

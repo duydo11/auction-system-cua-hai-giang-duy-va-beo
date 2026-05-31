@@ -94,53 +94,19 @@ public class AuctionScheduler {
         try {
             List<AuctionSession> activeSessions = auctionSessionDAO.findAllUnfinishedSessions();
             LocalDateTime now = LocalDateTime.now();
-            UserDAO userDAO = new UserDAO();
+            AuctionService auctionService = new AuctionService();
 
             for (AuctionSession session : activeSessions) {
                 if (now.isAfter(session.getEndTime())) {
-                    User winner = session.getWinner();
-                    User seller = session.getSeller();
-                    double price = session.getCurrentPrice();
-
-                    if (winner != null) {
-                        session.setStatus(AuctionStatus.PAID);
-
-                        // Deduct from winner
-                        if (winner instanceof com.auction.shared.model.user.Bidder) {
-                            com.auction.shared.model.user.Bidder bidder = (com.auction.shared.model.user.Bidder) winner;
-                            bidder.setAccountBalance(bidder.getAccountBalance() - price);
-                            userDAO.updateUser(bidder);
-
-                            // Save winner transaction
-                            userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
-                                0, bidder.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
-                            ));
-                        }
-
-                        // Add to seller
-                        if (seller instanceof com.auction.shared.model.user.Seller) {
-                            com.auction.shared.model.user.Seller sel = (com.auction.shared.model.user.Seller) seller;
-                            sel.setAccountBalance(sel.getAccountBalance() + price);
-                            userDAO.updateUser(sel);
-
-                            // Save seller transaction
-                            userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
-                                0, sel.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
-                            ));
-                        }
-                    } else {
-                        session.setStatus(AuctionStatus.FINISHED);
+                    boolean closed = auctionService.closeAuctionIfExpired(session.getId());
+                    AuctionSession refreshed = auctionService.getSessionById(session.getId());
+                    if (closed && refreshed != null) {
+                        ClientBroadcastHub.broadcast(
+                                new Message(MessageType.CLOSE_AUCTION_PUSH, refreshed)
+                        );
+                        logger.info("Auto-closed auction #" + refreshed.getId() +
+                                " | Winner: " + (refreshed.getWinner() != null ? refreshed.getWinner().getUsername() : "None"));
                     }
-
-                    auctionSessionDAO.updateSession(session);
-
-                    // Broadcast push tới client
-                    ClientBroadcastHub.broadcast(
-                            new Message(MessageType.CLOSE_AUCTION_PUSH, session)
-                    );
-
-                    logger.info("Auto-closed auction #" + session.getId() +
-                            " | Winner: " + (winner != null ? winner.getUsername() : "None"));
                 }
             }
         } catch (Exception e) {

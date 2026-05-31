@@ -39,7 +39,7 @@ public class AdminDashboardController implements Initializable {
                 stats -> {
                     if (lblTotalUser != null) lblTotalUser.setText(String.valueOf(stats.users().size()));
                     if (lblTotalAuctions != null) lblTotalAuctions.setText(String.valueOf(stats.auctions().size()));
-                    if (lblTotalRevenue != null) lblTotalRevenue.setText("0");
+                    if (lblTotalRevenue != null) lblTotalRevenue.setText(formatMoney(stats.totalRevenue()));
                     if (lblPendingRequest != null) lblPendingRequest.setText("0");
                 },
                 error -> {
@@ -49,7 +49,19 @@ public class AdminDashboardController implements Initializable {
                 });
     }
 
-    private record AdminStats(List<User> users, List<AuctionSession> auctions) {}
+    private String formatMoney(double amount) {
+        return String.format("%,.0f $", amount);
+    }
+
+    private record AdminStats(List<User> users, List<AuctionSession> auctions) {
+        double totalRevenue() {
+            return auctions.stream()
+                    .filter(auction -> auction.getStatus() == com.auction.shared.model.auction.AuctionStatus.PAID)
+                    .filter(auction -> auction.getWinner() != null)
+                    .mapToDouble(AuctionSession::getCurrentPrice)
+                    .sum();
+        }
+    }
 
     public void switchUser(MouseEvent mouseEvent) {
         SceneNavigator.loadScene(SceneNavigator.U_MANAGEMENT, "user dashboard");

@@ -55,7 +55,7 @@ public class UserService {
     }
 
     /**
-     * Ban mềm user theo id: khóa login nhưng vẫn giữ dữ liệu lịch sử.
+     * Xóa tài khoản user theo id, không cho xóa admin.
      */
     public boolean banUser(int userId) {
         try {
