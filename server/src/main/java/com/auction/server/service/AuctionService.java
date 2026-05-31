@@ -158,28 +158,29 @@ public class AuctionService {
             return session;
         }
 
-        com.auction.shared.model.user.User latestWinner = userDAO.getUserById(session.getWinner().getId());
-        com.auction.shared.model.user.User latestSeller = session.getSeller() != null
-                ? userDAO.getUserById(session.getSeller().getId())
+        // getSellerById/getBidderById đảm bảo trả về đúng type dù user vừa là bidder vừa là seller.
+        com.auction.shared.model.user.Bidder latestWinner = userDAO.getBidderById(session.getWinner().getId());
+        com.auction.shared.model.user.Seller latestSeller = session.getSeller() != null
+                ? userDAO.getSellerById(session.getSeller().getId())
                 : null;
         double price = session.getCurrentPrice();
 
         // Thanh toán chỉ chạy một lần trước khi chuyển status sang PAID.
-        if (latestWinner instanceof com.auction.shared.model.user.Bidder bidder) {
-            bidder.setAccountBalance(bidder.getAccountBalance() - price);
-            userDAO.updateUser(bidder);
+        if (latestWinner != null) {
+            latestWinner.setAccountBalance(latestWinner.getAccountBalance() - price);
+            userDAO.updateUser(latestWinner);
             userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
-                    0, bidder.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
+                    0, latestWinner.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
             ));
-            session.setWinner(bidder);
+            session.setWinner(latestWinner);
         }
-        if (latestSeller instanceof com.auction.shared.model.user.Seller seller) {
-            seller.setAccountBalance(seller.getAccountBalance() + price);
-            userDAO.updateUser(seller);
+        if (latestSeller != null) {
+            latestSeller.setAccountBalance(latestSeller.getAccountBalance() + price);
+            userDAO.updateUser(latestSeller);
             userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
-                    0, seller.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
+                    0, latestSeller.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
             ));
-            session.setSeller(seller);
+            session.setSeller(latestSeller);
         }
 
         session.setStatus(AuctionStatus.PAID);
