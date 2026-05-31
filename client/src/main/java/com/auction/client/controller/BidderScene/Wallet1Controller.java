@@ -62,25 +62,35 @@ public class Wallet1Controller implements Initializable {
         var u = SessionContext.getCurrentUser();
         if (u == null) return;
 
-        // Hiển thị trạng thái loading
-        showLoadingState();
+        // Hiển thị ngay số dư từ SessionContext để không phải chờ network.
+        renderInstantBalance(u);
 
-        // Fetch user info và active auctions ở background
+        // Chỉ fetch transactions ở background (user info và active auctions dùng từ cache/session).
         FxAsync.run("wallet-load",
                 () -> {
+                    // Lấy user mới nhất để cập nhật balance nếu có thay đổi.
                     User latest = protocol.getUserInfo(u.getId());
                     if (latest == null) latest = u;
-                    
-                    List<AuctionSession> activeAuctions = protocol.getActiveAuctions();
                     List<Transaction> transactions = protocol.getTransactions(latest.getId());
-                    
-                    return new WalletData(latest, activeAuctions, transactions);
+                    return new WalletData(latest, transactions);
                 },
                 this::renderWalletData,
                 error -> {
                     System.err.println("Error loading wallet data: " + error);
                     showErrorState();
                 });
+    }
+
+    /**
+     * Render balance ngay từ session context, không cần chờ network.
+     */
+    private void renderInstantBalance(User u) {
+        if (u instanceof Bidder bidder) {
+            double totalBalance = bidder.getAccountBalance();
+            lblTotalBalance.setText("$" + String.format("%,.2f", totalBalance));
+            lblAvailabe.setText("$" + String.format("%,.2f", totalBalance));
+            lblReserved.setText("$0.00");
+        }
     }
 
     /**
@@ -106,21 +116,18 @@ public class Wallet1Controller implements Initializable {
      * Render dữ liệu wallet sau khi load xong.
      */
     private void renderWalletData(WalletData data) {
-        User u = data.user;
-        System.out.println("Wallet updated! New Balance: " + ((Bidder)u).getAccountBalance());
+        User u = data.user();
 
-        SessionContext.setCurrentUser(u);
         SessionContext.setCurrentUser(u);
 
         double totalBalance = 0.0;
         double reservedBalance = 0.0;
 
-
         if (u instanceof Bidder bidder) {
             totalBalance = bidder.getAccountBalance();
 
-            // Tính reserved balance: các bid đang dẫn đầu trong active sessions
-            for (AuctionSession session : data.activeAuctions) {
+            // Tính reserved balance từ active cache để tránh thêm 1 network call.
+            for (AuctionSession session : com.auction.client.util.AuctionCache.getActive()) {
                 if (session.getWinner() != null && session.getWinner().getId() == bidder.getId()) {
                     reservedBalance += session.getCurrentPrice();
                 }
@@ -135,7 +142,7 @@ public class Wallet1Controller implements Initializable {
 
         // Render transaction history
         containerTrans.getChildren().clear();
-        for (Transaction trans : data.transactions) {
+        for (Transaction trans : data.transactions()) {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/TransHisCard.fxml"));
                 Node card = loader.load();
@@ -152,7 +159,7 @@ public class Wallet1Controller implements Initializable {
     /**
      * Data class để truyền dữ liệu từ background thread.
      */
-    private record WalletData(User user, List<AuctionSession> activeAuctions, List<Transaction> transactions) {}
+    private record WalletData(User user, List<Transaction> transactions) {}
 
     @FXML
     public void handleDeposit(MouseEvent mouseEvent) {

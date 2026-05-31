@@ -244,10 +244,17 @@ public class AuctionDetailsforBidderController implements Initializable {
     private void loadBidHistoryAsync() {
         if (session == null) return;
 
-        // Hiển thị trạng thái loading
-        showLoadingState();
+        // Render ngay từ bids đã có trong session object (không cần network lần đầu).
+        List<Bid> cachedBids = session.getBids();
+        if (cachedBids != null && !cachedBids.isEmpty()) {
+            updateBidCount(cachedBids);
+            renderBidHistoryChart(cachedBids);
+            renderBidHistoryCards(cachedBids);
+        } else {
+            showLoadingState();
+        }
 
-        // Fetch bid history ở background
+        // Fetch mới nhất ở background để cập nhật nếu có bid mới kể từ khi session được load.
         FxAsync.run("bid-history-" + session.getId(),
                 () -> protocol.getBidHistory(session.getId()),
                 bids -> {

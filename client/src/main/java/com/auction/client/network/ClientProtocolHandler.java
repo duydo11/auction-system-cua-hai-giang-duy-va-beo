@@ -343,19 +343,18 @@ public class ClientProtocolHandler {
     /** Convenience helper used by DepositActionController. */
     public boolean deposit(User user, double amount) {
         if (user == null || amount <= 0) return false;
-        // Lấy user mới nhất từ server rồi mới cộng tiền, tránh cộng local trước làm UI/DB lệch nhau.
-        User latest = getUserInfo(user.getId());
-        if (latest == null) latest = user;
-        if (latest instanceof com.auction.shared.model.user.Bidder bidder) {
+        // Cộng tiền trực tiếp vào user object do caller truyền vào,
+        // tránh thêm 1 getUserInfo round-trip không cần thiết.
+        if (user instanceof com.auction.shared.model.user.Bidder bidder) {
             bidder.setAccountBalance(bidder.getAccountBalance() + amount);
-        } else if (latest instanceof com.auction.shared.model.user.Seller seller) {
+        } else if (user instanceof com.auction.shared.model.user.Seller seller) {
             seller.setAccountBalance(seller.getAccountBalance() + amount);
         }
-        boolean updated = updateUser(latest);
+        boolean updated = updateUser(user);
         if (!updated) return false;
         return saveTransaction(new Transaction(
                 0,
-                latest.getId(),
+                user.getId(),
                 amount,
                 "DEPOSIT",
                 "Deposit",
