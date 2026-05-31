@@ -173,24 +173,33 @@ public class AuctionService {
             com.auction.shared.model.user.Seller latestSeller = latestSession.getSeller() != null
                     ? userDAO.getSellerById(latestSession.getSeller().getId())
                     : null;
+            String itemName = latestSession.getItem().getName();
+            String settlementDescription = "#" + latestSession.getId() + " " + itemName;
             double price = latestSession.getCurrentPrice();
             LocalDateTime paidAt = LocalDateTime.now();
 
-            // Thanh toán chỉ chạy một lần trước khi chuyển status sang PAID.
+            // Thanh toán idempotent: nếu transaction của session này đã tồn tại thì không trừ/cộng lần nữa.
             if (latestWinner != null) {
-                latestWinner.setAccountBalance(latestWinner.getAccountBalance() - price);
-                userDAO.updateUser(latestWinner);
-                userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
-                        0, latestWinner.getId(), price, "BID_PAYMENT", latestSession.getItem().getName(), paidAt
-                ));
+                boolean alreadyPaid = userDAO.hasTransaction(latestWinner.getId(), "BID_PAYMENT", settlementDescription)
+                        || userDAO.hasTransaction(latestWinner.getId(), "BID_SUCCESS", itemName);
+                if (!alreadyPaid) {
+                    latestWinner.setAccountBalance(latestWinner.getAccountBalance() - price);
+                    userDAO.updateUser(latestWinner);
+                    userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                            0, latestWinner.getId(), price, "BID_PAYMENT", settlementDescription, paidAt
+                    ));
+                }
                 latestSession.setWinner(latestWinner);
             }
             if (latestSeller != null) {
-                latestSeller.setAccountBalance(latestSeller.getAccountBalance() + price);
-                userDAO.updateUser(latestSeller);
-                userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
-                        0, latestSeller.getId(), price, "AUCTION_SALE", latestSession.getItem().getName(), paidAt
-                ));
+                boolean alreadyReceived = userDAO.hasTransaction(latestSeller.getId(), "AUCTION_SALE", settlementDescription);
+                if (!alreadyReceived) {
+                    latestSeller.setAccountBalance(latestSeller.getAccountBalance() + price);
+                    userDAO.updateUser(latestSeller);
+                    userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                            0, latestSeller.getId(), price, "AUCTION_SALE", settlementDescription, paidAt
+                    ));
+                }
                 latestSession.setSeller(latestSeller);
             }
 

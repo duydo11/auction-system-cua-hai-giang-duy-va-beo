@@ -55,7 +55,7 @@ Hệ thống đấu giá trực tuyến cho phép nhiều người dùng cùng t
 └───────────────────────┬─────────────────────────────────┘
                         │ JDBC
 ┌───────────────────────▼─────────────────────────────────┐
-│           MySQL Database (Aiven Cloud)                   │
+│              MySQL Database (JDBC)                       │
 │  users / items / auction_sessions / bids                 │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -160,7 +160,7 @@ auction-system/
 
 - **Java 21** — khuyến nghị Eclipse Temurin / Adoptium JDK 21.
 - **Maven 3.9+** — dùng để build fat JAR từ source.
-- **Internet ổn định** — database hiện dùng MySQL Aiven Cloud qua SSL.
+- **MySQL 8.0+** — tạo database `auction_system` trước khi chạy server.
 - **Git** — để clone/pull source mới nhất.
 
 Kiểm tra môi trường:
@@ -266,12 +266,24 @@ Ví dụ demo 3 cửa sổ:
 
 ### 6. Database hiện tại
 
-Database đang cấu hình trong server DAO là MySQL Aiven Cloud SSL. Vì vậy:
+Database của server sử dụng **MySQL qua JDBC**. Trước khi chạy server, cần đảm bảo MySQL đang chạy và database đã được tạo đúng tên.
 
-- Cần internet khi chạy server.
-- Lần load đầu có thể chậm hơn local DB.
+Thông tin cấu hình mặc định nằm trong `server/src/main/resources/config.properties`:
+
+```properties
+db.host=localhost
+db.port=3306
+db.name=auction_system
+db.user=root
+db.password=
+```
+
+Các lưu ý chính:
+
+- Tạo database `auction_system` trước khi chạy server.
+- Cập nhật user/password trong file cấu hình nếu MySQL local không dùng `root` hoặc có mật khẩu.
 - Các màn list đã được tối ưu để giảm query N+1.
-- Nếu Aiven hoặc mạng chậm, client có thể load lâu dù chương trình vẫn chạy đúng.
+- Nếu database hoặc server chưa chạy, client sẽ không tải được dashboard/auction list.
 
 Các bảng chính:
 
@@ -310,7 +322,7 @@ SMOKE_TEST_PASS activeAuctions=... allAuctions=... users=...
 |-----|------------|
 | `Connection refused 127.0.0.1:5000` | Chưa chạy server hoặc server crash. Chạy server trước client. |
 | `Socket closed` | Tắt hết client/server cũ, pull source mới, build lại JAR rồi chạy lại. |
-| Load dashboard chậm | Kiểm tra mạng tới Aiven Cloud DB; lần đầu có thể chậm. |
+| Load dashboard chậm | Kiểm tra server và MySQL local; lần đầu tải dữ liệu có thể chậm. |
 | Không thấy auction mới | Kiểm tra server còn chạy, rồi mở lại dashboard/client. |
 | JavaFX không chạy | Kiểm tra đang dùng JDK 21 và đã build đúng client fat JAR. |
 

@@ -561,6 +561,22 @@ public class UserDAO {
         }
     }
 
+    public boolean hasTransaction(int userId, String type, String description) {
+        String sql = "SELECT 1 FROM transactions WHERE user_id = ? AND type = ? AND description = ? LIMIT 1";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setString(2, type);
+            ps.setString(3, description);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public List<Transaction> getTransactionsByUserId(int userId) {
         List<Transaction> list = new ArrayList<>();
         String sql = "SELECT id, user_id, amount, type, description, time FROM transactions WHERE user_id = ? ORDER BY time DESC";

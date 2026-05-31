@@ -22,6 +22,12 @@ public class TransHisCardController {
     public void setTransaction(Transaction trans) {
         String type = trans.getType();
         String desc = trans.getDescription();
+        if (desc != null && desc.startsWith("#")) {
+            int firstSpace = desc.indexOf(' ');
+            if (firstSpace >= 0 && firstSpace + 1 < desc.length()) {
+                desc = desc.substring(firstSpace + 1);
+            }
+        }
         double amount = trans.getAmount();
 
         if (type.equals("DEPOSIT")) {
