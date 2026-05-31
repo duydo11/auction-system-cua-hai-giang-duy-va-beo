@@ -465,18 +465,42 @@ public class UserDAO {
 
     /**
      * Lấy danh sách tất cả user (dành cho Admin dashboard).
+     * Dùng 1 query LEFT JOIN để tránh N+1 round-trips tới DB.
      */
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
-        String sql = "SELECT id FROM users";
+        // 1 query lấy toàn bộ thông tin cần thiết để build User object.
+        String sql = "SELECT u.id, u.username, u.password, u.email, " +
+                     "b.account_balance AS bidder_balance, " +
+                     "s.rating, s.account_balance AS seller_balance, " +
+                     "a.access_level " +
+                     "FROM users u " +
+                     "LEFT JOIN bidders b ON u.id = b.user_id " +
+                     "LEFT JOIN sellers s ON u.id = s.user_id " +
+                     "LEFT JOIN admins a ON u.id = a.user_id " +
+                     "ORDER BY u.id";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                int userId = rs.getInt("id");
-                User user = getUserById(userId);
-                if (user != null) {
-                    users.add(user);
+                int id = rs.getInt("id");
+                String username = rs.getString("username");
+                String password = rs.getString("password");
+                String email = rs.getString("email");
+                String accessLevel = rs.getString("access_level");
+                double sellerBalance = rs.getDouble("seller_balance");
+                double bidderBalance = rs.getDouble("bidder_balance");
+                boolean hasSeller = !rs.wasNull() || rs.getString("rating") != null;
+                // Ưu tiên: Admin > Seller (có row sellers) > Bidder (có row bidders) > fallback Bidder.
+                if (accessLevel != null) {
+                    users.add(new Admin(id, username, password, email, accessLevel));
+                } else if (sellerBalance != 0.0 || rs.getObject("seller_balance") != null) {
+                    double balance = Math.max(sellerBalance, bidderBalance);
+                    double rating = rs.getDouble("rating");
+                    users.add(new Seller(id, username, password, email, rating, balance));
+                } else {
+                    double balance = Math.max(bidderBalance, 0.0);
+                    users.add(new Bidder(id, username, password, email, balance));
                 }
             }
         } catch (SQLException e) {

@@ -125,11 +125,7 @@ public class CategoryManagementController implements Initializable {
             realtimeListener = ignored -> loadAuctionsAsync();
             com.auction.client.RealtimeAuctionBus.addAuctionListener(realtimeListener);
         }
-        refreshTimer = new javafx.animation.Timeline(
-                new javafx.animation.KeyFrame(javafx.util.Duration.seconds(5), event -> loadAuctionsAsync())
-        );
-        refreshTimer.setCycleCount(javafx.animation.Animation.INDEFINITE);
-        refreshTimer.play();
+        // Không dùng polling timer — realtime bus đã push updates khi có thay đổi auction.
     }
 
     public void cleanup() {
