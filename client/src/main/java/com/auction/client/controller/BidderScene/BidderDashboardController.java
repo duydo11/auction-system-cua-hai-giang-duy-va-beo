@@ -163,8 +163,13 @@ public class BidderDashboardController implements Initializable {
     private void setupRealtimeListener() {
         if (realtimeListener != null) return;
         realtimeListener = updatedSession -> {
-            // Push chỉ là tín hiệu có thay đổi; fetch lại active từ server để tránh lệch dữ liệu giữa các cửa sổ.
+            // Push mang theo endTime/currentPrice mới; cập nhật card đang hiển thị ngay để countdown không bị lệch.
             AuctionCache.addOrReplace(updatedSession);
+            ProductCardController visibleCard = cardControllers.get(updatedSession.getId());
+            if (visibleCard != null) {
+                visibleCard.setAuctionSession(updatedSession);
+            }
+            // Fetch lại active từ server ở nền để đồng bộ thứ tự/section sau realtime push.
             loadActiveAuctionsAsync();
         };
         RealtimeAuctionBus.addAuctionListener(realtimeListener);

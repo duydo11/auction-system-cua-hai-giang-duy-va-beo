@@ -316,8 +316,8 @@ SMOKE_TEST_PASS activeAuctions=... allAuctions=... users=...
 
 ### 9. Link báo cáo PDF và video demo
 
-- Báo cáo PDF: **sẽ bổ sung link/file sau khi nhóm xuất bản báo cáo cuối cùng**.
-- Video demo: **sẽ bổ sung link sau khi nhóm quay video demo tối đa 3 phút**.
+- Thư mục nộp báo cáo PDF và video demo: [Google Drive](https://drive.google.com/drive/folders/1ads3lh6ZC7npi7vPYbzs_Hdh2kKdThKO?usp=sharing).
+- Nội dung trong thư mục gồm báo cáo tổng hợp và video demo dự án.
 
 ---
 

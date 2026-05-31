@@ -35,6 +35,9 @@ public class ProductCardController {
     @FXML
     private VBox ProductCard;
     public void setAuctionSession(AuctionSession session) {
+        if (countdownTimer != null) {
+            countdownTimer.stop();
+        }
         this.session = session;
 
         if (session == null) {
