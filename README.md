@@ -21,6 +21,11 @@ Hệ thống đấu giá trực tuyến cho phép nhiều người dùng cùng t
 
 ---
 
+> **📌 Ghi chú nộp bài**  
+> Bản nộp chính đã hoàn thành và push trước deadline. Các commit sau deadline là hotfix để đảm bảo ổn định khi demo (sửa lỗi wallet transaction bị lặp, dashboard countdown sau anti-sniping). Tất cả tính năng chính đã hoàn thiện trước thời hạn nộp.
+
+---
+
 ## ✨ Tính năng
 
 ### Bắt buộc
