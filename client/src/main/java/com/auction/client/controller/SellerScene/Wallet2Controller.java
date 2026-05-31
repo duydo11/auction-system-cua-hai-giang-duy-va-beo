@@ -24,8 +24,10 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.Set;
 
 /**
  * Controller cho màn Wallet (seller).
@@ -132,7 +134,8 @@ public class Wallet2Controller implements Initializable {
 
         // Render transaction history
         containerTrans.getChildren().clear();
-        for (Transaction trans : data.transactions) {
+        List<Transaction> transactions = deduplicateSettlementTransactions(data.transactions);
+        for (Transaction trans : transactions) {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/TransHisCard.fxml"));
                 Node card = loader.load();
@@ -144,6 +147,27 @@ public class Wallet2Controller implements Initializable {
                 e.printStackTrace();
             }
         }
+    }
+
+    private List<Transaction> deduplicateSettlementTransactions(List<Transaction> transactions) {
+        Set<String> seen = new HashSet<>();
+        return transactions.stream()
+                .filter(trans -> {
+                    String type = trans.getType();
+                    if (!"BID_PAYMENT".equals(type) && !"BID_SUCCESS".equals(type) && !"AUCTION_SALE".equals(type)) {
+                        return true;
+                    }
+                    String desc = trans.getDescription() == null ? "" : trans.getDescription();
+                    if (desc.startsWith("#")) {
+                        int firstSpace = desc.indexOf(' ');
+                        if (firstSpace > 0) {
+                            desc = desc.substring(0, firstSpace);
+                        }
+                    }
+                    String key = type + "|" + desc + "|" + String.format("%.2f", trans.getAmount());
+                    return seen.add(key);
+                })
+                .toList();
     }
 
     /**
