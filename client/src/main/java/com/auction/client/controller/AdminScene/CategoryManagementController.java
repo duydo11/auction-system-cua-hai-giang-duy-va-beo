@@ -72,8 +72,12 @@ public class CategoryManagementController implements Initializable {
                 private final Button btnDelete = new Button("Delete");
                 {
                     btnDelete.setOnAction(event -> {
-                        AuctionSession session = getTableView().getItems().get(getIndex());
-                        handleDeleteAuction(session);
+                        // Dùng getTableRow().getItem() thay vì getItems().get(getIndex())
+                        // vì getIndex() không đáng tin cậy khi cell đang ở trạng thái reuse.
+                        AuctionSession session = getTableRow().getItem();
+                        if (session != null) {
+                            handleDeleteAuction(session);
+                        }
                     });
                 }
 
