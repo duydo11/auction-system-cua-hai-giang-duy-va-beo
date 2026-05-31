@@ -209,10 +209,11 @@ public class UserDAO {
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
+                double balance = Math.max(rs.getDouble("account_balance"), readSellerBalance(id));
                 return new Bidder(
                         rs.getInt("id"), rs.getString("username"),
                         rs.getString("password"), rs.getString("email"),
-                        rs.getDouble("account_balance")
+                        balance
                 );
             }
         } catch (SQLException e) {
@@ -229,10 +230,11 @@ public class UserDAO {
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
+                double balance = Math.max(rs.getDouble("account_balance"), readBidderBalance(id));
                 return new Seller(
                         rs.getInt("id"), rs.getString("username"),
                         rs.getString("password"), rs.getString("email"),
-                        rs.getDouble("rating"), rs.getDouble("account_balance")
+                        rs.getDouble("rating"), balance
                 );
             }
         } catch (SQLException e) {
@@ -375,12 +377,8 @@ public class UserDAO {
 
                 if (user instanceof Bidder) {
                     Bidder bidder = (Bidder) user;
-                    String sqlBidder = "UPDATE bidders SET account_balance = ? WHERE user_id = ?";
-                    try (PreparedStatement psBidder = conn.prepareStatement(sqlBidder)) {
-                        psBidder.setDouble(1, bidder.getAccountBalance());
-                        psBidder.setInt(2, bidder.getId());
-                        psBidder.executeUpdate();
-                    }
+                    // Balance là ví chung theo user, nên cập nhật mọi role row đang tồn tại.
+                    updateAllRoleBalances(conn, bidder.getId(), bidder.getAccountBalance());
                 } else if (user instanceof Seller) {
                     Seller seller = (Seller) user;
                     String sqlSeller = "UPDATE sellers SET rating = ?, account_balance = ? WHERE user_id = ?";
@@ -390,6 +388,8 @@ public class UserDAO {
                         psSeller.setInt(3, seller.getId());
                         psSeller.executeUpdate();
                     }
+                    // Balance là ví chung theo user, nên cập nhật cả bidder row nếu user đã switch role.
+                    updateAllRoleBalances(conn, seller.getId(), seller.getAccountBalance());
                 } else if (user instanceof Admin) {
                     Admin admin = (Admin) user;
                     String sqlAdmin = "UPDATE admins SET access_level = ? WHERE user_id = ?";
@@ -408,6 +408,18 @@ public class UserDAO {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void updateAllRoleBalances(Connection conn, int userId, double balance) throws SQLException {
+        try (PreparedStatement psBidder = conn.prepareStatement("UPDATE bidders SET account_balance = ? WHERE user_id = ?");
+             PreparedStatement psSeller = conn.prepareStatement("UPDATE sellers SET account_balance = ? WHERE user_id = ?")) {
+            psBidder.setDouble(1, balance);
+            psBidder.setInt(2, userId);
+            psBidder.executeUpdate();
+            psSeller.setDouble(1, balance);
+            psSeller.setInt(2, userId);
+            psSeller.executeUpdate();
         }
     }
 
