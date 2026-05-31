@@ -1,21 +1,56 @@
 @startuml
-' Component view
-package "Client" {
-    [ClientUI]
-    [Controllers]
-    [ClientConnection]
+' Component view - current codebase
+skinparam componentStyle rectangle
+left to right direction
+
+package "client" {
+  component "JavaFX FXML Views" as V
+  component "Controllers" as C
+  component "ClientProtocolHandler" as CPH
+  component "ClientConnection" as CC
+  component "SocketClient" as SC
+  component "RealtimeAuctionBus" as RAB
+  component "SessionContext / AuctionCache" as ClientState
+
+  V --> C
+  C --> CPH
+  C --> ClientState
+  CPH --> CC
+  CC --> SC
+  SC --> RAB
+  RAB --> C
 }
 
-package "Server" {
-    [AuctionServer]
-    [ProtocolHandler]
-    [Service_Layer]
-    [DAO_Layer]
+package "shared" {
+  component "Domain Models" as SharedModels
+  component "Protocol Messages" as SharedProtocol
+  component "ItemFactory" as SharedFactory
 }
 
-database "MySQL" as DB
+package "server" {
+  component "SocketServer" as SS
+  component "ClientHandler" as CH
+  component "ServerProtocolHandler" as SPH
+  component "ServiceRegistry" as SR
+  component "User/Auction/Bid/AutoBid Services" as SVC
+  component "AuctionScheduler" as AS
+  component "ClientBroadcastHub" as CBH
+  component "DAO Layer" as DAO
 
-[ClientConnection] <-- [AuctionServer]
-[Service_Layer] --> [DAO_Layer]
-[DAO_Layer] --> DB
+  SS --> CH
+  CH --> SPH
+  SPH --> SR
+  SR --> SVC
+  AS --> SVC
+  SVC --> DAO
+  SVC --> CBH
+  CBH --> CH
+}
+
+database "MySQL / Aiven" as DB
+
+SC <--> CH : TCP socket
+DAO --> DB : JDBC
+client ..> shared : uses
+server ..> shared : uses
 @enduml

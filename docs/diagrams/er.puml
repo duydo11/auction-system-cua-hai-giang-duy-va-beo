@@ -1,41 +1,104 @@
 @startuml
-entity USERS {
-  * user_id : INT
+' ER diagram - current database schema + runtime migrations
+hide circle
+skinparam linetype ortho
+
+entity users {
+  * id : varchar
   --
-  username
-  password
-  email
-  full_name
-  phone
-  account_balance
-  registration_date
+  username : varchar
+  password : varchar
+  email : varchar
+  is_banned : boolean
 }
 
-entity AUCTIONS {
-  * auction_id : INT
+entity bidders {
+  * user_id : varchar
   --
-  title
-  description
-  starting_price
-  current_price
-  seller_id
-  status
-  start_date
-  end_date
-  category
-  total_bids
+  account_balance : double
 }
 
-entity BIDS {
-  * bid_id : INT
+entity sellers {
+  * user_id : varchar
   --
-  auction_id
-  bidder_id
-  bid_amount
-  bid_time
+  rating : double
+  account_balance : double
 }
 
-USERS ||--o{ AUCTIONS : "sells"
-AUCTIONS ||--o{ BIDS : "has"
-USERS ||--o{ BIDS : "places"
+entity admins {
+  * user_id : varchar
+  --
+  access_level : varchar
+}
+
+entity items {
+  * id : varchar
+  --
+  name : varchar
+  description : text
+  seller_id : varchar
+}
+
+entity electronics {
+  * item_id : varchar
+  --
+  warranty_months : int
+}
+
+entity arts {
+  * item_id : varchar
+  --
+  author : varchar
+}
+
+entity vehicles {
+  * item_id : varchar
+  --
+  brand : varchar
+}
+
+entity auction_sessions {
+  * id : varchar
+  --
+  item_id : varchar
+  seller_id : varchar
+  winner_id : varchar
+  starting_price : double
+  current_price : double
+  start_time : datetime
+  end_time : datetime
+}
+
+entity bids {
+  * id : varchar
+  --
+  bidder_id : varchar
+  auction_session_id : varchar
+  amount : double
+  time : datetime
+}
+
+entity transactions {
+  * id : int
+  --
+  user_id : varchar
+  amount : double
+  type : varchar
+  description : varchar
+  time : datetime
+}
+
+users ||--o| bidders : has role
+users ||--o| sellers : has role
+users ||--o| admins : has role
+users ||--o{ items : sells
+items ||--o| electronics : subtype
+items ||--o| arts : subtype
+items ||--o| vehicles : subtype
+items ||--o{ auction_sessions : listed in
+users ||--o{ auction_sessions : seller
+users ||--o{ auction_sessions : winner
+auction_sessions ||--o{ bids : contains
+users ||--o{ bids : places
+users ||--o{ transactions : owns
 @enduml

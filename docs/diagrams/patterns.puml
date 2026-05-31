@@ -1,28 +1,59 @@
 @startuml
-' Patterns overview (simplified)
-package "Singleton" {
+' Pattern overview - grounded in current code
+skinparam classAttributeIconSize 0
+left to right direction
+
+package "Factory Method" {
+  class ItemFactory <<Factory Method>> {
+    + create(type, id, name, description, seller, extraParam): Item
+  }
+  abstract class Item
+  class Electronics
+  class Art
+  class Vehicle
+
+  ItemFactory ..> Item : creates
+  Item <|-- Electronics
+  Item <|-- Art
+  Item <|-- Vehicle
+}
+
+package "Singleton / Registry style" {
   class DatabaseConnection <<Singleton>> {
-    + getInstance()
+    + getInstance(): DatabaseConnection
+    + getConnection(): Connection
+  }
+
+  class ClientConnection <<Singleton>> {
+    + getInstance(): ClientConnection
+  }
+
+  class ServiceRegistry <<Registry>> {
+    + USER_SERVICE
+    + AUCTION_SERVICE
+    + BID_SERVICE
+    + AUTO_BID_SERVICE
   }
 }
 
-package "DAO Pattern" {
-  class UserDAO
-  class AuctionDAO
-  class BidDAO
-  class Service
-  Service --> UserDAO
+package "Observer-like / Publish-Subscribe" {
+  class ClientBroadcastHub <<Publisher>> {
+    + broadcast(message): void
+  }
+  class SocketClient <<Subscriber endpoint>>
+  class RealtimeAuctionBus <<Client event bus>> {
+    + register(listener): AutoCloseable
+    + dispatch(message): void
+  }
+  class UIController <<Listener>>
+
+  ClientBroadcastHub ..> SocketClient : push MessageType.*_PUSH
+  SocketClient ..> RealtimeAuctionBus : dispatch
+  RealtimeAuctionBus ..> UIController : notify listeners
 }
 
-package "Command/Factory" {
-  interface Command
-  class MessageFactory
-  MessageFactory --> Command
-}
-
-package "Observer" {
-  class AuctionServer
-  class ClientUI
-  AuctionServer ..> ClientUI : notify()
-}
+note bottom
+MVC and DAO are used as architectural/data-access patterns,
+while this diagram focuses on design-pattern style mechanisms.
+end note
 @enduml

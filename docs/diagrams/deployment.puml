@@ -1,11 +1,25 @@
 @startuml
-node "Client Machine" {
-  component "ClientUI (JAR)" as clientApp
+' Deployment diagram - current runtime view
+node "Client Machine" as ClientNode {
+  artifact "client.jar\n(JavaFX app)" as ClientJar
+  component "FXML resources" as FXML
+  component "client.properties" as ClientProps
 }
-node "Server Machine" {
-  component "AuctionServer (JAR)" as serverApp
-  database "MySQL" as db
+
+node "Server Machine / JVM" as ServerNode {
+  artifact "server.jar" as ServerJar
+  component "SocketServer" as SocketServer
+  component "Service + DAO layer" as ServerLogic
 }
-clientApp --> serverApp : TCP Socket
-serverApp --> db : JDBC
+
+cloud "Aiven Cloud" as Aiven {
+  database "MySQL Database" as DB
+}
+
+ClientJar --> SocketServer : TCP socket / Object streams
+ServerJar --> SocketServer
+SocketServer --> ServerLogic
+ServerLogic --> DB : JDBC SSL
+ClientJar ..> FXML
+ClientJar ..> ClientProps
 @enduml
