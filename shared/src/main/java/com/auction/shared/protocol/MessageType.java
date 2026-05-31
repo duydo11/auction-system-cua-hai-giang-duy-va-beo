@@ -42,6 +42,8 @@ public enum MessageType {
     // Admin
     BAN_USER_REQUEST,
     BAN_USER_RESPONSE,
+    UNBAN_USER_REQUEST,
+    UNBAN_USER_RESPONSE,
     GET_ALL_USERS_REQUEST,
     GET_ALL_USERS_RESPONSE,
 
@@ -54,6 +56,8 @@ public enum MessageType {
     CLOSE_AUCTION_PUSH,
     /** Phiên gia hạn do anti-sniping. */
     AUCTION_EXTENDED_PUSH,
+    /** User bị ban, client cần logout nếu là user này. */
+    USER_BANNED_PUSH,
 
     // User
     GET_USER_INFO_REQUEST,

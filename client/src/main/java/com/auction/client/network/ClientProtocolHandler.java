@@ -297,6 +297,15 @@ public class ClientProtocolHandler {
     }
 
     /**
+     * Unban user (chỉ admin).
+     * @return true nếu thành công
+     */
+    public boolean unbanUser(int userId) {
+        Message response = send(MessageType.UNBAN_USER_REQUEST, String.valueOf(userId));
+        return response != null && response.isSuccess();
+    }
+
+    /**
      * Lấy danh sách tất cả user (chỉ admin).
      * @return danh sách user, empty list nếu thất bại
      */

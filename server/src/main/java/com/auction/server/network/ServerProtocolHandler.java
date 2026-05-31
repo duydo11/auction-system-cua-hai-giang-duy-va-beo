@@ -66,6 +66,7 @@ public class ServerProtocolHandler {
 
                 // Admin
                 case BAN_USER_REQUEST -> handleBanUser(message.getData());
+                case UNBAN_USER_REQUEST -> handleUnbanUser(message.getData());
                 case GET_ALL_USERS_REQUEST -> handleGetAllUsers();
 
                 // User & Balance
@@ -103,6 +104,15 @@ public class ServerProtocolHandler {
         if (user != null) {
             return new Message(MessageType.LOGIN_RESPONSE, user);
         } else {
+            // Check nếu user tồn tại nhưng bị ban.
+            User checkBanned = userService.getUserById(userService.getAllUsers().stream()
+                    .filter(u -> u.getUsername().equals(username))
+                    .findFirst()
+                    .map(User::getId)
+                    .orElse(-1));
+            if (checkBanned != null && checkBanned.isBanned()) {
+                return new Message(MessageType.LOGIN_RESPONSE, "Your account has been banned. Please contact support.");
+            }
             return new Message(MessageType.LOGIN_RESPONSE, "Invalid username or password");
         }
     }
@@ -285,9 +295,22 @@ public class ServerProtocolHandler {
         boolean success = userService.banUser(userId);
         if (success) {
             logger.info("User banned: " + userId);
+            // Broadcast push để client đang online của user này tự logout.
+            ClientBroadcastHub.broadcast(new Message(MessageType.USER_BANNED_PUSH, userId));
             return new Message(MessageType.BAN_USER_RESPONSE, (Object) "User banned successfully");
         } else {
             return new Message(MessageType.BAN_USER_RESPONSE, "Failed to ban user");
+        }
+    }
+
+    private Message handleUnbanUser(Object data) throws Exception {
+        int userId = Integer.parseInt(String.valueOf(data).trim());
+        boolean success = userService.unbanUser(userId);
+        if (success) {
+            logger.info("User unbanned: " + userId);
+            return new Message(MessageType.UNBAN_USER_RESPONSE, (Object) "User unbanned successfully");
+        } else {
+            return new Message(MessageType.UNBAN_USER_RESPONSE, "Failed to unban user");
         }
     }
 

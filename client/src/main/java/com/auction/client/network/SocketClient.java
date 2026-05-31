@@ -110,13 +110,40 @@ public class SocketClient {
                 return;
             }
         }
-        // Server push → dispatch to RealtimeAuctionBus
+        // Server push → dispatch to RealtimeAuctionBus or handle special pushes
         MessageType type = m.getType();
         if (type == MessageType.AUCTION_UPDATED_PUSH
                 || type == MessageType.AUCTION_CREATED_PUSH
                 || type == MessageType.CLOSE_AUCTION_PUSH
                 || type == MessageType.AUCTION_EXTENDED_PUSH) {
             RealtimeAuctionBus.dispatch(m);
+        } else if (type == MessageType.USER_BANNED_PUSH) {
+            handleUserBannedPush(m);
+        }
+    }
+
+    /**
+     * Xử lý push khi user bị ban: nếu là current user thì logout và về login screen.
+     */
+    private void handleUserBannedPush(Message m) {
+        try {
+            int bannedUserId = (Integer) m.getData();
+            com.auction.shared.model.user.User currentUser = com.auction.client.SessionContext.getCurrentUser();
+            if (currentUser != null && currentUser.getId() == bannedUserId) {
+                javafx.application.Platform.runLater(() -> {
+                    com.auction.client.SessionContext.setCurrentUser(null);
+                    com.auction.client.util.SceneNavigator.loadScene(
+                            com.auction.client.util.SceneNavigator.LOGIN, "login");
+                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+                            javafx.scene.control.Alert.AlertType.WARNING);
+                    alert.setTitle("Account Banned");
+                    alert.setHeaderText("Your account has been banned");
+                    alert.setContentText("Your account has been banned by an administrator. Please contact support.");
+                    alert.show();
+                });
+            }
+        } catch (Exception e) {
+            logger.warning("Error handling USER_BANNED_PUSH: " + e.getMessage());
         }
     }
 

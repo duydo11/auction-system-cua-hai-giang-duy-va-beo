@@ -22,7 +22,12 @@ public class UserService {
     }
 
     public User loginUser(String username, String password) {
-        return userDAO.login(username, password);
+        User user = userDAO.login(username, password);
+        if (user != null && user.isBanned()) {
+            // Trả null và để protocol handler trả lỗi rõ ràng.
+            return null;
+        }
+        return user;
     }
 
     public boolean registerUser(String username, String password, String email, String role) {
@@ -55,11 +60,23 @@ public class UserService {
     }
 
     /**
-     * Xóa tài khoản user theo id, không cho xóa admin.
+     * Soft ban user: đặt is_banned = TRUE, không xóa tài khoản.
      */
     public boolean banUser(int userId) {
         try {
             return userDAO.banUser(userId);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Unban user: đặt is_banned = FALSE.
+     */
+    public boolean unbanUser(int userId) {
+        try {
+            return userDAO.unbanUser(userId);
         } catch (RuntimeException e) {
             e.printStackTrace();
             return false;

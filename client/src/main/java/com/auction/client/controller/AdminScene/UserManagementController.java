@@ -83,8 +83,42 @@ public class UserManagementController implements Initializable {
         }
 
         if (colActions != null) {
-            // Tạm thời hiển thị action chữ để người dùng biết cột này có chức năng ban.
-            colActions.setCellValueFactory(cellData -> new SimpleStringProperty("Ban"));
+            // Cột Actions có nút Ban/Unban thật tùy theo trạng thái user.
+            colActions.setCellValueFactory(cellData -> new SimpleStringProperty("Actions"));
+            colActions.setCellFactory(column -> new javafx.scene.control.TableCell<>() {
+                private final javafx.scene.control.Button btnAction = new javafx.scene.control.Button();
+                {
+                    btnAction.setOnAction(event -> {
+                        // Dùng getTableRow().getItem() thay vì getItems().get(getIndex())
+                        // vì getIndex() không đáng tin cậy khi cell đang ở trạng thái reuse.
+                        User user = getTableRow().getItem();
+                        if (user != null) {
+                            handleBanUnbanUser(user);
+                        }
+                    });
+                }
+
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                        setGraphic(null);
+                    } else {
+                        User user = getTableRow().getItem();
+                        // Không cho ban admin hoặc chính mình.
+                        User currentUser = com.auction.client.SessionContext.getCurrentUser();
+                        boolean isAdminOrSelf = user instanceof com.auction.shared.model.user.Admin 
+                                || (currentUser != null && currentUser.getId() == user.getId());
+                        
+                        if (isAdminOrSelf) {
+                            setGraphic(null);
+                        } else {
+                            btnAction.setText(user.isBanned() ? "Unban" : "Ban");
+                            setGraphic(btnAction);
+                        }
+                    }
+                }
+            });
         }
     }
     
@@ -138,6 +172,52 @@ public class UserManagementController implements Initializable {
     /**
      * Ban selected user.
      */
+    /**
+     * Handle ban/unban user từ Actions button.
+     */
+    private void handleBanUnbanUser(User user) {
+        if (lblMessage == null) {
+            return;
+        }
+        
+        boolean isBanned = user.isBanned();
+        String action = isBanned ? "unban" : "ban";
+        String actionCap = isBanned ? "Unban" : "Ban";
+        
+        // Confirm dialog
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Confirm");
+        confirm.setHeaderText(actionCap + " user: " + user.getUsername());
+        confirm.setContentText("Are you sure you want to " + action + " this user?");
+        
+        if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
+            return;
+        }
+        
+        lblMessage.setText(actionCap + "ning user...");
+        lblMessage.setStyle("-fx-text-fill: #1976d2;");
+        
+        // Gọi backend ở background thread
+        FxAsync.run("admin-" + action + "-user",
+                () -> isBanned ? protocol.unbanUser(user.getId()) : protocol.banUser(user.getId()),
+                success -> {
+                    if (success) {
+                        lblMessage.setText(actionCap + "ned user: " + user.getUsername());
+                        lblMessage.setStyle("-fx-text-fill: #2e7d32;");
+                        
+                        // Reload table
+                        loadAllUsersAsync();
+                    } else {
+                        lblMessage.setText("Could not " + action + " user (server error)");
+                        lblMessage.setStyle("-fx-text-fill: #c62828;");
+                    }
+                },
+                error -> {
+                    lblMessage.setText("Error: " + error);
+                    lblMessage.setStyle("-fx-text-fill: #c62828;");
+                });
+    }
+    
     @FXML
     private void handleBanUser() {
         if (tableUsers == null || lblMessage == null) {
@@ -151,51 +231,7 @@ public class UserManagementController implements Initializable {
             return;
         }
         
-        // Confirm dialog
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirm");
-        confirm.setHeaderText("Ban user: " + selected.getUsername());
-        confirm.setContentText("Are you sure you want to ban this user?");
-        
-        if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
-            return;
-        }
-        
-        // Disable button để tránh double-click
-        if (btnBan != null) {
-            btnBan.setDisable(true);
-        }
-        
-        lblMessage.setText("Banning user...");
-        lblMessage.setStyle("-fx-text-fill: #1976d2;");
-        
-        // Gọi backend ở background thread
-        FxAsync.run("admin-ban-user",
-                () -> protocol.banUser(selected.getId()),
-                success -> {
-                    if (success) {
-                        lblMessage.setText("Banned user: " + selected.getUsername());
-                        lblMessage.setStyle("-fx-text-fill: #2e7d32;");
-                        
-                        // Reload table
-                        loadAllUsersAsync();
-                    } else {
-                        lblMessage.setText("Could not ban user (server error)");
-                        lblMessage.setStyle("-fx-text-fill: #c62828;");
-                        
-                        if (btnBan != null) {
-                            btnBan.setDisable(false);
-                        }
-                    }
-                },
-                error -> {
-                    lblMessage.setText("Error: " + error);
-                    lblMessage.setStyle("-fx-text-fill: #c62828;");
-                    
-                    if (btnBan != null) {
-                        btnBan.setDisable(false);
-                    }
-                });
+        handleBanUnbanUser(selected);
     }
     
     /**

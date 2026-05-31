@@ -60,12 +60,13 @@ public class Wallet2Controller implements Initializable {
         var u = SessionContext.getCurrentUser();
         if (u == null) return;
 
-        // Hiển thị trạng thái loading
-        showLoadingState();
+        // Hiển thị ngay số dư từ SessionContext để không phải chờ network.
+        renderInstantBalance(u);
 
-        // Fetch user info và transactions ở background
+        // Chỉ fetch user info và transactions ở background để refresh.
         FxAsync.run("seller-wallet-load",
                 () -> {
+                    // Lấy user mới nhất để cập nhật balance nếu có thay đổi.
                     User latest = protocol.getUserInfo(u.getId());
                     if (latest == null) latest = u;
                     
@@ -81,13 +82,26 @@ public class Wallet2Controller implements Initializable {
     }
 
     /**
-     * Hiển thị trạng thái loading.
+     * Render balance ngay từ session context, không cần chờ network.
      */
-    private void showLoadingState() {
-        lblTotalBalance.setText("Loading...");
-        lblAvailabe.setText("Loading...");
+    private void renderInstantBalance(User u) {
+        double balance = extractBalance(u);
+        lblTotalBalance.setText("$" + String.format("%,.2f", balance));
+        lblAvailabe.setText("$" + String.format("%,.2f", balance));
         lblReserved.setText("$0.00");
-        containerTrans.getChildren().clear();
+    }
+
+    /**
+     * Trích xuất balance từ user object bất kể role type (Bidder/Seller).
+     * Cần thiết vì SessionContext có thể giữ Bidder object cho dual-role account.
+     */
+    private double extractBalance(User u) {
+        if (u instanceof Seller seller) {
+            return seller.getAccountBalance();
+        } else if (u instanceof com.auction.shared.model.user.Bidder bidder) {
+            return bidder.getAccountBalance();
+        }
+        return 0.0;
     }
 
     /**
@@ -104,17 +118,11 @@ public class Wallet2Controller implements Initializable {
      */
     private void renderWalletData(WalletData data) {
         User u = data.user;
-        System.out.println("Wallet updated! New Balance: " + ((Seller)u).getAccountBalance());
 
         SessionContext.setCurrentUser(u);
-        SessionContext.setCurrentUser(u);
 
-        double totalBalance = 0.0;
+        double totalBalance = extractBalance(u);
         double reservedBalance = 0.0; // Sellers không đặt bid nên không có reserved
-
-        if (u instanceof Seller seller) {
-            totalBalance = seller.getAccountBalance();
-        }
 
         double availableBalance = totalBalance - reservedBalance;
 

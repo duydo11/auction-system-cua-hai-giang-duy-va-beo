@@ -14,12 +14,14 @@ public abstract class User extends Entity {
     private String username;
     private String password;
     private String email;
+    private boolean banned;
 
     public User(int id, String username, String password, String email) {
         super(id);
         this.username = username;
         this.password = password;
         this.email = email;
+        this.banned = false;
     }
 
     public abstract String getRoleName();
