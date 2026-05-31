@@ -44,6 +44,8 @@ public class AutoBidService {
         return t;
     });
     private static final long DEFAULT_AUTO_BID_DELAY_SECONDS = 5;
+    private static final long SNIPE_WINDOW_SEC = 30;
+    private static final long EXTENSION_SEC = 60;
     private final long autoBidDelaySeconds;
 
     private final AuctionSessionDAO auctionSessionDAO;
@@ -210,6 +212,7 @@ public class AutoBidService {
 
             session.updateCurrentPrice(autoBid);
             bidDAO.saveBid(autoBid, sessionId);
+            checkAndExtendForAntiSnipe(session);
             auctionSessionDAO.updateSession(session);
             ClientBroadcastHub.broadcast(new Message(MessageType.AUCTION_UPDATED_PUSH, session));
 
@@ -226,6 +229,19 @@ public class AutoBidService {
         }
 
         return placedBid && hasPotentialResponder(sessionId);
+    }
+
+    private void checkAndExtendForAntiSnipe(AuctionSession session) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endTime = session.getEndTime();
+        long secondsRemaining = java.time.temporal.ChronoUnit.SECONDS.between(now, endTime);
+        if (secondsRemaining >= 0 && secondsRemaining <= SNIPE_WINDOW_SEC) {
+            LocalDateTime newEndTime = endTime.plusSeconds(EXTENSION_SEC);
+            session.setEndTime(newEndTime);
+            ClientBroadcastHub.broadcast(new Message(MessageType.AUCTION_EXTENDED_PUSH, session));
+            logger.info("Anti-snipe triggered by auto-bid for auction #" + session.getId()
+                    + " | Extended by " + EXTENSION_SEC + "s | New end time: " + newEndTime);
+        }
     }
 
     private boolean hasPotentialResponder(int sessionId) {

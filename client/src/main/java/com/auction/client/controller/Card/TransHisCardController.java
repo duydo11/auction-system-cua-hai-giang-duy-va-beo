@@ -32,16 +32,14 @@ public class TransHisCardController {
             lblTransTit.setText("Withdraw");
             lblTransAmount.setText("-$" + String.format("%,.2f", amount));
             lblTransAmount.setStyle("-fx-text-fill: red;");
-        } else if (type.equals("BID_SUCCESS")) {
+        } else if (type.equals("BID_PAYMENT") || type.equals("BID_SUCCESS")) {
             lblTransTit.setText("Successfully bid for " + desc);
-            boolean isBidder = com.auction.client.SessionContext.getCurrentUser() instanceof com.auction.shared.model.user.Bidder;
-            if (isBidder) {
-                lblTransAmount.setText("-$" + String.format("%,.2f", amount));
-                lblTransAmount.setStyle("-fx-text-fill: red;");
-            } else {
-                lblTransAmount.setText("+$" + String.format("%,.2f", amount));
-                lblTransAmount.setStyle("-fx-text-fill: green;");
-            }
+            lblTransAmount.setText("-$" + String.format("%,.2f", amount));
+            lblTransAmount.setStyle("-fx-text-fill: red;");
+        } else if (type.equals("AUCTION_SALE")) {
+            lblTransTit.setText("Auction sale for " + desc);
+            lblTransAmount.setText("+$" + String.format("%,.2f", amount));
+            lblTransAmount.setStyle("-fx-text-fill: green;");
         }
 
         if (trans.getTime() != null) {

@@ -9,8 +9,11 @@ import com.auction.shared.model.item.Item;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AuctionService {
+    private static final ConcurrentHashMap<Integer, Object> SETTLEMENT_LOCKS = new ConcurrentHashMap<>();
+
     private final AuctionSessionDAO auctionSessionDAO = new AuctionSessionDAO();
     private final ItemDAO itemDAO = new ItemDAO();
     private final UserDAO userDAO = new UserDAO();
@@ -147,45 +150,54 @@ public class AuctionService {
         if (session == null || session.getEndTime() == null || LocalDateTime.now().isBefore(session.getEndTime())) {
             return session;
         }
-        AuctionStatus current = session.getStatus();
-        if (current == AuctionStatus.CANCELED || current == AuctionStatus.PAID || current == AuctionStatus.FINISHED) {
-            return session;
-        }
+        synchronized (SETTLEMENT_LOCKS.computeIfAbsent(session.getId(), id -> new Object())) {
+            AuctionSession latestSession = auctionSessionDAO.getSessionById(session.getId());
+            if (latestSession == null || latestSession.getEndTime() == null
+                    || LocalDateTime.now().isBefore(latestSession.getEndTime())) {
+                return latestSession != null ? latestSession : session;
+            }
 
-        if (session.getWinner() == null) {
-            session.setStatus(AuctionStatus.FINISHED);
-            auctionSessionDAO.updateSession(session);
-            return session;
-        }
+            AuctionStatus current = latestSession.getStatus();
+            if (current == AuctionStatus.CANCELED || current == AuctionStatus.PAID || current == AuctionStatus.FINISHED) {
+                return latestSession;
+            }
 
-        // getSellerById/getBidderById đảm bảo trả về đúng type dù user vừa là bidder vừa là seller.
-        com.auction.shared.model.user.Bidder latestWinner = userDAO.getBidderById(session.getWinner().getId());
-        com.auction.shared.model.user.Seller latestSeller = session.getSeller() != null
-                ? userDAO.getSellerById(session.getSeller().getId())
-                : null;
-        double price = session.getCurrentPrice();
+            if (latestSession.getWinner() == null) {
+                latestSession.setStatus(AuctionStatus.FINISHED);
+                auctionSessionDAO.updateSession(latestSession);
+                return latestSession;
+            }
 
-        // Thanh toán chỉ chạy một lần trước khi chuyển status sang PAID.
-        if (latestWinner != null) {
-            latestWinner.setAccountBalance(latestWinner.getAccountBalance() - price);
-            userDAO.updateUser(latestWinner);
-            userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
-                    0, latestWinner.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
-            ));
-            session.setWinner(latestWinner);
-        }
-        if (latestSeller != null) {
-            latestSeller.setAccountBalance(latestSeller.getAccountBalance() + price);
-            userDAO.updateUser(latestSeller);
-            userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
-                    0, latestSeller.getId(), price, "BID_SUCCESS", session.getItem().getName(), LocalDateTime.now()
-            ));
-            session.setSeller(latestSeller);
-        }
+            // getSellerById/getBidderById đảm bảo trả về đúng type dù user vừa là bidder vừa là seller.
+            com.auction.shared.model.user.Bidder latestWinner = userDAO.getBidderById(latestSession.getWinner().getId());
+            com.auction.shared.model.user.Seller latestSeller = latestSession.getSeller() != null
+                    ? userDAO.getSellerById(latestSession.getSeller().getId())
+                    : null;
+            double price = latestSession.getCurrentPrice();
+            LocalDateTime paidAt = LocalDateTime.now();
 
-        session.setStatus(AuctionStatus.PAID);
-        auctionSessionDAO.updateSession(session);
-        return session;
+            // Thanh toán chỉ chạy một lần trước khi chuyển status sang PAID.
+            if (latestWinner != null) {
+                latestWinner.setAccountBalance(latestWinner.getAccountBalance() - price);
+                userDAO.updateUser(latestWinner);
+                userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                        0, latestWinner.getId(), price, "BID_PAYMENT", latestSession.getItem().getName(), paidAt
+                ));
+                latestSession.setWinner(latestWinner);
+            }
+            if (latestSeller != null) {
+                latestSeller.setAccountBalance(latestSeller.getAccountBalance() + price);
+                userDAO.updateUser(latestSeller);
+                userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                        0, latestSeller.getId(), price, "AUCTION_SALE", latestSession.getItem().getName(), paidAt
+                ));
+                latestSession.setSeller(latestSeller);
+            }
+
+            latestSession.setStatus(AuctionStatus.PAID);
+            auctionSessionDAO.updateSession(latestSession);
+            return latestSession;
+        }
     }
 
     public boolean cancelAuction(int sessionId) {
