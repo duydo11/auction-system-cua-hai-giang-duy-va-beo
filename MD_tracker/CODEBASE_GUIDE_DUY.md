@@ -437,28 +437,120 @@ public class AuctionScheduler {
 }
 ```
 
-### `scanAndCloseExpired()`:
+### `scanAndCloseExpired()` — Logic đầy đủ (cập nhật theo code thực tế):
+
 ```java
 private void scanAndCloseExpired() {
-    List<AuctionSession> activeSessions = auctionSessionDAO.findAllActiveSessions();
-    LocalDateTime now = LocalDateTime.now();
-    
-    for (AuctionSession session : activeSessions) {
-        // Nếu hết giờ VÀ chưa FINISHED
-        if (now.isAfter(session.getEndTime()) 
-            && (status == OPEN || status == RUNNING)) {
-            
-            session.setStatus(AuctionStatus.FINISHED);
-            auctionSessionDAO.updateSession(session);
-            
-            // Broadcast push: "phiên #X đã đóng!"
-            ClientBroadcastHub.broadcast(
-                new Message(MessageType.CLOSE_AUCTION_PUSH, session)
-            );
+    try {
+        // 1. Load tất cả phiên chưa kết thúc (OPEN, RUNNING)
+        List<AuctionSession> activeSessions = auctionSessionDAO.findAllUnfinishedSessions();
+        LocalDateTime now = LocalDateTime.now();
+        UserDAO userDAO = new UserDAO();
+
+        // 2. Duyệt từng phiên
+        for (AuctionSession session : activeSessions) {
+            // 3. Kiểm tra xem phiên đã hết giờ chưa
+            if (now.isAfter(session.getEndTime())) {
+                User winner = session.getWinner();
+                User seller = session.getSeller();
+                double price = session.getCurrentPrice();
+
+                // 4. Nếu có winner → thanh toán + set status PAID
+                if (winner != null) {
+                    session.setStatus(AuctionStatus.PAID);
+
+                    // 5. Trừ tiền từ winner (bidder)
+                    if (winner instanceof com.auction.shared.model.user.Bidder) {
+                        com.auction.shared.model.user.Bidder bidder = 
+                            (com.auction.shared.model.user.Bidder) winner;
+                        bidder.setAccountBalance(bidder.getAccountBalance() - price);
+                        userDAO.updateUser(bidder);
+
+                        // 6. Lưu transaction cho winner
+                        // ⚠️ CHÚ Ý: Dùng type "BID_SUCCESS" (convention cũ)
+                        // Khác với AuctionService.settleAuctionIfExpired() dùng "BID_PAYMENT"
+                        userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                            0, bidder.getId(), price, "BID_SUCCESS", 
+                            session.getItem().getName(), LocalDateTime.now()
+                        ));
+                    }
+
+                    // 7. Cộng tiền cho seller
+                    if (seller instanceof com.auction.shared.model.user.Seller) {
+                        com.auction.shared.model.user.Seller sel = 
+                            (com.auction.shared.model.user.Seller) seller;
+                        sel.setAccountBalance(sel.getAccountBalance() + price);
+                        userDAO.updateUser(sel);
+
+                        // 8. Lưu transaction cho seller
+                        // ⚠️ CHÚ Ý: Dùng type "BID_SUCCESS" (convention cũ)
+                        // Khác với AuctionService.settleAuctionIfExpired() dùng "AUCTION_SALE"
+                        userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                            0, sel.getId(), price, "BID_SUCCESS", 
+                            session.getItem().getName(), LocalDateTime.now()
+                        ));
+                    }
+                } else {
+                    // 9. Không có winner → chỉ set status FINISHED
+                    session.setStatus(AuctionStatus.FINISHED);
+                }
+
+                // 10. Cập nhật session vào DB
+                auctionSessionDAO.updateSession(session);
+
+                // 11. Broadcast push tới tất cả clients
+                ClientBroadcastHub.broadcast(
+                    new Message(MessageType.CLOSE_AUCTION_PUSH, session)
+                );
+
+                // 12. Log
+                logger.info("Auto-closed auction #" + session.getId() +
+                        " | Winner: " + (winner != null ? winner.getUsername() : "None"));
+            }
         }
+    } catch (Exception e) {
+        logger.log(Level.WARNING, "Error scanning expired auctions", e);
     }
 }
 ```
+
+**Giải thích chi tiết:**
+
+**Bước 1:** Load phiên chưa kết thúc
+- ⚠️ **Quan trọng:** Dùng `findAllUnfinishedSessions()` (không phải `findAllActiveSessions()`)
+- Method này trả về phiên có status OPEN hoặc RUNNING
+- File: `server/dao/AuctionSessionDAO.java`
+
+**Bước 4-8:** Settlement logic
+- ⚠️ **Khác biệt quan trọng:** AuctionScheduler có FULL settlement logic
+- Trừ tiền từ winner, cộng tiền cho seller
+- Tạo wallet transactions
+- Set status thành PAID (không phải FINISHED)
+
+**Bước 6 & 8:** ⚠️ Transaction type inconsistency
+- AuctionScheduler dùng type **"BID_SUCCESS"** cho CẢ buyer và seller (convention cũ)
+- AuctionService.settleAuctionIfExpired() dùng **"BID_PAYMENT"** (buyer) và **"AUCTION_SALE"** (seller) (convention mới)
+- **Đây là inconsistency trong code thực tế!**
+- Lý do: AuctionScheduler được viết trước, chưa được update sang convention mới
+- Kết quả: Transaction từ scheduler sẽ hiển thị sai màu trong wallet UI (cả buyer và seller đều đỏ)
+
+**Bước 9:** Không có winner
+- Nếu phiên hết giờ mà không có bid nào → set status FINISHED
+- Không có settlement logic
+
+**So sánh với AuctionService.settleAuctionIfExpired():**
+| Aspect | AuctionScheduler | AuctionService |
+|--------|------------------|----------------|
+| Trigger | Tự động mỗi 10s | Gọi từ BidService/client request |
+| Transaction type | "BID_SUCCESS" (cũ) | "BID_PAYMENT", "AUCTION_SALE" (mới) |
+| Idempotency | ❌ Không có | ✅ Có (check hasTransaction) |
+| Description format | Item name only | "#sessionId itemName" |
+
+**Tại sao có 2 settlement paths?**
+- AuctionScheduler: Backup mechanism, đảm bảo phiên hết giờ luôn được đóng
+- AuctionService: Primary mechanism, được gọi khi client request hoặc realtime update
+- Trong thực tế, cả 2 có thể chạy → cần idempotency (nhưng AuctionScheduler chưa có!)
+
 
 **Tại sao dùng daemon thread?**  
 `t.setDaemon(true)` → thread tự tắt khi JVM exit. Không cần phải gọi `stop()` thủ công khi tắt server.
