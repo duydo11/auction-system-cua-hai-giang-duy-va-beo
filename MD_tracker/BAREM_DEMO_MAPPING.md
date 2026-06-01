@@ -406,6 +406,188 @@ UI nhập bid → ClientProtocolHandler → SocketClient → ServerProtocolHandl
 
 ---
 
+# VIII. Gợi ý chia role khi nói demo
+
+> Phần này chỉ là gợi ý nếu cả nhóm muốn chia lời nói cho đều. Phần mapping barem ở trên vẫn là phần chính để đối chiếu với thang điểm.
+
+## Hải — Domain model + business logic
+
+Nên nói trong khoảng 1.5–2 phút:
+
+1. Cây kế thừa `User` và `Item`.
+2. `AuctionSession` là domain trung tâm của phiên đấu giá.
+3. Rule nghiệp vụ: kiểm tra trạng thái, cập nhật giá hiện tại, winner.
+4. `AuctionService` quản lý item/session.
+5. Custom exception và validate nghiệp vụ.
+
+Câu chốt:
+
+> Phần này đảm bảo domain model rõ ràng, áp dụng OOP đúng và các rule đấu giá nằm ở backend/model thay vì để UI tự quyết định.
+
+## Duy — Concurrency + tests + CI/CD + logic nâng cao
+
+Nên nói trong khoảng 1.5–2 phút:
+
+1. Lock per-session trong `BidService` để tránh race condition.
+2. Stress test nhiều thread cho concurrent bidding.
+3. Auto-bidding với `maxBid`, `increment`, priority queue.
+4. Anti-sniping gia hạn phiên khi bid sát giờ cuối.
+5. Unit test và GitHub Actions.
+
+Câu chốt:
+
+> Phần này đảm bảo hệ thống ổn định khi nhiều người bid đồng thời, có kiểm thử tự động và có các tính năng nâng cao đúng barem.
+
+## Hoàng — Socket + protocol + realtime
+
+Nên nói trong khoảng 1.5–2 phút:
+
+1. Kiến trúc TCP Socket client-server.
+2. `Message` và `MessageType` làm protocol chung.
+3. `ClientProtocolHandler` đóng gói API call phía client.
+4. `ServerProtocolHandler` route request phía server.
+5. `ClientBroadcastHub` và `SocketClient` xử lý realtime push.
+
+Câu chốt:
+
+> Phần này giúp client-server tách biệt rõ ràng, đồng thời hỗ trợ realtime update để mọi client thấy giá mới ngay.
+
+## Giang — JavaFX UI + MVC + data binding
+
+Nên nói trong khoảng 1.5–2 phút:
+
+1. FXML là View, Controller xử lý event và bind data.
+2. Dashboard theo 3 role: Bidder, Seller, Admin.
+3. Controller gọi API qua `ClientProtocolHandler`.
+4. Product card, wallet, detail auction, bid history chart.
+5. Realtime update UI qua `RealtimeAuctionBus` và `Platform.runLater()`.
+
+Câu chốt:
+
+> Phần này biến dữ liệu backend thành giao diện trực quan, có dashboard theo role, component tái sử dụng và cập nhật realtime.
+
+---
+
+# IX. Script demo thực tế theo flow 5–7 phút
+
+## Flow demo khuyến nghị
+
+1. **Mở README** và nói kiến trúc tổng quát:
+   > Đây là project Java 21 multi-module gồm `shared`, `server`, `client`. Client JavaFX giao tiếp server qua TCP Socket, server xử lý qua Service/DAO và lưu MySQL.
+
+2. **Chạy server trước**:
+   > Server mở socket, khởi tạo service/DAO và scheduler để tự scan phiên đấu giá hết hạn.
+
+3. **Chạy 2 client**:
+   > Một client đăng nhập Seller, một client đăng nhập Bidder để chứng minh realtime.
+
+4. **Seller tạo auction**:
+   > Dữ liệu từ FXML đi vào Controller, sau đó qua `ClientProtocolHandler`, socket, `ServerProtocolHandler`, `AuctionService`, DAO rồi vào DB.
+
+5. **Bidder thấy auction mới / đặt giá**:
+   > Khi bid thành công, server lưu bid, update current price/winner và broadcast push để client khác tự cập nhật.
+
+6. **Mở detail để chỉ chart/history/countdown**:
+   > Bid history lấy từ `BidDAO`, controller bind vào `LineChart`. Countdown dùng `endTime` của `AuctionSession`.
+
+7. **Nói nâng cao**:
+   > Nếu bật auto-bid thì `AutoBidService` tự đặt giá tiếp theo. Nếu bid trong 30 giây cuối thì anti-sniping tự gia hạn thêm 60 giây.
+
+---
+
+# X. Câu trả lời cứu nguy khi bị hỏi khó
+
+## Nếu thầy hỏi: “Project này khác CRUD thường ở đâu?”
+
+> Khác ở logic realtime và concurrency. CRUD chỉ thêm/sửa/xóa dữ liệu, còn đấu giá cần xử lý nhiều người bid đồng thời, tránh race condition, update giá realtime cho nhiều client, tự đóng phiên, settlement ví và các tính năng nâng cao như auto-bid, anti-sniping.
+
+## Nếu thầy hỏi: “Tại sao không dùng REST API?”
+
+> Vì bài toán cần realtime push. Với TCP Socket, server có thể chủ động gửi thông báo giá mới tới tất cả client mà client không phải polling liên tục. REST vẫn làm được nếu kết hợp WebSocket, nhưng trong phạm vi môn học, TCP Socket giúp nhóm tự thiết kế protocol và hiểu rõ client-server hơn.
+
+## Nếu thầy hỏi: “Nếu mất mạng giữa chừng thì sao?”
+
+> `SocketClient` có reader thread và xử lý connection loss. Nếu socket lỗi thì các pending request được fail, UI có thể hiển thị lỗi. Đây là mức xử lý phù hợp cho project mô phỏng; nếu production thì sẽ bổ sung reconnect/backoff đầy đủ hơn.
+
+## Nếu thầy hỏi: “Lock in-memory có đủ không?”
+
+> Với một server instance như project hiện tại thì đủ để tránh race condition trong cùng process. Nếu scale nhiều server instance, cần chuyển sang database transaction isolation, distributed lock hoặc optimistic locking bằng version column.
+
+## Nếu thầy hỏi: “Auto-bid có thể tạo vòng lặp vô hạn không?”
+
+> Logic auto-bid bị giới hạn bởi `maxBid`, `increment` và current price. Mỗi lần tạo bid mới đều phải validate không vượt maxBid và cao hơn giá hiện tại, nên không thể tăng vô hạn nếu config đúng.
+
+## Nếu thầy hỏi: “Có xử lý double settlement chưa?”
+
+> Nhóm có ghi nhận và fix theo hướng idempotency: khi auction đã settlement thì không tạo transaction lặp. Phần này được document trong `DATABASE_ISSUES_LOG.md` vì đây là lỗi database quan trọng từng gặp.
+
+## Nếu thầy hỏi: “Tại sao UI không gọi DAO trực tiếp?”
+
+> Vì như vậy phá kiến trúc Client-Server và làm lộ database cho client. Client chỉ nên biết protocol/API; server mới có quyền validate nghiệp vụ và truy cập DB.
+
+## Nếu thầy hỏi: “Phần nào chứng minh Observer?”
+
+> Server có `ClientBroadcastHub` giữ danh sách client và broadcast message. Client có `RealtimeAuctionBus` để các controller đăng ký listener. Khi có push, bus notify các listener để update UI. Đây là đúng tinh thần Observer: subject phát sự kiện, observers phản ứng.
+
+---
+
+# XI. Mở file nhanh khi bị hỏi
+
+| Thầy hỏi về | Mở file nhanh |
+|---|---|
+| Cây kế thừa user/item | `shared/model/user/`, `shared/model/item/` |
+| Rule đấu giá | `AuctionSession.java`, `BidService.java` |
+| Đặt bid từ UI | `AuctionDetailsforBidderController.java` |
+| API call client | `ClientProtocolHandler.java` |
+| Socket client | `SocketClient.java` |
+| Server route request | `ServerProtocolHandler.java` |
+| Broadcast realtime | `ClientBroadcastHub.java`, `RealtimeAuctionBus.java` |
+| Database | `UserDAO.java`, `ItemDAO.java`, `AuctionSessionDAO.java`, `BidDAO.java` |
+| Auto-bid | `AutoBidService.java`, `AutoBidConfig.java` |
+| Anti-sniping | `BidService.java`, `AntiSnipingTest.java` |
+| Concurrency | `BidService.java`, `ConcurrencyStressTest.java` |
+| Unit test | `server/src/test/java/com/auction/server/service/` |
+| CI/CD | `.github/workflows/maven.yml` |
+| JavaFX MVC | `client/resources/fxml/`, `client/controller/` |
+| Bid chart | `AuctionDetailsforBidderController.java`, `BidDAO.java` |
+| Wallet/transaction | `Wallet1Controller.java`, `Wallet2Controller.java`, `UserDAO.java`, `Transaction.java` |
+
+---
+
+# XII. Các câu nên tránh nói
+
+- Không nên nói: “UI tự xử lý đúng sai của bid.”
+  - Nên nói: “UI validate cơ bản, backend mới quyết định hợp lệ.”
+
+- Không nên nói: “Realtime là client tự refresh liên tục.”
+  - Nên nói: “Server push qua socket, client listener nhận và update UI.”
+
+- Không nên nói: “Auto-bid là AI.”
+  - Nên nói: “Auto-bid là rule-based automation theo maxBid/increment.”
+
+- Không nên nói: “Đã production-ready hoàn toàn.”
+  - Nên nói: “Đủ phạm vi bài tập; production thật cần payment gateway, distributed lock, security hardening.”
+
+- Không nên nói: “Test chỉ để có điểm.”
+  - Nên nói: “Test tập trung vào logic dễ lỗi: bid, auto-bid, anti-sniping, concurrency.”
+
+---
+
+# XIII. Mini answer theo từng keyword
+
+- **Encapsulation:** private field + getter/setter, không expose trực tiếp state.
+- **Inheritance:** `User`/`Item` có subclass theo role/category.
+- **Polymorphism:** code xử lý kiểu cha nhưng runtime là subclass.
+- **Abstraction:** lớp nền gom thuộc tính/hành vi chung.
+- **Factory:** `ItemFactory` tạo item đúng category.
+- **Observer:** broadcast hub + realtime bus.
+- **Concurrency:** lock per-session, stress test nhiều thread.
+- **MVC:** FXML là View, Controller xử lý event, Model ở `shared`.
+- **DAO:** gom SQL, service không viết SQL trực tiếp.
+- **CI/CD:** GitHub Actions tự build/test.
+
+---
+
 **File liên quan nên mở cùng:**
 
 - `README.md`
