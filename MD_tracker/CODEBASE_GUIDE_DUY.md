@@ -88,48 +88,121 @@ Lock per-session:
   User C bid phiên #1 → LOCK(session#1) → PHẢI CHỜ user A ← Đúng! Cùng phiên
 ```
 
-### `placeBid()` — Logic đầy đủ:
+### `placeBid()` — Logic đầy đủ (cập nhật theo code thực tế):
 
 ```java
 public boolean placeBid(int sessionId, int bidderId, double amount) {
     synchronized (lockForSession(sessionId)) {
         // ==== Chỉ 1 thread vào đây cùng lúc (cho cùng sessionId) ====
         
-        // 1. Load session từ DB (mới nhất)
+        // 1. Load session và bidder từ DB (mới nhất)
         AuctionSession session = auctionSessionDAO.getSessionById(sessionId);
-        if (session == null) return false;
-        
-        // 2. Load bidder từ DB
         User bidder = userDAO.getUserById(bidderId);
-        if (bidder == null) return false;
         
-        // 3. Tạo Bid object
+        // 2. Kiểm tra cả 2 cùng lúc — nếu thiếu 1 trong 2 → reject ngay
+        if (session == null || bidder == null) {
+            return false;
+        }
+        
+        // 3. Ghi nhớ số lượng bid TRƯỚC khi thử
+        // Dùng để kiểm tra xem updateCurrentPrice() có chấp nhận bid không
+        int bidsBefore = session.getBids().size();
+        
+        // 4. Tạo Bid object với ID mới từ DB
         int bidId = bidDAO.allocateNextBidId();
         Bid bid = new Bid(bidId, bidder, session, amount);
         
-        // 4. Ghi nhớ số lượng bid TRƯỚC khi thử
-        int beforeCount = session.getBids().size();
-        
-        // 5. Thử cập nhật giá (validate bên trong AuctionSession)
+        // 5. Thử cập nhật giá (validate bên trong AuctionSession.updateCurrentPrice)
         session.updateCurrentPrice(bid);
-        // updateCurrentPrice kiểm tra:
+        // updateCurrentPrice() kiểm tra:
         //   - session.isActive() (thời gian + status)
         //   - amount > currentPrice
-        //   - time trong phạm vi start-end
+        //   - bid time trong phạm vi start-end
+        // Nếu hợp lệ → thêm bid vào session.bids list
+        // Nếu không hợp lệ → KHÔNG thêm (size không đổi)
         
-        // 6. Nếu bids.size() tăng → bid được chấp nhận
-        if (session.getBids().size() > beforeCount) {
-            bidDAO.saveBid(bid, sessionId);           // Lưu bid vào DB
-            checkAndExtendForAntiSnipe(session);      // Check anti-snipe
-            auctionSessionDAO.updateSession(session);  // Cập nhật phiên
-            return true;
+        // 6. Kiểm tra xem bid có được chấp nhận không
+        // ⚠️ CHÚ Ý: Logic này check <= (không tăng) → reject
+        // Nếu size KHÔNG tăng → bid bị reject → return false ngay
+        if (session.getBids().size() <= bidsBefore) {
+            return false;
         }
         
-        // 7. Không tăng → bid bị reject (giá thấp, hết giờ,...)
-        return false;
+        // 7. Bid được chấp nhận → lưu vào DB
+        bidDAO.saveBid(bid, sessionId);
+        
+        // 8. Anti-sniping: kiểm tra nếu bid trong 30s cuối → gia hạn +60s
+        checkAndExtendForAntiSnipe(session);
+        
+        // 9. Cập nhật session vào DB (currentPrice, winner, endTime nếu có anti-snipe)
+        auctionSessionDAO.updateSession(session);
+
+        // 10. Kích hoạt auto-bids sau bid thủ công
+        // AutoBidService sẽ kiểm tra tất cả auto-bid configs cho session này
+        // Nếu có bidder khác đang auto-bid → tự động đặt bid tiếp
+        // ⚠️ processAutoBids() có thể tạo thêm bid mới → trigger cascade
+        com.auction.server.ServiceRegistry.AUTO_BID_SERVICE.processAutoBids(sessionId, amount);
+
+        // 11. Refresh session từ DB để lấy state mới nhất
+        // Vì processAutoBids() có thể đã thay đổi currentPrice/winner
+        // Cần refresh để broadcast đúng data
+        AuctionSession refreshed = auctionSessionDAO.getSessionById(sessionId);
+        
+        // 12. Broadcast push tới TẤT CẢ clients đang kết nối
+        // AUCTION_UPDATED_PUSH → RealtimeAuctionBus → UI update giá/winner/countdown
+        // Dùng refreshed session (nếu có) để đảm bảo data mới nhất
+        ClientBroadcastHub.broadcast(new Message(
+                MessageType.AUCTION_UPDATED_PUSH,
+                refreshed != null ? refreshed : session
+        ));
+
+        return true;
     }
 }
 ```
+
+**Giải thích chi tiết các bước:**
+
+**Bước 1-2:** Load data từ DB và validate
+- `AuctionSessionDAO.getSessionById()` → trả về `AuctionSession` đầy đủ (seller, item, winner, bids)
+- `UserDAO.getUserById()` → trả về `User` (có thể là Bidder/Seller/Admin)
+- Check cả 2 cùng lúc để code gọn hơn
+
+**Bước 3:** Ghi nhớ size trước
+- `bidsBefore` = số bid hiện tại
+- Dùng để detect xem `updateCurrentPrice()` có chấp nhận bid không
+
+**Bước 5:** `session.updateCurrentPrice(bid)` — Logic validation
+- File: `shared/model/auction/AuctionSession.java`
+- Method này kiểm tra:
+  - `isActive()` → thời gian + status (OPEN/RUNNING)
+  - `amount > currentPrice` → giá phải cao hơn
+  - `bid.getTime()` trong phạm vi `[startTime, endTime]`
+- Nếu hợp lệ → `bids.add(bid)` + update `currentPrice` + update `winner`
+- Nếu không hợp lệ → KHÔNG thêm vào list (in ra "Invalid bid" hoặc "Time runs out")
+
+**Bước 6:** Check kết quả
+- ⚠️ **Quan trọng:** Logic check `<= bidsBefore` (không tăng)
+- Nếu size không tăng → bid bị reject → return false
+- Nếu size tăng → bid được chấp nhận → tiếp tục
+
+**Bước 10:** Auto-bid cascade
+- `ServiceRegistry.AUTO_BID_SERVICE` → singleton instance
+- `processAutoBids(sessionId, amount)` → kiểm tra tất cả auto-bid configs
+- Nếu có bidder khác đang auto-bid VÀ chưa vượt maxBid → tự động đặt bid
+- ⚠️ Auto-bid có thể trigger thêm auto-bid khác → cascade (có break để tránh infinite loop)
+
+**Bước 11:** Refresh session
+- Vì `processAutoBids()` có thể đã thay đổi session (giá mới, winner mới)
+- Cần load lại từ DB để broadcast đúng state mới nhất
+- Nếu refresh fail (null) → dùng session cũ làm fallback
+
+**Bước 12:** Broadcast realtime
+- `ClientBroadcastHub.broadcast()` → gửi tới TẤT CẢ `ClientHandler` đang kết nối
+- File: `server/network/ClientBroadcastHub.java`
+- `AUCTION_UPDATED_PUSH` → client nhận qua `SocketClient.dispatchIncoming()`
+- → `RealtimeAuctionBus.dispatch()` → tất cả listeners (dashboard, detail page) update UI
+
 
 ### Anti-Sniping — Chống "lẻn vào phút cuối":
 
@@ -209,59 +282,136 @@ Gọi bởi `BidService.placeBid()` sau khi bid thủ công thành công.
 
 ```java
 public boolean processAutoBids(int sessionId, double newBidAmount) {
+    // 1. Lấy queue auto-bid configs cho session này
     PriorityBlockingQueue<AutoBidConfig> queue = autoBidsBySession.get(sessionId);
-    if (queue == null || queue.isEmpty()) return false;
+    if (queue == null || queue.isEmpty()) {
+        return false;  // Không có auto-bid nào đăng ký
+    }
     
+    // 2. Load session từ DB và check active
     AuctionSession session = auctionSessionDAO.getSessionById(sessionId);
-    if (session == null || !session.isActive()) return false;
+    if (session == null || !session.isActive()) {
+        return false;  // Session không tồn tại hoặc đã đóng
+    }
     
+    // 3. Biến flag để track xem có auto-bid nào được kích hoạt không
+    boolean anyAutoBidTriggered = false;
+    
+    // 4. List để lưu configs cần đưa lại vào queue
     List<AutoBidConfig> toRequeue = new ArrayList<>();
     
+    // 5. Process từng config theo priority (FIFO theo registeredAt)
     while (!queue.isEmpty()) {
-        AutoBidConfig config = queue.poll();  // Lấy ra (FIFO theo registeredAt)
+        AutoBidConfig config = queue.poll();  // Lấy config có priority cao nhất
         
-        // Bỏ qua nếu auto-bidder đang thắng (không tự bid lại chính mình)
+        // 5a. Null check (defensive programming)
+        if (config == null) break;
+        
+        // 5b. Bỏ qua nếu auto-bidder đang thắng (không tự bid lại chính mình)
         if (session.getWinner() != null && session.getWinner().getId() == config.getBidderId()) {
-            toRequeue.add(config);
+            toRequeue.add(config);  // Giữ lại config cho lần sau
             continue;
         }
         
-        // Tính giá tiếp theo
+        // 5c. Tính giá auto-bid tiếp theo
         double currentPrice = session.getCurrentPrice();
         double nextBid = Math.min(currentPrice + config.getIncrement(), config.getMaxBid());
+        // nextBid = min(giá hiện tại + increment, maxBid)
+        // → Đảm bảo không vượt maxBid
         
-        // Nếu bid được (giá hợp lệ và chưa vượt maxBid)
+        // 5d. Kiểm tra xem có thể outbid không
         if (nextBid > currentPrice && nextBid <= config.getMaxBid()) {
-            // Tạo bid tự động
-            Bid autoBid = new Bid(bidDAO.allocateNextBidId(), 
-                                  userDAO.getUserById(config.getBidderId()),
-                                  session, nextBid);
+            // 6. Tạo auto-bid
+            Bid autoBid = new Bid(
+                bidDAO.allocateNextBidId(),
+                userDAO.getUserById(config.getBidderId()),
+                session,
+                nextBid
+            );
+            autoBid.setTime(LocalDateTime.now());  // Set thời gian bid
             
+            // 7. Cập nhật giá (⚠️ CHÚ Ý: không check xem updateCurrentPrice có chấp nhận không)
+            // Trong thực tế, code này giả định auto-bid luôn hợp lệ vì đã check ở bước 5d
             session.updateCurrentPrice(autoBid);
+            
+            // 8. Lưu bid vào DB
             bidDAO.saveBid(autoBid, sessionId);
+            
+            // 9. Cập nhật session vào DB
             auctionSessionDAO.updateSession(session);
             
-            // Broadcast update
+            // 10. Broadcast update tới tất cả clients
+            // ⚠️ CHÚ Ý: Không refresh từ DB như BidService.placeBid()
+            // Dùng session object hiện tại để broadcast
             ClientBroadcastHub.broadcast(new Message(MessageType.AUCTION_UPDATED_PUSH, session));
             
+            // 11. Log
+            logger.info("Auto-bid triggered: bidderId=" + config.getBidderId() +
+                    ", amount=" + nextBid);
+            
+            // 12. Set flag
+            anyAutoBidTriggered = true;
+            
+            // 13. Giữ lại config cho lần sau (bidder có thể bid tiếp nếu bị outbid)
             toRequeue.add(config);
-            break;  // QUAN TRỌNG: Chỉ 1 auto-bid mỗi lần → tránh infinite loop
+            
+            // 14. BREAK sau 1 auto-bid để tránh infinite loop
+            // Nếu không break: Auto-bid A → Auto-bid B → Auto-bid A → ... → vô hạn
+            // Break → lần bid tiếp theo sẽ trigger processAutoBids lại → an toàn
+            break;
         } else {
-            toRequeue.add(config);  // Giữ lại cho lần sau
+            // Không thể outbid (đã đạt maxBid hoặc giá không hợp lệ)
+            // Giữ lại config cho lần sau
+            toRequeue.add(config);
         }
     }
     
-    // Đưa tất cả config lại vào queue
+    // 15. Đưa tất cả configs lại vào queue
     for (AutoBidConfig config : toRequeue) {
         queue.add(config);
     }
     
+    // 16. Return flag
     return anyAutoBidTriggered;
 }
 ```
 
+**Giải thích chi tiết:**
+
+**Bước 3:** Khai báo `anyAutoBidTriggered`
+- ⚠️ **Quan trọng:** Phải khai báo biến này, nếu không code sẽ compile error
+- Dùng để return về cho caller biết có auto-bid nào được kích hoạt không
+
+**Bước 5:** Process configs theo priority
+- `queue.poll()` lấy config có `registeredAt` sớm nhất (FIFO)
+- Null check để tránh NPE nếu queue bị modify từ thread khác
+
+**Bước 5b:** Skip nếu đang thắng
+- Tránh auto-bidder tự bid lại chính mình
+- Ví dụ: A đang thắng với 100k, A auto-bid không nên bid lại 110k
+
+**Bước 5c:** Tính nextBid
+- `Math.min(currentPrice + increment, maxBid)` → không vượt maxBid
+- Ví dụ: currentPrice=90k, increment=20k, maxBid=100k → nextBid=100k (không phải 110k)
+
+**Bước 7:** ⚠️ Không check kết quả `updateCurrentPrice`
+- Code thực tế giả định auto-bid luôn hợp lệ vì đã check ở bước 5d
+- Khác với `BidService.placeBid()` có check `session.getBids().size()`
+- Đây có thể là edge case bug nếu session bị đóng giữa chừng, nhưng đó là reality
+
+**Bước 10:** ⚠️ Không refresh session từ DB
+- Khác với `BidService.placeBid()` có refresh
+- Dùng session object hiện tại để broadcast
+- Có thể gây lệch data nếu có concurrent updates, nhưng đó là reality
+
+**Bước 14:** Break để tránh infinite loop
+- Chỉ process 1 auto-bid mỗi lần gọi
+- Lần bid tiếp theo (từ auto-bid này) sẽ trigger `processAutoBids` lại
+- → Cascade được kiểm soát từng bước
+
 **Tại sao `break` sau 1 auto-bid?**  
 Nếu không break: Auto-bid A bid → trigger Auto-bid B → trigger Auto-bid A → ... → infinite loop. Break sau 1 lần → lần bid tiếp theo sẽ trigger processAutoBids lại → an toàn.
+
 
 ---
 
