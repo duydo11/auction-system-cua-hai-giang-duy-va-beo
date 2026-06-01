@@ -537,6 +537,137 @@ synchronized(lock_session_1)          synchronized(lock_session_1)
      |                               [EXIT lock]
 ```
 
+### 5. Settlement idempotency — Chặn transaction lặp
+
+File chính: `server/src/main/java/com/auction/server/service/AuctionService.java`
+
+**Vấn đề phát hiện:**
+Khi nhiều thread/scheduler cùng gọi `settleAuctionIfExpired()` cho cùng một session, có thể tạo ra nhiều transaction trùng nhau:
+- Bidder bị trừ tiền 3 lần
+- Seller nhận tiền 3 lần
+- Wallet history hiển thị 3 dòng giống nhau
+
+**Nguyên nhân:**
+Lock trong memory (`SETTLEMENT_LOCKS`) chỉ chặn được trong cùng JVM instance. Nếu có nhiều request đồng thời hoặc scheduler chạy trước khi status được cập nhật, vẫn có thể bypass lock.
+
+**Giải pháp:**
+Thêm idempotency check ở tầng DAO bằng cách:
+1. Dùng transaction description có format: `#<sessionId> <itemName>`
+2. Trước khi trừ/cộng tiền, check xem transaction với description này đã tồn tại chưa
+3. Nếu đã có → skip wallet update
+
+**Code mới trong `AuctionService.settleAuctionIfExpired()`:**
+```java
+String settlementDescription = "#" + latestSession.getId() + " " + itemName;
+
+// Bidder payment
+if (latestWinner != null) {
+    boolean alreadyPaid = userDAO.hasTransaction(
+        latestWinner.getId(), "BID_PAYMENT", settlementDescription
+    );
+    if (!alreadyPaid) {
+        latestWinner.setAccountBalance(latestWinner.getAccountBalance() - price);
+        userDAO.updateUser(latestWinner);
+        userDAO.saveTransaction(new Transaction(
+            0, latestWinner.getId(), price, "BID_PAYMENT", settlementDescription, paidAt
+        ));
+    }
+}
+
+// Seller income
+if (latestSeller != null) {
+    boolean alreadyReceived = userDAO.hasTransaction(
+        latestSeller.getId(), "AUCTION_SALE", settlementDescription
+    );
+    if (!alreadyReceived) {
+        latestSeller.setAccountBalance(latestSeller.getAccountBalance() + price);
+        userDAO.updateUser(latestSeller);
+        userDAO.saveTransaction(new Transaction(
+            0, latestSeller.getId(), price, "AUCTION_SALE", settlementDescription, paidAt
+        ));
+    }
+}
+```
+
+**Code mới trong `UserDAO`:**
+```java
+public boolean hasTransaction(int userId, String type, String description) {
+    String sql = "SELECT 1 FROM transactions WHERE user_id = ? AND type = ? AND description = ? LIMIT 1";
+    // ... check existence
+}
+```
+
+### 6. Wallet UI deduplication — Lọc transaction trùng
+
+File chính:
+- `client/src/main/java/com/auction/client/controller/BidderScene/Wallet1Controller.java`
+- `client/src/main/java/com/auction/client/controller/SellerScene/Wallet2Controller.java`
+
+**Vấn đề:**
+Dữ liệu cũ trong DB đã có transaction bị lặp 3 lần. Dù settlement mới đã idempotent, UI vẫn hiển thị 3 dòng lịch sử giống nhau cho data cũ.
+
+**Giải pháp:**
+Thêm deduplication filter trước khi render wallet history. Filter dựa trên key: `type|description|amount`.
+
+**Code mới:**
+```java
+private List<Transaction> deduplicateSettlementTransactions(List<Transaction> transactions) {
+    Set<String> seen = new HashSet<>();
+    return transactions.stream()
+            .filter(trans -> {
+                String type = trans.getType();
+                // Chỉ deduplicate settlement transactions
+                if (!"BID_PAYMENT".equals(type) && !"BID_SUCCESS".equals(type) 
+                    && !"AUCTION_SALE".equals(type)) {
+                    return true;
+                }
+                // Extract session marker from description
+                String desc = trans.getDescription() == null ? "" : trans.getDescription();
+                if (desc.startsWith("#")) {
+                    int firstSpace = desc.indexOf(' ');
+                    if (firstSpace > 0) {
+                        desc = desc.substring(0, firstSpace);
+                    }
+                }
+                String key = type + "|" + desc + "|" + String.format("%.2f", trans.getAmount());
+                return seen.add(key);
+            })
+            .toList();
+}
+```
+
+**Trong `renderWalletData()`:**
+```java
+List<Transaction> transactions = deduplicateSettlementTransactions(data.transactions());
+for (Transaction trans : transactions) {
+    // render card...
+}
+```
+
+### 7. Transaction type convention mới
+
+**Trước đây:**
+- Cả buyer và seller đều dùng type `BID_SUCCESS`
+- UI phải đoán dựa vào role hiện tại → sai khi user vừa là bidder vừa là seller
+
+**Bây giờ:**
+- Buyer payment: `BID_PAYMENT` (trừ tiền, hiển thị đỏ)
+- Seller income: `AUCTION_SALE` (cộng tiền, hiển thị xanh)
+- Legacy `BID_SUCCESS` vẫn được xử lý như `BID_PAYMENT` để tương thích data cũ
+
+**Code trong `TransHisCardController`:**
+```java
+if (type.equals("BID_PAYMENT") || type.equals("BID_SUCCESS")) {
+    lblTransTit.setText("Successfully bid for " + desc);
+    lblTransAmount.setText("-$" + String.format("%,.2f", amount));
+    lblTransAmount.setStyle("-fx-text-fill: red;");
+} else if (type.equals("AUCTION_SALE")) {
+    lblTransTit.setText("Auction sale for " + desc);
+    lblTransAmount.setText("+$" + String.format("%,.2f", amount));
+    lblTransAmount.setStyle("-fx-text-fill: green;");
+}
+```
+
 ---
 
 ## ❓ FAQ cho Duy

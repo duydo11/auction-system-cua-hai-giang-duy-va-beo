@@ -350,6 +350,87 @@ cd server
 mvn test
 ```
 
+### 4. Settlement idempotency — Thanh toán không lặp
+
+File chính: `server/src/main/java/com/auction/server/service/AuctionService.java`
+
+**Vấn đề:**
+Khi phiên kết thúc, `settleAuctionIfExpired()` có thể được gọi nhiều lần từ:
+- Scheduler tự động
+- Request từ client
+- Realtime update trigger
+
+Nếu không có cơ chế chặn, sẽ tạo nhiều transaction trùng nhau → bidder bị trừ tiền nhiều lần, seller nhận tiền nhiều lần.
+
+**Giải pháp:**
+Thêm idempotency check ở tầng DAO. Transaction description dùng format đặc biệt: `#<sessionId> <itemName>`.
+
+Trước khi trừ/cộng tiền, check xem transaction với session ID này đã tồn tại chưa:
+
+```java
+String settlementDescription = "#" + latestSession.getId() + " " + itemName;
+
+// Check bidder payment
+boolean alreadyPaid = userDAO.hasTransaction(
+    latestWinner.getId(), "BID_PAYMENT", settlementDescription
+);
+if (!alreadyPaid) {
+    // Trừ tiền và tạo transaction
+}
+
+// Check seller income
+boolean alreadyReceived = userDAO.hasTransaction(
+    latestSeller.getId(), "AUCTION_SALE", settlementDescription
+);
+if (!alreadyReceived) {
+    // Cộng tiền và tạo transaction
+}
+```
+
+**Method mới trong `UserDAO`:**
+```java
+public boolean hasTransaction(int userId, String type, String description) {
+    String sql = "SELECT 1 FROM transactions WHERE user_id = ? AND type = ? AND description = ? LIMIT 1";
+    // Return true nếu tồn tại
+}
+```
+
+### 5. Transaction type convention mới
+
+**Trước đây:**
+- Cả buyer và seller đều dùng type `BID_SUCCESS`
+- Description chỉ có tên item
+- UI phải đoán dựa vào role hiện tại → sai khi user có cả 2 role
+
+**Bây giờ:**
+- **Buyer payment**: type = `BID_PAYMENT`, description = `#<sessionId> <itemName>`
+- **Seller income**: type = `AUCTION_SALE`, description = `#<sessionId> <itemName>`
+- Legacy `BID_SUCCESS` vẫn được hỗ trợ để tương thích data cũ
+
+**Lợi ích:**
+1. UI không cần đoán role → hiển thị đúng màu (đỏ/xanh) dựa vào type
+2. Session marker trong description giúp deduplicate
+3. Rõ ràng hơn khi debug/audit transaction history
+
+**Code trong `AuctionService.settleAuctionIfExpired()`:**
+```java
+// Buyer payment
+userDAO.saveTransaction(new Transaction(
+    0, latestWinner.getId(), price, 
+    "BID_PAYMENT",  // ← type mới
+    settlementDescription,  // ← có session marker
+    paidAt
+));
+
+// Seller income
+userDAO.saveTransaction(new Transaction(
+    0, latestSeller.getId(), price, 
+    "AUCTION_SALE",  // ← type mới
+    settlementDescription,  // ← có session marker
+    paidAt
+));
+```
+
 ---
 
 ## ❓ FAQ cho Hải

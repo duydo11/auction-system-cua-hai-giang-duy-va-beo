@@ -556,6 +556,99 @@ Tất cả client:
   → ProductCardController nhận → update endTime → countdown timer tự chạy lại
 ```
 
+### 4. Anti-sniping cho auto-bid
+
+File chính: `server/src/main/java/com/auction/server/service/AutoBidService.java`
+
+**Vấn đề:**
+Trước đây, chỉ manual bid mới trigger anti-sniping. Auto-bid không gọi `checkAndExtendForAntiSnipe()` → nếu auto-bid xảy ra trong 30s cuối, phiên không được gia hạn.
+
+**Giải pháp:**
+Thêm anti-sniping logic vào `AutoBidService.processOneAutoBid()`:
+
+```java
+// Sau khi auto-bid thành công
+session.updateCurrentPrice(autoBid);
+bidDAO.saveBid(autoBid, sessionId);
+
+// Thêm anti-sniping check
+checkAndExtendForAntiSnipe(session);
+
+auctionSessionDAO.updateSession(session);
+```
+
+**Method mới trong `AutoBidService`:**
+```java
+private static final long SNIPE_WINDOW_SEC = 30;
+private static final long EXTENSION_SEC = 60;
+
+private void checkAndExtendForAntiSnipe(AuctionSession session) {
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime endTime = session.getEndTime();
+    long secondsRemaining = ChronoUnit.SECONDS.between(now, endTime);
+    
+    if (secondsRemaining >= 0 && secondsRemaining <= SNIPE_WINDOW_SEC) {
+        LocalDateTime newEnd = endTime.plusSeconds(EXTENSION_SEC);
+        session.setEndTime(newEnd);
+        
+        // Broadcast extension push
+        ClientBroadcastHub.broadcast(
+            new Message(MessageType.AUCTION_EXTENDED_PUSH, session)
+        );
+    }
+}
+```
+
+**Kết quả:**
+- Auto-bid và manual bid đều trigger anti-sniping
+- Phiên được gia hạn đồng đều cho cả 2 loại bid
+
+### 5. Dashboard countdown realtime update
+
+File chính:
+- `client/src/main/java/com/auction/client/controller/BidderScene/BidderDashboardController.java`
+- `client/src/main/java/com/auction/client/controller/Card/ProductCardController.java`
+
+**Vấn đề:**
+Khi server broadcast `AUCTION_EXTENDED_PUSH` sau anti-sniping, dashboard không cập nhật `endTime` của card đang hiển thị → countdown timer vẫn chạy theo giờ cũ → hiển thị "ENDED" sai.
+
+**Giải pháp:**
+Dashboard realtime listener cập nhật card đang hiển thị trước khi reload list:
+
+```java
+// Trong BidderDashboardController.setupRealtimeListener()
+realtimeListener = updatedSession -> {
+    // Push mang theo endTime/currentPrice mới
+    AuctionCache.addOrReplace(updatedSession);
+    
+    // Cập nhật card đang hiển thị ngay
+    ProductCardController visibleCard = cardControllers.get(updatedSession.getId());
+    if (visibleCard != null) {
+        visibleCard.setAuctionSession(updatedSession);
+    }
+    
+    // Fetch lại active từ server ở nền
+    loadActiveAuctionsAsync();
+};
+```
+
+**Trong `ProductCardController.setAuctionSession()`:**
+```java
+public void setAuctionSession(AuctionSession session) {
+    // Stop countdown cũ trước khi rebind
+    if (countdownTimer != null) {
+        countdownTimer.stop();
+    }
+    this.session = session;
+    // ... bind data mới và start countdown mới
+}
+```
+
+**Kết quả:**
+- Khi anti-sniping trigger, tất cả dashboard nhận push
+- Card countdown tự động restart với `endTime` mới
+- Không còn hiển thị "ENDED" sai khi phiên vừa được gia hạn
+
 ---
 
 ## ❓ FAQ cho Hoàng
