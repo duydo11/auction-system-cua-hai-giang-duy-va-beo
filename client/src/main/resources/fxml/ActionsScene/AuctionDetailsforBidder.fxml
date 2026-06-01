@@ -20,13 +20,13 @@
          <content>
             <AnchorPane prefHeight="689.0" prefWidth="1000.0" style="-fx-background-color: #f0f0f0;">
                <children>
-                  <VBox layoutX="20.0" layoutY="25.0" prefHeight="2100.0" prefWidth="648.0" spacing="15.0">
+                  <VBox layoutX="20.0" layoutY="25.0" prefWidth="648.0" spacing="15.0">
                      <children>
                         <VBox prefHeight="682.0" prefWidth="648.0" style="-fx-background-color: white; -fx-background-radius: 5;">
                            <children>
                               <AnchorPane prefHeight="380.0" prefWidth="648.0">
                                  <children>
-                                    <ImageView fitHeight="380.0" fitWidth="648.0" pickOnBounds="true">
+                                    <ImageView fx:id="imgProduct" fitHeight="380.0" fitWidth="648.0" pickOnBounds="true">
                                        <image>
                                           <Image url="@../../png/1.ProductImage.png" />
                                        </image>
@@ -98,7 +98,7 @@
                               </VBox>
                            </children>
                         </VBox>
-                        <HBox prefHeight="281.0" prefWidth="648.0" style="-fx-background-color: white; -fx-background-radius: 5;">
+                        <HBox prefHeight="330.0" prefWidth="648.0" style="-fx-background-color: white; -fx-background-radius: 5;">
                            <children>
                               <AnchorPane prefHeight="183.0" prefWidth="34.0" />
                               <VBox prefHeight="262.0" prefWidth="590.0">
@@ -175,7 +175,7 @@
                                           </CheckBox>
                                        </children>
                                     </HBox>
-                                    <VBox fx:id="paneAutobid" disable="true" prefHeight="140.0" prefWidth="606.0">
+                                    <VBox fx:id="paneAutobid" disable="true" prefHeight="176.0" prefWidth="589.0">
                                        <children>
                                           <VBox prefHeight="70.0" prefWidth="606.0">
                                              <children>
@@ -213,6 +213,24 @@
                                                 </TextField>
                                              </children>
                                           </VBox>
+                                          <AnchorPane prefHeight="34.0" prefWidth="589.0" />
+                                          <HBox alignment="CENTER" prefHeight="68.0" prefWidth="589.0" spacing="100.0">
+                                             <children>
+                                                <AnchorPane prefHeight="61.0" prefWidth="536.0">
+                                                   <children>
+                                                      <HBox fx:id="btnCfAutoBid" alignment="CENTER" layoutX="414.0" layoutY="-2.0" onMouseClicked="#handleCfAutoBid" prefHeight="32.0" prefWidth="121.0" style="-fx-background-color: #438bcf; -fx-border-color: white; -fx-background-radius: 10; -fx-border-radius: 10;">
+                                                         <children>
+                                                            <Label text="Confirm" textFill="WHITE">
+                                                               <font>
+                                                                  <Font name="Montserrat Bold" size="14.0" />
+                                                               </font>
+                                                            </Label>
+                                                         </children>
+                                                      </HBox>
+                                                   </children>
+                                                </AnchorPane>
+                                             </children>
+                                          </HBox>
                                        </children>
                                     </VBox>
                                  </children>
@@ -424,13 +442,14 @@
                                     </HBox>
                                     <ScrollPane hbarPolicy="NEVER" hmax="0.0" prefHeight="409.0" prefWidth="586.0" vbarPolicy="NEVER">
                                        <content>
-                                          <VBox fx:id="containerBidHistory" prefHeight="428.0" prefWidth="582.0" />
+                                          <VBox fx:id="containerBidHistory" alignment="TOP_CENTER" prefWidth="582.0" spacing="10.0" />
                                        </content>
                                     </ScrollPane>
                                  </children>
                               </VBox>
                            </children>
                         </HBox>
+                        <HBox fx:id="containerResult" prefWidth="200.0" />
                      </children>
                   </VBox>
                </children>

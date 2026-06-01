@@ -5,9 +5,12 @@ import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.Scene;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -16,100 +19,112 @@ import java.time.temporal.ChronoUnit;
 
 /**
  * Controller cho ProductCard — bind data từ AuctionSession.
- * Giang cần thêm fx:id vào FXML:
- * - lblItemName (tên sản phẩm)
- * - lblCurrentPrice (giá hiện tại)
- * - lblTimeRemaining (thời gian còn lại)
- * - lblStatus (trạng thái: OPEN/RUNNING/FINISHED)
- * - btnViewDetails (nút xem chi tiết)
  */
 public class ProductCardController {
 
     @FXML private Label lblItemName;
     @FXML private Label lblCurrentPrice;
     @FXML private Label lblTimeRemaining;
+    @FXML private Label lblStartTime;
     @FXML private Label lblStatus;
+    @FXML private ImageView imgProduct;
     @FXML private Button btnViewDetails;
 
     private AuctionSession session;
     private Timeline countdownTimer;
-
-    /**
-     * Gọi từ BidderDashboard sau khi load FXML.
-     * Bind data từ AuctionSession vào UI.
-     */
+    @FXML
+    private VBox ProductCard;
     public void setAuctionSession(AuctionSession session) {
+        if (countdownTimer != null) {
+            countdownTimer.stop();
+        }
         this.session = session;
 
         if (session == null) {
             return;
         }
 
-        // Bind item name
         if (lblItemName != null && session.getItem() != null) {
             lblItemName.setText(session.getItem().getName());
         }
 
-        // Bind current price
         if (lblCurrentPrice != null) {
             updatePrice(session.getCurrentPrice());
         }
 
-        // Bind status
         if (lblStatus != null) {
             updateStatus();
         }
 
-        // Start countdown timer
+        updateStartTime();
+        updateProductImage();
         startCountdownTimer();
+        ProductCard.setOnMouseEntered(e -> {
+            ProductCard.setStyle("-fx-border-color: #2b3759; " +
+                    "-fx-border-radius: 15; " +
+                    "-fx-background-radius: 15; ");
+        });
+
+        ProductCard.setOnMouseExited(e -> {
+            ProductCard.setStyle("-fx-border-color: transparent;");
+        });
     }
 
-    /**
-     * Update giá khi có bid mới (gọi từ RealtimeAuctionBus).
-     */
     public void updatePrice(double newPrice) {
         if (lblCurrentPrice != null) {
-            lblCurrentPrice.setText(String.format("%.0f VND", newPrice));
+            lblCurrentPrice.setText(String.format("%,.0f $", newPrice));
         }
     }
 
-    /**
-     * Update status badge.
-     */
     private void updateStatus() {
         if (session == null || lblStatus == null) {
             return;
         }
-
-        switch (session.getStatus()) {
-            case OPEN -> {
-                lblStatus.setText("Chưa bắt đầu");
-                lblStatus.setStyle("-fx-background-color: #e3f2fd; -fx-text-fill: #1976d2;");
-            }
-            case RUNNING -> {
-                lblStatus.setText("Đang đấu giá");
-                lblStatus.setStyle("-fx-background-color: #e8f5e9; -fx-text-fill: #388e3c;");
-            }
-            case FINISHED -> {
-                lblStatus.setText("Đã kết thúc");
-                lblStatus.setStyle("-fx-background-color: #fce4ec; -fx-text-fill: #c2185b;");
-            }
-            case CANCELED -> {
-                lblStatus.setText("Đã hủy");
-                lblStatus.setStyle("-fx-background-color: #f5f5f5; -fx-text-fill: #757575;");
-            }
+        com.auction.shared.model.auction.AuctionStatus status = session.getStatus();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        if (status == com.auction.shared.model.auction.AuctionStatus.CANCELED) {
+            lblStatus.setText("CANCELED");
+            lblStatus.setStyle("-fx-background-color: #757575; -fx-text-fill: #474141; -fx-border-color: #474141; -fx-background-radius: 20; -fx-border-radius: 20 ");
+        } else if (status == com.auction.shared.model.auction.AuctionStatus.FINISHED
+                || status == com.auction.shared.model.auction.AuctionStatus.PAID
+                || now.isAfter(session.getEndTime())) {
+            lblStatus.setText("ENDED");
+            lblStatus.setStyle("-fx-background-color: #c2185b; -fx-text-fill: #780826; -fx-border-color: #780826; -fx-background-radius: 20; -fx-border-radius: 20 ");
+        } else if (now.isBefore(session.getStartTime())) {
+            lblStatus.setText("COMING");
+            lblStatus.setStyle("-fx-background-color: #e6e64c; -fx-text-fill: #8f8f03; -fx-border-color: #8f8f03; -fx-background-radius: 20; -fx-border-radius: 20 ");
+        } else {
+            lblStatus.setText("RUNNING");
+            lblStatus.setStyle("-fx-background-color: #388e3c; -fx-text-fill: #115214; -fx-border-color: #115214; -fx-background-radius: 20; -fx-border-radius: 20 ");
         }
     }
 
-    /**
-     * Countdown timer — update mỗi giây.
-     */
+    private void updateStartTime() {
+        if (lblStartTime != null && session != null && session.getStartTime() != null) {
+            lblStartTime.setText("Start: " + session.getStartTime().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm")));
+        }
+    }
+
+    private void updateProductImage() {
+        if (imgProduct == null || session == null || session.getItem() == null) {
+            return;
+        }
+        String imagePath = session.getItem().getImagePath();
+        if (imagePath == null || imagePath.isBlank()) {
+            return;
+        }
+        try {
+            imgProduct.setImage(new Image(imagePath, 247, 90, true, true, true));
+        } catch (RuntimeException e) {
+            System.err.println("Cannot load product image: " + imagePath);
+        }
+    }
+
     private void startCountdownTimer() {
         if (session == null || lblTimeRemaining == null) {
             return;
         }
 
-        // Stop old timer if exists
         if (countdownTimer != null) {
             countdownTimer.stop();
         }
@@ -119,81 +134,97 @@ public class ProductCardController {
         }));
         countdownTimer.setCycleCount(Animation.INDEFINITE);
         countdownTimer.play();
-
-        // Initial update
         updateTimeRemaining();
     }
 
-    /**
-     * Update time remaining label.
-     */
     private void updateTimeRemaining() {
         if (session == null || lblTimeRemaining == null) {
             return;
         }
 
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime end = session.getEndTime();
-
-        long seconds = ChronoUnit.SECONDS.between(now, end);
-
-        if (seconds < 0) {
-            lblTimeRemaining.setText("Đã kết thúc");
+        if (session.getStatus() == com.auction.shared.model.auction.AuctionStatus.CANCELED) {
+            lblTimeRemaining.setText("CANCELED");
+            lblTimeRemaining.setStyle("-fx-text-fill: #757575;");
+            if (countdownTimer != null) countdownTimer.stop();
+            return;
+        }
+        if (session.getStatus() == com.auction.shared.model.auction.AuctionStatus.FINISHED
+                || session.getStatus() == com.auction.shared.model.auction.AuctionStatus.PAID
+                || now.isAfter(session.getEndTime())) {
+            lblTimeRemaining.setText("ENDED");
             lblTimeRemaining.setStyle("-fx-text-fill: #c62828;");
-            if (countdownTimer != null) {
-                countdownTimer.stop();
-            }
-        } else if (seconds < 300) {
-            // < 5 phút: hiển thị đỏ cảnh báo
+            if (countdownTimer != null) countdownTimer.stop();
+            return;
+        }
+
+        LocalDateTime target = now.isBefore(session.getStartTime()) ? session.getStartTime() : session.getEndTime();
+        long seconds = ChronoUnit.SECONDS.between(now, target);
+        String prefix = now.isBefore(session.getStartTime()) ? "Starts in " : "";
+
+        if (seconds < 300) {
             long mins = seconds / 60;
             long secs = seconds % 60;
-            lblTimeRemaining.setText(String.format("⚠️ %d:%02d", mins, secs));
+            lblTimeRemaining.setText(String.format("%s%d:%02d", prefix, mins, secs));
             lblTimeRemaining.setStyle("-fx-text-fill: #c62828; -fx-font-weight: bold;");
         } else {
-            // Bình thường
             long hours = seconds / 3600;
             long mins = (seconds % 3600) / 60;
-            lblTimeRemaining.setText(String.format("%dh %dm", hours, mins));
+            lblTimeRemaining.setText(String.format("%s%dh %dm", prefix, hours, mins));
             lblTimeRemaining.setStyle("-fx-text-fill: #424242;");
         }
     }
 
-    /**
-     * Cleanup khi card bị remove.
-     */
     public void cleanup() {
         if (countdownTimer != null) {
             countdownTimer.stop();
         }
     }
 
-    /**
-     * Handle "View Details" button click.
-     * Giang cần wire button trong FXML: onAction="#handleViewDetails"
-     */
     @FXML
     private void handleViewDetails() {
-        if (session == null) {
+        if (session == null || session.getItem() == null) {
             return;
         }
         try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/ActionsScene/AuctionDetailsforBidder.fxml"));
-            javafx.scene.Parent root = loader.load();
+            String currentUser = com.auction.client.SessionContext.getCurrentUser().getUsername();
+            String sellerName = session.getItem().getSellerUsername();
+            String fxmlPath;
+            boolean isOwner = (currentUser != null && currentUser.equals(sellerName));
+            if (isOwner) {
+                fxmlPath = "/fxml/ActionsScene/AuctionDetailsforSeller.fxml";
+            } else {
+                fxmlPath = "/fxml/ActionsScene/AuctionDetailsforBidder.fxml";
+            }
 
-            com.auction.client.controller.ActionsScene.AuctionDetailsforBidderController controller = loader.getController();
-            controller.setAuctionSession(session);
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource(fxmlPath));
+            javafx.scene.Parent root = loader.load();
+            Object controller = loader.getController();
+            if (isOwner) {
+                com.auction.client.controller.ActionsScene.AuctionDetailsforSellerController sellerCtrl = (com.auction.client.controller.ActionsScene.AuctionDetailsforSellerController) controller;
+                sellerCtrl.setAuctionSession(session);
+            } else {
+                com.auction.client.controller.ActionsScene.AuctionDetailsforBidderController bidderCtrl = (com.auction.client.controller.ActionsScene.AuctionDetailsforBidderController) controller;
+                bidderCtrl.setAuctionSession(session);
+            }
 
             Stage dialogStage = new Stage();
-            dialogStage.setTitle("Chi tiết phiên đấu giá: " + (session.getItem() != null ? session.getItem().getName() : ""));
+            dialogStage.setTitle(isOwner ? "Manage Your Auction" : "Auction Details");
             dialogStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            dialogStage.setScene(new Scene(root));
 
-            Scene scene = new Scene(root);
-            dialogStage.setScene(scene);
-
-            // Clean up when dialog closes
-            dialogStage.setOnCloseRequest(event -> controller.cleanup());
+            // 6. Tự động gọi hàm cleanup khi đóng cửa sổ để tránh rò rỉ bộ nhớ
+            dialogStage.setOnCloseRequest(event -> {
+                if (isOwner) {
+                    ((com.auction.client.controller.ActionsScene.AuctionDetailsforSellerController) controller).cleanup();
+                } else {
+                    ((com.auction.client.controller.ActionsScene.AuctionDetailsforBidderController) controller).cleanup();
+                }
+            });
 
             dialogStage.showAndWait();
+
+
 
         } catch (java.io.IOException e) {
             System.err.println("Error loading details dialog: " + e.getMessage());

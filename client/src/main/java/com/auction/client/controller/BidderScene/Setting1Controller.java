@@ -3,6 +3,7 @@ package com.auction.client.controller.BidderScene;
 import com.auction.client.SessionContext;
 import com.auction.client.network.NetworkCleanup;
 import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.UserRoleSwitcher;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -29,6 +30,7 @@ public class Setting1Controller implements Initializable {
     //Đổi seller
     @FXML
     public void switchSellerDB(MouseEvent mouseEvent) throws IOException {
+        UserRoleSwitcher.switchToSellerRole();
         SceneNavigator.loadScene(SceneNavigator.SELLER_DASHBOARD, "seller dashboard");
     }
 

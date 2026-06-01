@@ -4,6 +4,7 @@ import com.auction.client.RealtimeAuctionBus;
 import com.auction.client.SessionContext;
 import com.auction.client.controller.Card.BidderHistoryCardController;
 import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.util.FxAsync;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.AutoBidConfig;
 import com.auction.shared.model.auction.Bid;
@@ -17,14 +18,14 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
-import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.LineChart;
-import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -40,16 +41,19 @@ import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
 /**
- * Controller for the bidder auction detail screen.
+ * Controller cho màn chi tiết auction (bidder view).
  *
- * <p>This screen is where most bidder-side advanced features meet:</p>
+ * <p>Màn này có nhiều tính năng realtime:</p>
  * <ul>
- *   <li>binds a real {@link AuctionSession} to labels and countdown fields,</li>
- *   <li>places manual bids and optional auto-bid configuration through the socket protocol,</li>
- *   <li>renders bid history cards and a JavaFX LineChart from backend bid data,</li>
- *   <li>listens to {@link RealtimeAuctionBus} so price/chart/countdown update without reopening the page,</li>
- *   <li>shows anti-sniping warnings when the session is close to ending or extended by the server.</li>
+ *   <li>Bind thông tin {@link AuctionSession} vào UI labels và countdown</li>
+ *   <li>Đặt bid thủ công và cấu hình auto-bid qua socket protocol</li>
+ *   <li>Render bid history cards và LineChart từ backend</li>
+ *   <li>Lắng nghe {@link RealtimeAuctionBus} để cập nhật giá/chart/countdown tự động</li>
+ *   <li>Hiển thị cảnh báo anti-sniping khi phiên sắp kết thúc hoặc bị server gia hạn</li>
  * </ul>
+ *
+ * <p><strong>Async strategy:</strong> Tất cả các thao tác network (load bid history, place bid, auto-bid)
+ * đều chạy ở background thread để UI không bị đơ khi chờ server.</p>
  */
 public class AuctionDetailsforBidderController implements Initializable {
 
@@ -73,6 +77,8 @@ public class AuctionDetailsforBidderController implements Initializable {
     @FXML private LineChart<String, Number> lcPriceHistory;
     @FXML private VBox containerBidHistory;
     @FXML private Label lblWarning;
+    @FXML private ImageView imgProduct;
+
 
     private AuctionSession session;
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
@@ -82,9 +88,68 @@ public class AuctionDetailsforBidderController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Init state
+        // Khởi tạo trạng thái ban đầu
         if (paneAutobid != null) {
             paneAutobid.setDisable(true);
+        }
+        showLoadingState();
+        loadBidHistoryAsync();
+    }
+
+    /* Kiểm tra trạng thái autobid
+    private void loadExistingAutoBidConfig() {
+        User currentUser = SessionContext.getCurrentUser();
+        if (currentUser == null || session == null) return;
+
+        // Chạy async để lấy config cũ nếu có
+        FxAsync.run("get-autobid-" + session.getId(),
+                () -> protocol.getAutoBidConfig(session.getId(), currentUser.getId()),
+                config -> {
+                    if (config != null) {
+                        // Nếu có config, hiển thị lên UI
+                        chboxAutobid.setSelected(true);
+                        paneAutobid.setDisable(false);
+                        txtMaxBidAmount.setText(String.valueOf(config.getMaxAmount()));
+                        txtIncrementAmount.setText(String.valueOf(config.getIncrement()));
+                    }
+                },
+                error -> { Không có config hoặc lỗi, giữ nguyên mặc định }); */
+    @FXML
+    public void handleCfAutoBid(MouseEvent event) {
+        User currentUser = SessionContext.getCurrentUser();
+        if (currentUser == null || session == null) {
+            showAlert("Error", "Please login to use Auto-bid.");
+            return;
+        }
+        try {
+            double maxAmount = Double.parseDouble(txtMaxBidAmount.getText().trim());
+            double increment = Double.parseDouble(txtIncrementAmount.getText().trim());
+            // Validate dữ liệu
+            if (increment <= 0) {
+                showAlert("Warning", "Increment must be greater than 0.");
+                return;
+            }
+            if (maxAmount <= session.getCurrentPrice()) {
+                showAlert("Warning", "Max Bid must be higher than current price.");
+                return;
+            }
+
+            AutoBidConfig config = new AutoBidConfig(0, currentUser.getId(), session.getId(), maxAmount, increment);
+            // Gọi Async để lưu cấu hình
+            FxAsync.run("save-autobid",
+                    () -> protocol.registerAutoBid(config),
+                    success -> {
+                        if (Boolean.TRUE.equals(success)) {
+                            showAlert("Success", "Auto-bid configuration saved and activated!");
+                        } else {
+                            showAlert("Error", "Failed to save Auto-bid settings.");
+                        }
+                    },
+                    error -> showAlert("Error", "Network error: " + error.getMessage())
+            );
+
+        } catch (NumberFormatException e) {
+            showAlert("Error", "Please enter valid numbers for Auto-bid settings.");
         }
     }
 
@@ -94,8 +159,10 @@ public class AuctionDetailsforBidderController implements Initializable {
 
         this.lastKnownEndTime = session.getEndTime();
         bindBasicInfo();
-        loadBidHistoryChart();
-        loadBidHistoryCards();
+        
+        // Load bid history async để không block UI khi mở dialog
+        loadBidHistoryAsync();
+        updateProductImage();
         startCountdownTimer();
         setupRealtimeListener();
     }
@@ -122,12 +189,26 @@ public class AuctionDetailsforBidderController implements Initializable {
     }
 
     private void updateStatus() {
-        if (session == null || lblStatus == null) return;
+        if (session == null || lblStatus == null) {
+            return;
+        }
         switch (session.getStatus()) {
-            case OPEN -> lblStatus.setText("Coming");
-            case RUNNING -> lblStatus.setText("Live");
-            case FINISHED, PAID -> lblStatus.setText("Ended");
-            case CANCELED -> lblStatus.setText("Canceled");
+            case OPEN -> {
+                lblStatus.setText("COMING");
+                lblStatus.setStyle("-fx-background-color: #e6e64c; -fx-text-fill: #8f8f03; -fx-border-color: #8f8f03; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case RUNNING -> {
+                lblStatus.setText("RUNNING");
+                lblStatus.setStyle("-fx-background-color: #388e3c; -fx-text-fill: #115214; -fx-border-color: #115214; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case FINISHED -> {
+                lblStatus.setText("ENDED");
+                lblStatus.setStyle("-fx-background-color: #c2185b; -fx-text-fill: #780826; -fx-border-color: #780826; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case CANCELED -> {
+                lblStatus.setText("CANCELED");
+                lblStatus.setStyle("-fx-background-color: #757575; -fx-text-fill: #474141; -fx-border-color: #474141; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
         }
     }
 
@@ -141,28 +222,100 @@ public class AuctionDetailsforBidderController implements Initializable {
         }
     }
 
-    private void loadBidHistoryChart() {
+    //Update image
+    private void updateProductImage() {
+        if (imgProduct == null || session == null || session.getItem() == null) {
+            return;
+        }
+        String imagePath = session.getItem().getImagePath();
+        if (imagePath == null || imagePath.isBlank()) {
+            return;
+        }
+        try {
+            imgProduct.setImage(new Image(imagePath, 648, 380, true, true, true));
+        } catch (RuntimeException e) {
+            System.err.println("Cannot load product image: " + imagePath);
+        }
+    }
+
+    /**
+     * Load bid history ở background thread để tránh đơ UI khi mở dialog.
+     */
+    private void loadBidHistoryAsync() {
+        if (session == null) return;
+
+        // Render ngay từ bids đã có trong session object (không cần network lần đầu).
+        List<Bid> cachedBids = session.getBids();
+        if (cachedBids != null && !cachedBids.isEmpty()) {
+            updateBidCount(cachedBids);
+            renderBidHistoryChart(cachedBids);
+            renderBidHistoryCards(cachedBids);
+        } else {
+            showLoadingState();
+        }
+
+        // Fetch mới nhất ở background để cập nhật nếu có bid mới kể từ khi session được load.
+        FxAsync.run("bid-history-" + session.getId(),
+                () -> protocol.getBidHistory(session.getId()),
+                bids -> {
+                    updateBidCount(bids);
+                    renderBidHistoryChart(bids);
+                    renderBidHistoryCards(bids);
+                },
+                error -> {
+                    System.err.println("Error loading bid history: " + error);
+                    clearLoadingState();
+                });
+    }
+
+    private void showLoadingState() {
+        if (containerBidHistory != null) {
+            containerBidHistory.getChildren().clear();
+            Label loading = new Label("Loading bid history...");
+            loading.setStyle("-fx-text-fill: #6b7280;");
+            containerBidHistory.getChildren().add(loading);
+        }
+    }
+
+    private void clearLoadingState() {
+        if (containerBidHistory != null) {
+            containerBidHistory.getChildren().clear();
+        }
+    }
+
+    private void updateBidCount(List<Bid> bids) {
+        if (lblCurrentBids != null) {
+            lblCurrentBids.setText(String.valueOf(bids == null ? 0 : bids.size()));
+        }
+    }
+
+    /**
+     * Render chart từ danh sách bid đã load.
+     */
+    private void renderBidHistoryChart(List<Bid> bids) {
         if (lcPriceHistory == null || session == null) return;
 
         try {
             lcPriceHistory.getData().clear();
-            List<Bid> bids = protocol.getBidHistory(session.getId());
 
             XYChart.Series<String, Number> series = new XYChart.Series<>();
             series.setName("Price History");
 
-            // Add opening starting price as baseline
-            series.getData().add(new XYChart.Data<>("Start", session.getStartingPrice()));
+            List<Bid> chartBids = bids.stream()
+                    .filter(bid -> bid.getTime() != null)
+                    .sorted((b1, b2) -> {
+                        int byTime = b1.getTime().compareTo(b2.getTime());
+                        return byTime != 0 ? byTime : Integer.compare(b1.getId(), b2.getId());
+                    })
+                    .toList();
 
-            // Format formatting time or sequential index
-            for (int i = 0; i < bids.size(); i++) {
-                Bid bid = bids.get(i);
-                String label;
-                if (bid.getTime() != null) {
-                    label = bid.getTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-                } else {
-                    label = "Bid #" + (i + 1);
-                }
+            // Thêm giá khởi điểm làm baseline; prefix số thứ tự để CategoryAxis không bị trùng label.
+            series.getData().add(new XYChart.Data<>("00 Start", session.getStartingPrice()));
+
+            for (int i = 0; i < chartBids.size(); i++) {
+                Bid bid = chartBids.get(i);
+                String label = String.format("%02d %s", i + 1,
+                        bid.getTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
                 series.getData().add(new XYChart.Data<>(label, bid.getAmount()));
             }
 
@@ -175,14 +328,21 @@ public class AuctionDetailsforBidderController implements Initializable {
         }
     }
 
-    private void loadBidHistoryCards() {
-        if (containerBidHistory == null || session == null) return;
+    /**
+     * Render bid history cards từ danh sách bid đã load.
+     */
+    private void renderBidHistoryCards(List<Bid> bids) {
+        if (containerBidHistory == null) return;
 
         containerBidHistory.getChildren().clear();
         try {
-            List<Bid> bids = protocol.getBidHistory(session.getId());
-            // Sort bids newest first
-            bids.sort((b1, b2) -> b2.getTime().compareTo(b1.getTime()));
+            // Sắp xếp bid mới nhất lên đầu; null time được đưa xuống cuối để tránh crash.
+            bids.sort((b1, b2) -> {
+                if (b1.getTime() == null && b2.getTime() == null) return 0;
+                if (b1.getTime() == null) return 1;
+                if (b2.getTime() == null) return -1;
+                return b2.getTime().compareTo(b1.getTime());
+            });
 
             for (Bid bid : bids) {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/BidderHistoryCard.fxml"));
@@ -265,8 +425,7 @@ public class AuctionDetailsforBidderController implements Initializable {
             session = updatedSession;
             lastKnownEndTime = updatedSession.getEndTime();
             bindBasicInfo();
-            loadBidHistoryChart();
-            loadBidHistoryCards();
+            loadBidHistoryAsync();
             updateTimeLabels();
             if (lblWarning != null && previousEnd != null && updatedSession.getEndTime() != null
                     && updatedSession.getEndTime().isAfter(previousEnd)) {
@@ -287,18 +446,26 @@ public class AuctionDetailsforBidderController implements Initializable {
             return;
         }
 
-        String amountText = txtBidAmount.getText();
-        if (amountText == null || amountText.trim().isEmpty()) {
-            showAlert("Warning", "Please enter a bid amount.");
-            return;
-        }
-
+        boolean autoBidEnabled = chboxAutobid != null && chboxAutobid.isSelected();
         double bidAmount;
-        try {
-            bidAmount = Double.parseDouble(amountText.trim());
-        } catch (NumberFormatException e) {
-            showAlert("Error", "Invalid bid amount format.");
-            return;
+        if (autoBidEnabled) {
+            Double preparedAutoBid = prepareAutoBidStartAmount();
+            if (preparedAutoBid == null) {
+                return;
+            }
+            bidAmount = preparedAutoBid;
+        } else {
+            String amountText = txtBidAmount.getText();
+            if (amountText == null || amountText.trim().isEmpty()) {
+                showAlert("Warning", "Please enter a bid amount.");
+                return;
+            }
+            try {
+                bidAmount = Double.parseDouble(amountText.trim());
+            } catch (NumberFormatException e) {
+                showAlert("Error", "Invalid bid amount format.");
+                return;
+            }
         }
 
         if (bidAmount <= session.getCurrentPrice()) {
@@ -306,58 +473,143 @@ public class AuctionDetailsforBidderController implements Initializable {
             return;
         }
 
-        // Call backend
-        String errorMsg = protocol.placeBidOrError(session.getId(), currentUser.getId(), bidAmount);
-        if (errorMsg != null) {
-            showAlert("Error", errorMsg);
-            return;
-        }
+        // Disable button để tránh double-click khi đang gửi bid/autobid lên server.
+        btnPlaceBid.setDisable(true);
 
-        // If autobid is selected, register it
-        if (chboxAutobid.isSelected()) {
-            try {
-                double maxAmount = Double.parseDouble(txtMaxBidAmount.getText().trim());
-                double increment = Double.parseDouble(txtIncrementAmount.getText().trim());
-                if (maxAmount > bidAmount && increment > 0) {
-                    AutoBidConfig config = new AutoBidConfig(0, currentUser.getId(), session.getId(), maxAmount, increment);
-                    protocol.registerAutoBid(config);
-                }
-            } catch (NumberFormatException ignore) {}
-        }
+        // Gọi backend ở background thread.
+        FxAsync.run("place-bid-" + session.getId(),
+                () -> protocol.placeBidOrError(session.getId(), currentUser.getId(), bidAmount),
+                errorMsg -> {
+                    if (errorMsg != null) {
+                        showAlert("Error", errorMsg);
+                        btnPlaceBid.setDisable(false);
+                        return;
+                    }
 
-        // Refresh UI
-        txtBidAmount.clear();
-        refreshAuctionData();
-        showAlert("Success", "Bid placed successfully!");
+                    // Nếu auto-bid được chọn, đăng ký config ngay sau bid mở đầu thành công.
+                    if (autoBidEnabled) {
+                        registerAutoBidAsync(currentUser, bidAmount);
+                    } else {
+                        txtBidAmount.clear();
+                        refreshAuctionDataAsync();
+                        showAlert("Success", "Bid placed successfully!");
+                        btnPlaceBid.setDisable(false);
+                    }
+                });
+    }
+
+    private Double prepareAutoBidStartAmount() {
+        try {
+            double maxAmount = Double.parseDouble(txtMaxBidAmount.getText().trim());
+            double increment = Double.parseDouble(txtIncrementAmount.getText().trim());
+            double nextBid = Math.min(session.getCurrentPrice() + increment, maxAmount);
+
+            if (increment <= 0) {
+                showAlert("Warning", "Auto-bid increment must be greater than 0.");
+                return null;
+            }
+            if (maxAmount <= session.getCurrentPrice()) {
+                showAlert("Warning", "Maximum bid must be greater than the current price.");
+                return null;
+            }
+            if (nextBid <= session.getCurrentPrice()) {
+                showAlert("Warning", "Auto-bid cannot start because the next bid is not high enough.");
+                return null;
+            }
+            // Điền bid mở đầu để người dùng nhìn thấy số tiền sẽ được gửi khi bấm nút start/place bid.
+            txtBidAmount.setText(String.valueOf(nextBid));
+            return nextBid;
+        } catch (NumberFormatException e) {
+            showAlert("Error", "Please enter valid maximum bid and increment values.");
+            return null;
+        }
+    }
+
+    /**
+     * Đăng ký auto-bid ở background thread.
+     */
+    private void registerAutoBidAsync(User currentUser, double initialBidAmount) {
+        try {
+            double maxAmount = Double.parseDouble(txtMaxBidAmount.getText().trim());
+            double increment = Double.parseDouble(txtIncrementAmount.getText().trim());
+
+            if (maxAmount <= initialBidAmount || increment <= 0) {
+                txtBidAmount.clear();
+                refreshAuctionDataAsync();
+                showAlert("Success", "Bid placed successfully!");
+                btnPlaceBid.setDisable(false);
+                return;
+            }
+
+            AutoBidConfig config = new AutoBidConfig(0, currentUser.getId(), session.getId(), maxAmount, increment);
+            FxAsync.run("auto-bid-" + session.getId(),
+                    () -> protocol.registerAutoBid(config),
+                    success -> {
+                        txtBidAmount.clear();
+                        refreshAuctionDataAsync();
+                        if (Boolean.TRUE.equals(success)) {
+                            showAlert("Success", "Auto-bid started successfully!");
+                        } else {
+                            showAlert("Warning", "Bid placed, but auto-bid could not be started.");
+                        }
+                        btnPlaceBid.setDisable(false);
+                    },
+                    error -> {
+                        txtBidAmount.clear();
+                        refreshAuctionDataAsync();
+                        showAlert("Warning", "Bid placed, but auto-bid could not be started: " + error.getMessage());
+                        btnPlaceBid.setDisable(false);
+                    });
+        } catch (NumberFormatException e) {
+            txtBidAmount.clear();
+            refreshAuctionDataAsync();
+            showAlert("Success", "Bid placed successfully!");
+            btnPlaceBid.setDisable(false);
+        }
     }
 
     @FXML
     public void hanldeAutoBid(ActionEvent event) {
         boolean autoEnabled = chboxAutobid.isSelected();
         paneAutobid.setDisable(!autoEnabled);
+        
         if (!autoEnabled) {
             txtMaxBidAmount.clear();
             txtIncrementAmount.clear();
-            // Cancel auto bid on server
+            
+            // Hủy auto bid trên server ở background
             User u = SessionContext.getCurrentUser();
             if (u != null && session != null) {
-                protocol.cancelAutoBid(session.getId(), u.getId());
+                FxAsync.run("cancel-auto-bid-" + session.getId(),
+                        () -> {
+                            protocol.cancelAutoBid(session.getId(), u.getId());
+                            return null;
+                        },
+                        result -> {
+                            // Auto-bid đã được hủy
+                        });
             }
         }
     }
 
-    private void refreshAuctionData() {
-        // Fetch latest session details
-        List<AuctionSession> active = protocol.getActiveAuctions();
-        for (AuctionSession s : active) {
-            if (s.getId() == session.getId()) {
-                this.session = s;
-                bindBasicInfo();
-                loadBidHistoryChart();
-                loadBidHistoryCards();
-                break;
-            }
-        }
+    /**
+     * Refresh dữ liệu auction từ server ở background thread.
+     */
+    private void refreshAuctionDataAsync() {
+        if (session == null) return;
+        
+        FxAsync.run("refresh-auction-" + session.getId(),
+                protocol::getActiveAuctions,
+                activeAuctions -> {
+                    for (AuctionSession s : activeAuctions) {
+                        if (s.getId() == session.getId()) {
+                            this.session = s;
+                            bindBasicInfo();
+                            loadBidHistoryAsync();
+                            break;
+                        }
+                    }
+                });
     }
 
     private void showAlert(String title, String content) {

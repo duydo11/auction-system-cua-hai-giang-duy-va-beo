@@ -1,21 +1,46 @@
 @startuml
-actor User
-participant ClientUI
-participant BidController
-participant ClientConnection
-participant ServerProtocolHandler
-participant BidService
-participant AuctionService
+' Place bid sequence - current codebase
+actor Bidder
+boundary "AuctionDetailsforBidderController" as UI
+control "ClientProtocolHandler" as CPH
+control "SocketClient" as SC
+control "ClientHandler" as CH
+control "ServerProtocolHandler" as SPH
+control "BidService" as BS
+entity "AuctionSessionDAO" as ASDAO
+entity "BidDAO" as BDAO
+control "ClientBroadcastHub" as Hub
+control "RealtimeAuctionBus" as Bus
 
-User -> ClientUI: placeBid(auctionId, amount)
-ClientUI -> BidController: placeBid(...)
-BidController -> ClientConnection: sendMessage(PLACE_BID_REQUEST)
-ClientConnection -> ServerProtocolHandler: receive
-ServerProtocolHandler -> BidService: placeBid(...)
-BidService -> AuctionService: getAuctionById(...)
-BidService -> BidDAO: createBid(...)
-BidService -> AuctionDAO: updateAuction(...)
-ServerProtocolHandler -> ClientConnection: sendMessage(PLACE_BID_RESPONSE)
-ClientConnection -> BidController: response
-BidController -> ClientUI: show result
+Bidder -> UI: click Place Bid Now
+UI -> CPH: placeBid(sessionId, bid)
+CPH -> SC: sendMessage(PLACE_BID_REQUEST)
+SC -> CH: TCP ObjectStream Message
+CH -> SPH: handleMessage(message)
+SPH -> BS: placeBid(sessionId, bid)
+
+BS -> BS: synchronized(lockForSession(sessionId))
+BS -> ASDAO: getAuctionSessionById(sessionId)
+ASDAO --> BS: AuctionSession
+BS -> BS: validate active time/current price/bidder
+
+alt valid bid
+  BS -> BDAO: saveBid(bid)
+  BS -> ASDAO: update current price/winner/endTime if anti-snipe
+  BS -> Hub: broadcast(AUCTION_UPDATED_PUSH)
+  Hub --> SC: push to connected clients
+  SC -> Bus: dispatch(push)
+  Bus -> UI: update price/history/chart
+  BS --> SPH: true
+  SPH --> CH: PLACE_BID_RESPONSE(success)
+  CH --> SC: response
+  SC --> CPH: response
+  CPH --> UI: success
+else invalid bid
+  BS --> SPH: false
+  SPH --> CH: PLACE_BID_RESPONSE(error)
+  CH --> SC: response
+  SC --> CPH: response
+  CPH --> UI: show error
+end
 @enduml

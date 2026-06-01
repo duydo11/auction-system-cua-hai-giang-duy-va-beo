@@ -12,10 +12,14 @@ public enum MessageType {
     // Auction Operations
     VIEW_AUCTIONS_REQUEST,
     VIEW_AUCTIONS_RESPONSE,
+    GET_ALL_AUCTIONS_REQUEST,
+    GET_ALL_AUCTIONS_RESPONSE,
     CREATE_AUCTION_REQUEST,
     CREATE_AUCTION_RESPONSE,
     AUCTION_DETAILS_REQUEST,
     AUCTION_DETAILS_RESPONSE,
+    CANCEL_AUCTION_REQUEST,
+    CANCEL_AUCTION_RESPONSE,
 
     // Bidding
     PLACE_BID_REQUEST,
@@ -38,6 +42,8 @@ public enum MessageType {
     // Admin
     BAN_USER_REQUEST,
     BAN_USER_RESPONSE,
+    UNBAN_USER_REQUEST,
+    UNBAN_USER_RESPONSE,
     GET_ALL_USERS_REQUEST,
     GET_ALL_USERS_RESPONSE,
 
@@ -50,6 +56,8 @@ public enum MessageType {
     CLOSE_AUCTION_PUSH,
     /** Phiên gia hạn do anti-sniping. */
     AUCTION_EXTENDED_PUSH,
+    /** User bị ban, client cần logout nếu là user này. */
+    USER_BANNED_PUSH,
 
     // User
     GET_USER_INFO_REQUEST,

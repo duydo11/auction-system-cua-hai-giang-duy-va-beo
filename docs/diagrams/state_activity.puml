@@ -1,11 +1,22 @@
 @startuml
-state "AUCTION" as AuctionState {
-  [*] --> CREATED
-  CREATED --> ACTIVE : start
-  ACTIVE --> ENDED : time_up / end
-  ACTIVE --> CANCELLED : cancel
-  ENDED --> COMPLETED : determine_winner
-  CANCELLED --> [*]
-  COMPLETED --> [*]
+' AuctionSession state diagram - matches AuctionStatus enum
+state "AuctionSession" as AuctionState {
+  [*] --> OPEN : create session
+  OPEN --> RUNNING : first valid bid / active time
+  OPEN --> FINISHED : endTime reached without cancel
+  RUNNING --> RUNNING : valid bid updates price
+  RUNNING --> RUNNING : anti-snipe extends endTime
+  RUNNING --> FINISHED : endTime reached
+  OPEN --> CANCELED : cancel/delete
+  RUNNING --> CANCELED : cancel/delete
+  FINISHED --> PAID : settlement successful
+  FINISHED --> CANCELED : no winner / invalid settlement
+  PAID --> [*]
+  CANCELED --> [*]
 }
+
+note right of AuctionState
+Statuses are defined in AuctionStatus:
+OPEN, RUNNING, FINISHED, PAID, CANCELED.
+end note
 @enduml

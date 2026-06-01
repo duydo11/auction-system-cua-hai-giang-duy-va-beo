@@ -23,10 +23,26 @@ import java.util.List;
  * </ul>
  */
 public class UserDAO {
+    private static volatile boolean initialized = false;
 
     public UserDAO() {
-        try (Connection conn = DatabaseConnection.getConnection();
-             java.sql.Statement stmt = conn.createStatement()) {
+        // Chỉ chạy migration/seed một lần để admin/user/category không bị chậm vì ALTER lặp lại.
+        if (initialized) {
+            return;
+        }
+        synchronized (UserDAO.class) {
+            if (initialized) {
+                return;
+            }
+            initializeSchema();
+            initialized = true;
+        }
+    }
+
+    private void initializeSchema() {
+        Connection conn = DatabaseConnection.getConnection();
+        // Chỉ đóng Statement; connection singleton cần sống tiếp cho các request sau.
+        try (java.sql.Statement stmt = conn.createStatement()) {
             // Create transactions table if not exists
             stmt.execute("CREATE TABLE IF NOT EXISTS transactions (" +
                          "id INT AUTO_INCREMENT PRIMARY KEY, " +
@@ -43,14 +59,49 @@ public class UserDAO {
             } catch (SQLException ignore) {
                 // Table might already have column, ignore
             }
+
+            // Thêm cột ban mềm: không xóa user để tránh mất lịch sử auction/bid/transaction.
+            try {
+                stmt.execute("ALTER TABLE users ADD COLUMN is_banned BOOLEAN DEFAULT FALSE");
+            } catch (SQLException ignore) {
+                // Cột đã tồn tại ở các lần chạy sau.
+            }
+
+            // Seed tài khoản mặc định cho giáo viên/tester: username admin, password admin.
+            ensureDefaultAdminAccount(conn);
         } catch (SQLException e) {
             System.err.println("Note: DB initialization error: " + e.getMessage());
         }
     }
 
+    /**
+     * Ensures the default admin account exists exactly once.
+     */
+    private void ensureDefaultAdminAccount(Connection conn) throws SQLException {
+        if (existsByUsername("admin")) {
+            return;
+        }
+
+        int adminId = allocateNextUserId();
+        try (PreparedStatement psUser = conn.prepareStatement(
+                "INSERT INTO users (id, username, password, email) VALUES (?, ?, ?, ?)");
+             PreparedStatement psAdmin = conn.prepareStatement(
+                "INSERT INTO admins (user_id, access_level) VALUES (?, ?)")) {
+            psUser.setInt(1, adminId);
+            psUser.setString(2, "admin");
+            psUser.setString(3, "admin");
+            psUser.setString(4, "admin@auction.local");
+            psUser.executeUpdate();
+
+            psAdmin.setInt(1, adminId);
+            psAdmin.setString(2, "SUPER_ADMIN");
+            psAdmin.executeUpdate();
+        }
+    }
+
     /** ID tiếp theo cho đăng ký (schema users.id kiểu INT). */
     public int allocateNextUserId() {
-        String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM users";
+        String sql = "SELECT COALESCE(MAX(CAST(id AS UNSIGNED)), 0) + 1 AS next_id FROM users";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -78,15 +129,18 @@ public class UserDAO {
 
     // Dang nhap
     public User login(String username, String password) {
-        String sql = "SELECT id FROM users WHERE username = ? AND password = ?";
+        String sql = "SELECT id, is_banned FROM users WHERE username = ? AND password = ?";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
             ps.setString(2, password);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
+                // Ban mềm: user vẫn còn trong DB để giữ lịch sử, nhưng không được đăng nhập.
+                if (rs.getBoolean("is_banned")) {
+                    throw new RuntimeException("bạn đã bị admin ban");
+                }
                 int userId = rs.getInt("id");
-                // Tìm thấy ID rồi thì dùng hàm getUserById để lấy Full Object (tự nhận diện Role)
                 return getUserById(userId);
             }
         } catch (SQLException e) {
@@ -148,18 +202,21 @@ public class UserDAO {
 
     //lay role
     public Bidder getBidderById(int id) {
-        String sql = "SELECT u.id, u.username, u.password, u.email, b.account_balance " +
+        String sql = "SELECT u.id, u.username, u.password, u.email, u.is_banned, b.account_balance " +
                 "FROM users u INNER JOIN bidders b ON u.id = b.user_id WHERE u.id = ?";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                return new Bidder(
+                double balance = Math.max(rs.getDouble("account_balance"), readSellerBalance(id));
+                Bidder bidder = new Bidder(
                         rs.getInt("id"), rs.getString("username"),
                         rs.getString("password"), rs.getString("email"),
-                        rs.getDouble("account_balance")
+                        balance
                 );
+                bidder.setBanned(rs.getBoolean("is_banned"));
+                return bidder;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -168,18 +225,21 @@ public class UserDAO {
     }
 
     public Seller getSellerById(int id) {
-        String sql = "SELECT u.id, u.username, u.password, u.email, s.rating, s.account_balance " +
+        String sql = "SELECT u.id, u.username, u.password, u.email, u.is_banned, s.rating, s.account_balance " +
                 "FROM users u INNER JOIN sellers s ON u.id = s.user_id WHERE u.id = ?";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                return new Seller(
+                double balance = Math.max(rs.getDouble("account_balance"), readBidderBalance(id));
+                Seller seller = new Seller(
                         rs.getInt("id"), rs.getString("username"),
                         rs.getString("password"), rs.getString("email"),
-                        rs.getDouble("rating"), rs.getDouble("account_balance")
+                        rs.getDouble("rating"), balance
                 );
+                seller.setBanned(rs.getBoolean("is_banned"));
+                return seller;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -188,18 +248,20 @@ public class UserDAO {
     }
 
     public Admin getAdminById(int id) {
-        String sql = "SELECT u.id, u.username, u.password, u.email, a.access_level " +
+        String sql = "SELECT u.id, u.username, u.password, u.email, u.is_banned, a.access_level " +
                 "FROM users u INNER JOIN admins a ON u.id = a.user_id WHERE u.id = ?";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                return new Admin(
+                Admin admin = new Admin(
                         rs.getInt("id"), rs.getString("username"),
                         rs.getString("password"), rs.getString("email"),
                         rs.getString("access_level")
                 );
+                admin.setBanned(rs.getBoolean("is_banned"));
+                return admin;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -224,7 +286,86 @@ public class UserDAO {
             return admin;
         }
 
+        // Fallback: nếu users có row nhưng bảng role bị thiếu, admin vẫn phải thấy user để debug/sửa dữ liệu.
+        return getUserBaseAsBidder(id);
+    }
+
+    private User getUserBaseAsBidder(int id) {
+        String sql = "SELECT id, username, password, email FROM users WHERE id = ?";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new Bidder(rs.getInt("id"), rs.getString("username"),
+                        rs.getString("password"), rs.getString("email"), 0.0);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Cannot load base user #" + id, e);
+        }
         return null;
+    }
+
+    public boolean ensureSellerRole(int userId) {
+        String existsSql = "SELECT 1 FROM sellers WHERE user_id = ? LIMIT 1";
+        String insertSql = "INSERT INTO sellers (user_id, rating, account_balance) VALUES (?, 0.0, ?)";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement exists = conn.prepareStatement(existsSql)) {
+            exists.setInt(1, userId);
+            try (ResultSet rs = exists.executeQuery()) {
+                if (rs.next()) {
+                    return true;
+                }
+            }
+            double balance = readBidderBalance(userId);
+            try (PreparedStatement insert = conn.prepareStatement(insertSql)) {
+                insert.setInt(1, userId);
+                insert.setDouble(2, balance);
+                return insert.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Cannot create seller role for user #" + userId, e);
+        }
+    }
+
+    public boolean ensureBidderRole(int userId) {
+        String existsSql = "SELECT 1 FROM bidders WHERE user_id = ? LIMIT 1";
+        String insertSql = "INSERT INTO bidders (user_id, account_balance) VALUES (?, ?)";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement exists = conn.prepareStatement(existsSql)) {
+            exists.setInt(1, userId);
+            try (ResultSet rs = exists.executeQuery()) {
+                if (rs.next()) {
+                    return true;
+                }
+            }
+            double balance = readSellerBalance(userId);
+            try (PreparedStatement insert = conn.prepareStatement(insertSql)) {
+                insert.setInt(1, userId);
+                insert.setDouble(2, balance);
+                return insert.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Cannot create bidder role for user #" + userId, e);
+        }
+    }
+
+    private double readBidderBalance(int userId) throws SQLException {
+        return readBalance("SELECT account_balance FROM bidders WHERE user_id = ?", userId);
+    }
+
+    private double readSellerBalance(int userId) throws SQLException {
+        return readBalance("SELECT account_balance FROM sellers WHERE user_id = ?", userId);
+    }
+
+    private double readBalance(String sql, int userId) throws SQLException {
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getDouble("account_balance") : 0.0;
+            }
+        }
     }
 
     // cap nhat user
@@ -242,12 +383,8 @@ public class UserDAO {
 
                 if (user instanceof Bidder) {
                     Bidder bidder = (Bidder) user;
-                    String sqlBidder = "UPDATE bidders SET account_balance = ? WHERE user_id = ?";
-                    try (PreparedStatement psBidder = conn.prepareStatement(sqlBidder)) {
-                        psBidder.setDouble(1, bidder.getAccountBalance());
-                        psBidder.setInt(2, bidder.getId());
-                        psBidder.executeUpdate();
-                    }
+                    // Balance là ví chung theo user, nên cập nhật mọi role row đang tồn tại.
+                    updateAllRoleBalances(conn, bidder.getId(), bidder.getAccountBalance());
                 } else if (user instanceof Seller) {
                     Seller seller = (Seller) user;
                     String sqlSeller = "UPDATE sellers SET rating = ?, account_balance = ? WHERE user_id = ?";
@@ -257,6 +394,8 @@ public class UserDAO {
                         psSeller.setInt(3, seller.getId());
                         psSeller.executeUpdate();
                     }
+                    // Balance là ví chung theo user, nên cập nhật cả bidder row nếu user đã switch role.
+                    updateAllRoleBalances(conn, seller.getId(), seller.getAccountBalance());
                 } else if (user instanceof Admin) {
                     Admin admin = (Admin) user;
                     String sqlAdmin = "UPDATE admins SET access_level = ? WHERE user_id = ?";
@@ -278,48 +417,128 @@ public class UserDAO {
         }
     }
 
-    // xoa
-    public void deleteUser(int userId) {
+    private void updateAllRoleBalances(Connection conn, int userId, double balance) throws SQLException {
+        try (PreparedStatement psBidder = conn.prepareStatement("UPDATE bidders SET account_balance = ? WHERE user_id = ?");
+             PreparedStatement psSeller = conn.prepareStatement("UPDATE sellers SET account_balance = ? WHERE user_id = ?")) {
+            psBidder.setDouble(1, balance);
+            psBidder.setInt(2, userId);
+            psBidder.executeUpdate();
+            psSeller.setDouble(1, balance);
+            psSeller.setInt(2, userId);
+            psSeller.executeUpdate();
+        }
+    }
+
+    /**
+     * Soft ban user: đặt is_banned = TRUE thay vì xóa để giữ lịch sử auction/bid.
+     * Không cho ban admin.
+     */
+    public boolean banUser(int userId) {
+        User user = getUserById(userId);
+        if (user == null || user instanceof Admin || "admin".equalsIgnoreCase(user.getUsername())) {
+            return false;
+        }
+        String sql = "UPDATE users SET is_banned = TRUE WHERE id = ?";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Unban user: đặt is_banned = FALSE.
+     */
+    public boolean unbanUser(int userId) {
+        String sql = "UPDATE users SET is_banned = FALSE WHERE id = ?";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean deleteUser(int userId) {
         Connection conn = DatabaseConnection.getConnection();
         try {
             conn.setAutoCommit(false);
-            try {
-                // Xóa ở các bảng con trước
-                conn.createStatement().executeUpdate("DELETE FROM bidders WHERE user_id = " + userId);
-                conn.createStatement().executeUpdate("DELETE FROM sellers WHERE user_id = " + userId);
-                conn.createStatement().executeUpdate("DELETE FROM admins WHERE user_id = " + userId);
-
-                // Xóa ở bảng cha sau cùng
-                PreparedStatement ps = conn.prepareStatement("DELETE FROM users WHERE id = ?");
-                ps.setInt(1, userId);
-                ps.executeUpdate();
+            try (PreparedStatement deleteBidder = conn.prepareStatement("DELETE FROM bidders WHERE user_id = ?");
+                 PreparedStatement deleteSeller = conn.prepareStatement("DELETE FROM sellers WHERE user_id = ?");
+                 PreparedStatement deleteAdmin = conn.prepareStatement("DELETE FROM admins WHERE user_id = ?");
+                 PreparedStatement deleteUser = conn.prepareStatement("DELETE FROM users WHERE id = ?")) {
+                // Xóa role rows trước để tránh lỗi khóa ngoại.
+                deleteBidder.setInt(1, userId);
+                deleteBidder.executeUpdate();
+                deleteSeller.setInt(1, userId);
+                deleteSeller.executeUpdate();
+                deleteAdmin.setInt(1, userId);
+                deleteAdmin.executeUpdate();
+                deleteUser.setInt(1, userId);
+                boolean deleted = deleteUser.executeUpdate() > 0;
                 conn.commit();
+                return deleted;
             } catch (SQLException e) {
                 conn.rollback();
                 e.printStackTrace();
+                return false;
             } finally {
                 conn.setAutoCommit(true);
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
     /**
      * Lấy danh sách tất cả user (dành cho Admin dashboard).
+     * Dùng 1 query LEFT JOIN để tránh N+1 round-trips tới DB.
      */
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
-        String sql = "SELECT id FROM users";
+        // 1 query lấy toàn bộ thông tin cần thiết để build User object.
+        String sql = "SELECT u.id, u.username, u.password, u.email, u.is_banned, " +
+                     "b.account_balance AS bidder_balance, " +
+                     "s.rating, s.account_balance AS seller_balance, " +
+                     "a.access_level " +
+                     "FROM users u " +
+                     "LEFT JOIN bidders b ON u.id = b.user_id " +
+                     "LEFT JOIN sellers s ON u.id = s.user_id " +
+                     "LEFT JOIN admins a ON u.id = a.user_id " +
+                     "ORDER BY u.id";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                int userId = rs.getInt("id");
-                User user = getUserById(userId);
-                if (user != null) {
-                    users.add(user);
+                int id = rs.getInt("id");
+                String username = rs.getString("username");
+                String password = rs.getString("password");
+                String email = rs.getString("email");
+                boolean isBanned = rs.getBoolean("is_banned");
+                String accessLevel = rs.getString("access_level");
+                double sellerBalance = rs.getDouble("seller_balance");
+                double bidderBalance = rs.getDouble("bidder_balance");
+                boolean hasSeller = !rs.wasNull() || rs.getString("rating") != null;
+                // Ưu tiên: Admin > Seller (có row sellers) > Bidder (có row bidders) > fallback Bidder.
+                User user;
+                if (accessLevel != null) {
+                    user = new Admin(id, username, password, email, accessLevel);
+                } else if (sellerBalance != 0.0 || rs.getObject("seller_balance") != null) {
+                    double balance = Math.max(sellerBalance, bidderBalance);
+                    double rating = rs.getDouble("rating");
+                    user = new Seller(id, username, password, email, rating, balance);
+                } else {
+                    double balance = Math.max(bidderBalance, 0.0);
+                    user = new Bidder(id, username, password, email, balance);
                 }
+                user.setBanned(isBanned);
+                users.add(user);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -339,6 +558,22 @@ public class UserDAO {
             ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    public boolean hasTransaction(int userId, String type, String description) {
+        String sql = "SELECT 1 FROM transactions WHERE user_id = ? AND type = ? AND description = ? LIMIT 1";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setString(2, type);
+            ps.setString(3, description);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
         }
     }
 

@@ -12,7 +12,7 @@ public class Transaction extends Entity {
 
     private int userId;
     private double amount;
-    private String type; // DEPOSIT, WITHDRAW, BID_SUCCESS
+    private String type; // DEPOSIT, WITHDRAW, BID_PAYMENT, AUCTION_SALE
     private String description;
     private LocalDateTime time;
 

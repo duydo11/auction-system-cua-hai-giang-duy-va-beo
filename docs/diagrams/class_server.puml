@@ -1,49 +1,113 @@
 @startuml
-' Class diagram - Server module (DAO & Service)
+' Class diagram - Server module (current codebase)
 skinparam classAttributeIconSize 0
+left to right direction
 
-package "Server Module" {
-  class DatabaseConnection <<Singleton>> {
-    - instance: DatabaseConnection
-    - connection: Connection
-    + getInstance(): DatabaseConnection
-    + getConnection(): Connection
+package "network" {
+  class SocketServer {
+    - port: int
+    + start(): void
   }
 
-  abstract class BaseDAO {
-    # connection: Connection
+  class ClientHandler {
+    - writeLock: Object
+    + sendPush(message): void
+    + run(): void
   }
 
-  class UserDAO
-  class AuctionDAO
-  class BidDAO
+  class ServerProtocolHandler {
+    + handleMessage(message): Message
+  }
 
+  class ClientBroadcastHub <<Publisher>> {
+    + register(handler): void
+    + unregister(handler): void
+    + broadcast(message): void
+  }
+}
+
+package "service" {
   class UserService {
-    - userDAO: UserDAO
-    + registerUser(...)
-    + loginUser(...)
+    + loginUser(username, password): User
+    + registerUser(...): boolean
+    + banUser(userId): boolean
+    + unbanUser(userId): boolean
   }
 
   class AuctionService {
-    - auctionDAO: AuctionDAO
-    + createAuction(...)
-    + getActiveAuctions()
+    + createAuctionSession(...): AuctionSession
+    + getActiveAuctions(): List<AuctionSession>
+    + settleAuctionIfExpired(session): AuctionSession
   }
 
   class BidService {
-    - bidDAO: BidDAO
-    + placeBid(...)
-    + getHighestBid(...)
+    + placeBid(sessionId, bid): boolean
+    + getBidsByAuctionSessionId(id): List<Bid>
   }
 
-  DatabaseConnection <|-- BaseDAO
-  BaseDAO <|-- UserDAO
-  BaseDAO <|-- AuctionDAO
-  BaseDAO <|-- BidDAO
+  class AutoBidService {
+    + registerAutoBid(...): boolean
+    + cancelAutoBid(...): boolean
+    + processOneAutoBid(...): boolean
+  }
 
-  UserService --> UserDAO
-  AuctionService --> AuctionDAO
-  BidService --> BidDAO
-  BidService --> AuctionDAO
+  class AuctionScheduler {
+    + start(): void
+  }
 }
+
+package "dao" {
+  class DatabaseConnection <<Singleton>> {
+    + getInstance(): DatabaseConnection
+    + getConnection(): Connection
+    + setTestConnection(conn): void
+  }
+
+  class UserDAO {
+    + login(username, password): User
+    + getAllUsers(): List<User>
+    + banUser(userId): boolean
+    + unbanUser(userId): boolean
+    + updateUser(user): void
+  }
+
+  class AuctionSessionDAO {
+    + getAllAuctionSessions(): List<AuctionSession>
+    + getActiveAuctionSessions(): List<AuctionSession>
+    + updateAuctionStatus(id, status): boolean
+  }
+
+  class BidDAO {
+    + saveBid(bid): boolean
+    + getBidsByAuctionSessionId(id): List<Bid>
+  }
+}
+
+class ServiceRegistry <<Registry>> {
+  + USER_SERVICE: UserService
+  + AUCTION_SERVICE: AuctionService
+  + BID_SERVICE: BidService
+  + AUTO_BID_SERVICE: AutoBidService
+}
+
+SocketServer --> ClientHandler
+ClientHandler --> ServerProtocolHandler
+ClientHandler --> ClientBroadcastHub
+ServerProtocolHandler --> ServiceRegistry
+ServiceRegistry --> UserService
+ServiceRegistry --> AuctionService
+ServiceRegistry --> BidService
+ServiceRegistry --> AutoBidService
+AuctionScheduler --> AuctionService
+UserService --> UserDAO
+AuctionService --> AuctionSessionDAO
+AuctionService --> UserDAO
+BidService --> BidDAO
+BidService --> AuctionSessionDAO
+AutoBidService --> BidService
+AutoBidService --> AuctionSessionDAO
+ClientBroadcastHub --> ClientHandler : pushes
+UserDAO --> DatabaseConnection
+AuctionSessionDAO --> DatabaseConnection
+BidDAO --> DatabaseConnection
 @enduml

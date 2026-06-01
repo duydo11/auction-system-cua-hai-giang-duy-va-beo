@@ -433,6 +433,53 @@ userDAO.saveTransaction(new Transaction(
 
 ---
 
+## 🔄 Cập nhật source mới nhất Hải cần biết
+
+### 1. Auction list đã tối ưu summary query
+
+File chính: `server/src/main/java/com/auction/server/dao/AuctionSessionDAO.java`
+
+Các hàm list hiện tại:
+
+- `findAllActiveSessions()`
+- `findAllSessions()`
+- `findAllUnfinishedSessions()`
+
+đã đổi sang dùng một câu SQL `JOIN` để lấy summary của auction + seller + winner + item.
+
+> Lý do: trước đây list auction gọi `getSessionById()` cho từng dòng, rồi kéo seller/item/winner/bids.
+> Với DB cloud, cách đó tạo N+1 query nên dashboard/admin/seller list rất chậm.
+
+Quy ước hiện tại:
+
+- Màn list/dashboard chỉ dùng summary object.
+- Bid history chỉ nên load khi mở detail bằng `getBidHistory()` hoặc `getSessionById()` đầy đủ.
+- Không thêm lại việc load toàn bộ `bids` vào các hàm list nếu không thật sự cần.
+
+### 2. Auto-bid flow mới
+
+Auto-bid vẫn dựa trên `AutoBidConfig(maxBid, increment)`.
+Flow UI hiện tại:
+
+1. Bidder tick `Auto-bid`.
+2. Nhập `Maximum Bid` và `Bid Increment`.
+3. Bấm nút bid/start.
+4. Client tự đặt bid mở đầu: `min(currentPrice + increment, maxBid)`.
+5. Nếu bid mở đầu thành công, client gọi `registerAutoBid()`.
+6. Khi có người khác bid cao hơn, `AutoBidService.processAutoBids()` sẽ tự đặt bid tiếp nếu chưa vượt max.
+
+### 3. ID allocation đã sửa cho DB dùng VARCHAR/INT lẫn lộn
+
+Các DAO cấp ID mới dùng:
+
+```sql
+SELECT COALESCE(MAX(CAST(id AS UNSIGNED)), 0) + 1
+```
+
+để tránh lỗi duplicate ID khi MySQL so sánh chuỗi kiểu `'9' > '10'`.
+
+---
+
 ## ❓ FAQ cho Hải
 
 **Q: Tại sao `AuctionSession` không dùng annotation `@Status` hay gì đó?**  

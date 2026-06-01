@@ -1,43 +1,130 @@
 @startuml
-' Class diagram - Shared module
+' Class diagram - Shared module (current codebase)
 skinparam classAttributeIconSize 0
+left to right direction
 
-package "Shared Module" {
-  class User {
-    - userId: int
+package "com.auction.shared.model" {
+  abstract class Entity {
+    - id: int
+  }
+}
+
+package "user" {
+  abstract class User {
     - username: String
     - password: String
     - email: String
-    - fullName: String
-    - phone: String
-    - accountBalance: double
-    - registrationDate: String
+    - banned: boolean
+    + getRoleName(): String
   }
 
-  class Auction {
-    - auctionId: int
-    - title: String
+  class Bidder {
+    - accountBalance: double
+  }
+
+  class Seller {
+    - rating: double
+    - accountBalance: double
+  }
+
+  class Admin {
+    - accessLevel: String
+  }
+
+  class Transaction {
+    - userId: int
+    - amount: double
+    - type: String
     - description: String
+    - time: LocalDateTime
+  }
+}
+
+package "item" {
+  abstract class Item {
+    - name: String
+    - description: String
+    - seller: User
+  }
+
+  class Electronics {
+    - warrantyMonths: int
+  }
+
+  class Art {
+    - author: String
+  }
+
+  class Vehicle {
+    - brand: String
+  }
+
+  class ItemFactory <<Factory Method>> {
+    + create(type, id, name, description, seller, extraParam): Item
+    + normalizeType(type): String
+  }
+}
+
+package "auction" {
+  class AuctionSession {
+    - seller: User
+    - winner: User
+    - item: Item
     - startingPrice: double
     - currentPrice: double
-    - sellerId: int
-    - status: String
-    - startDate: String
-    - endDate: String
-    - category: String
-    - totalBids: int
+    - startTime: LocalDateTime
+    - endTime: LocalDateTime
+    - bids: List<Bid>
+    - status: AuctionStatus
+    + updateCurrentPrice(bid): void
+    + isActive(): boolean
   }
 
   class Bid {
-    - bidId: int
-    - auctionId: int
-    - bidderId: int
-    - bidAmount: double
-    - bidTime: String
+    - bidder: User
+    - auctionSession: AuctionSession
+    - amount: double
+    - time: LocalDateTime
   }
 
-  User "1" -- "0..*" Auction : sells >
-  Auction "1" -- "0..*" Bid : has >
-  User "1" -- "0..*" Bid : places >
+  enum AuctionStatus {
+    OPEN
+    RUNNING
+    FINISHED
+    PAID
+    CANCELED
+  }
 }
+
+package "protocol" {
+  class Message {
+    - type: MessageType
+    - data: Object
+    - success: boolean
+    - errorMessage: String
+    - correlationId: String
+  }
+
+  enum MessageType
+}
+
+Entity <|-- User
+User <|-- Bidder
+User <|-- Seller
+User <|-- Admin
+Entity <|-- Item
+Item <|-- Electronics
+Item <|-- Art
+Item <|-- Vehicle
+Entity <|-- AuctionSession
+Entity <|-- Bid
+Entity <|-- Transaction
+
+ItemFactory ..> Item : creates
+AuctionSession --> Item
+AuctionSession --> User : seller/winner
+AuctionSession "1" o-- "0..*" Bid
+Bid --> User : bidder
+AuctionSession --> AuctionStatus
+Message --> MessageType
 @enduml

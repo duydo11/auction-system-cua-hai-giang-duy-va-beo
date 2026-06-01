@@ -2,6 +2,7 @@ package com.auction.client.controller.SellerScene;
 
 import com.auction.client.network.ClientProtocolHandler;
 import com.auction.client.util.SceneNavigator;
+import com.auction.client.util.UserRoleSwitcher;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -41,6 +42,7 @@ public class ShippingController {
     //Đổi bidder
     @FXML
     public void switchBidderDB(MouseEvent mouseEvent) {
+        UserRoleSwitcher.switchToBidderRole();
         SceneNavigator.loadScene(SceneNavigator.BIDDER_DASHBOARD, "bidder home");
     }
     public void switchWallet(MouseEvent mouseEvent) {
@@ -70,12 +72,12 @@ public class ShippingController {
     public void switchTab(ActionEvent event) throws IOException {
         if (event.getSource() == btnTotalPane) {
             TotalPane.toFront(); //Hiện Total
-            btnTotalPane.setStyle("-fx-background-color:  #438bcf; -fx-text-fill: white; -fx-border-color: white");
-            btnActivePane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color:  #438bcf");
+            btnTotalPane.setStyle("-fx-background-color:  #438bcf; -fx-text-fill: white; -fx-border-color: white; -fx-background-radius:20; -fx-border-radius: 20 ");
+            btnActivePane.setStyle("-fx-background-color: white; -fx-text-fill: #3a3386; -fx-border-color:  #438bcf; -fx-background-radius:20; -fx-border-radius: 20 ");
         } else if (event.getSource() == btnActivePane) {
             ActivePane.toFront(); //Hiện Active
-            btnActivePane.setStyle("-fx-background-color:  #438bcf; -fx-text-fill: white; -fx-border-color: white");
-            btnTotalPane.setStyle("-fx-background-color: white; -fx-text-fill:  #438bcf; -fx-border-color:  #438bcf");
+            btnActivePane.setStyle("-fx-background-color:  #438bcf; -fx-text-fill: white; -fx-border-color: white; -fx-background-radius:20; -fx-border-radius: 20 ");
+            btnTotalPane.setStyle("-fx-background-color: white; -fx-text-fill:  #438bcf; -fx-border-color:  #438bcf; -fx-background-radius:20; -fx-border-radius: 20 ");
         }
     }
 

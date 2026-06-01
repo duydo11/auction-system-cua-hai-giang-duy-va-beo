@@ -15,7 +15,7 @@ import java.util.List;
 public class BidDAO {
 
     public int allocateNextBidId() {
-        String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM bids";
+        String sql = "SELECT COALESCE(MAX(CAST(id AS UNSIGNED)), 0) + 1 AS next_id FROM bids";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -51,7 +51,7 @@ public class BidDAO {
     // Lay thong tin bid
     public List<Bid> getBidsBySessionId(int sessionId, AuctionSession session) {
         List<Bid> bids = new ArrayList<>();
-        String sql = "SELECT * FROM bids WHERE auction_session_id = ? ORDER BY time DESC";
+        String sql = "SELECT * FROM bids WHERE auction_session_id = ? ORDER BY time ASC, id ASC";
         Connection conn = DatabaseConnection.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, sessionId);

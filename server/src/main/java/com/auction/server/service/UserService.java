@@ -22,7 +22,12 @@ public class UserService {
     }
 
     public User loginUser(String username, String password) {
-        return userDAO.login(username, password);
+        User user = userDAO.login(username, password);
+        if (user != null && user.isBanned()) {
+            // Trả null và để protocol handler trả lỗi rõ ràng.
+            return null;
+        }
+        return user;
     }
 
     public boolean registerUser(String username, String password, String email, String role) {
@@ -55,13 +60,23 @@ public class UserService {
     }
 
     /**
-     * Ban (xóa) user theo id.
-     * Validate: chỉ admin mới được ban, không thể ban chính mình.
+     * Soft ban user: đặt is_banned = TRUE, không xóa tài khoản.
      */
     public boolean banUser(int userId) {
         try {
-            userDAO.deleteUser(userId);
-            return true;
+            return userDAO.banUser(userId);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Unban user: đặt is_banned = FALSE.
+     */
+    public boolean unbanUser(int userId) {
+        try {
+            return userDAO.unbanUser(userId);
         } catch (RuntimeException e) {
             e.printStackTrace();
             return false;
@@ -70,6 +85,16 @@ public class UserService {
 
     public User getUserById(int userId) {
         return userDAO.getUserById(userId);
+    }
+
+    public boolean ensureSellerRole(int userId) {
+        // UI có thể switch Bidder -> Seller trong memory, server phải tạo row sellers thật trước khi lưu item.
+        return userDAO.ensureSellerRole(userId);
+    }
+
+    public boolean ensureBidderRole(int userId) {
+        // Tạo row bidders khi cần để wallet/bidder flow không bị thiếu dữ liệu role.
+        return userDAO.ensureBidderRole(userId);
     }
 
     public boolean updateUser(User user) {

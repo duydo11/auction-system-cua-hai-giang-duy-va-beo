@@ -1,28 +1,58 @@
 @startuml
-' Architecture / Component diagram
+' Architecture overview - current codebase
 skinparam componentStyle rectangle
-package "CLIENT APP" {
-  [ClientUI] as UI
-  [ClientControllers] as ClientCtrl
-  UI ..> ClientCtrl : uses
+left to right direction
+
+package "Client module (JavaFX)" {
+  [FXML Views] as Views
+  [Controllers] as Controllers
+  [SceneNavigator] as Navigator
+  [ClientProtocolHandler] as CPH
+  [SocketClient] as SC
+  [SessionContext] as Session
+  [AuctionCache] as Cache
+  [RealtimeAuctionBus] as Bus
+
+  Views --> Controllers
+  Controllers --> Navigator
+  Controllers --> CPH
+  Controllers --> Session
+  Controllers --> Cache
+  SC --> Bus : dispatch push
+  Bus --> Controllers : notify UI listeners
 }
 
-interface "TCP Socket (I/O Stream)" as Network
+package "Shared module" {
+  [Models] as Models
+  [Message / MessageType] as Protocol
+  [ItemFactory] as Factory
+}
 
-package "SERVER APP" {
-  [AuctionServer (Multi-thread)] as ServerCore
-  [ProtocolHandler] as Protocol
-  [Service Layer] as Service
+package "Server module" {
+  [SocketServer] as SS
+  [ClientHandler] as CH
+  [ServerProtocolHandler] as SPH
+  [ServiceRegistry] as Registry
+  [Services\nUser/Auction/Bid/AutoBid] as Services
+  [AuctionScheduler] as Scheduler
+  [ClientBroadcastHub] as Broadcast
   [DAO Layer] as DAO
 
-  ServerCore --> Protocol : routes messages
-  Protocol --> Service : invokes
-  Service --> DAO : calls
+  SS --> CH
+  CH --> SPH
+  SPH --> Registry
+  Registry --> Services
+  Scheduler --> Services
+  Services --> DAO
+  Services --> Broadcast
+  Broadcast --> CH : realtime push
 }
 
-database "MySQL\n(auction_system)" as DB
+database "MySQL / Aiven" as DB
 
-ClientCtrl ..> Network
-Network <..> ServerCore
-DAO ..> DB : JDBC
+CPH --> SC : RPC request
+SC <--> CH : TCP Socket / Object streams
+DAO --> DB : JDBC
+Client ..> Shared
+Server ..> Shared
 @enduml

@@ -13,6 +13,8 @@ public abstract class Item extends Entity {
     private String name;
     private String description;
     private User seller;
+    /** Local path/URI of the product image selected by the seller. */
+    private String imagePath;
 
     public Item(int id, String name, String description, User seller) {
         super(id);
@@ -21,5 +23,14 @@ public abstract class Item extends Entity {
         this.seller = seller;
     }
 
+    public Item(int id, String name, String description, User seller, String imagePath) {
+        this(id, name, description, seller);
+        this.imagePath = imagePath;
+    }
+
     public abstract String getItemType();
+
+    public String getSellerUsername() {
+        return seller.getUsername();
+    }
 }

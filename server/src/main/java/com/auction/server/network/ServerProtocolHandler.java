@@ -47,7 +47,10 @@ public class ServerProtocolHandler {
 
                 // Auction
                 case VIEW_AUCTIONS_REQUEST -> handleViewAuctions();
+                case GET_ALL_AUCTIONS_REQUEST -> handleGetAllAuctions();
                 case CREATE_AUCTION_REQUEST -> handleCreateAuction(message.getData());
+                case AUCTION_DETAILS_REQUEST -> handleAuctionDetails(message.getData());
+                case CANCEL_AUCTION_REQUEST -> handleCancelAuction(message.getData());
 
                 // Bidding
                 case PLACE_BID_REQUEST -> handlePlaceBid(message.getData());
@@ -63,6 +66,7 @@ public class ServerProtocolHandler {
 
                 // Admin
                 case BAN_USER_REQUEST -> handleBanUser(message.getData());
+                case UNBAN_USER_REQUEST -> handleUnbanUser(message.getData());
                 case GET_ALL_USERS_REQUEST -> handleGetAllUsers();
 
                 // User & Balance
@@ -100,13 +104,23 @@ public class ServerProtocolHandler {
         if (user != null) {
             return new Message(MessageType.LOGIN_RESPONSE, user);
         } else {
+            // Check nếu user tồn tại nhưng bị ban.
+            User checkBanned = userService.getUserById(userService.getAllUsers().stream()
+                    .filter(u -> u.getUsername().equals(username))
+                    .findFirst()
+                    .map(User::getId)
+                    .orElse(-1));
+            if (checkBanned != null && checkBanned.isBanned()) {
+                return new Message(MessageType.LOGIN_RESPONSE, "Your account has been banned. Please contact support.");
+            }
             return new Message(MessageType.LOGIN_RESPONSE, "Invalid username or password");
         }
     }
 
     private Message handleRegisterRequest(Object data) throws Exception {
         String[] userData = (String[]) data;
-        boolean success = userService.registerUser(userData[0], userData[1], userData[2], userData[3]);
+        String role = userData.length >= 4 ? userData[3] : "BIDDER";
+        boolean success = userService.registerUser(userData[0], userData[1], userData[2], role);
 
         if (success) {
             return new Message(MessageType.REGISTER_RESPONSE, (Object) "Registration successful");
@@ -124,8 +138,37 @@ public class ServerProtocolHandler {
         return new Message(MessageType.VIEW_AUCTIONS_RESPONSE, auctions);
     }
 
+    private Message handleGetAllAuctions() throws Exception {
+        List<AuctionSession> auctions = auctionService.getAllAuctions();
+        return new Message(MessageType.GET_ALL_AUCTIONS_RESPONSE, auctions);
+    }
+
+    private Message handleAuctionDetails(Object data) throws Exception {
+        int sessionId = Integer.parseInt(String.valueOf(data).trim());
+        AuctionSession session = auctionService.getSessionById(sessionId);
+        if (session == null) {
+            return new Message(MessageType.AUCTION_DETAILS_RESPONSE, "Auction not found");
+        }
+        return new Message(MessageType.AUCTION_DETAILS_RESPONSE, session);
+    }
+
+    private Message handleCancelAuction(Object data) throws Exception {
+        int sessionId = Integer.parseInt(String.valueOf(data).trim());
+        boolean success = auctionService.cancelAuction(sessionId);
+        if (success) {
+            logger.info("Auction cancelled: " + sessionId);
+            return new Message(MessageType.CANCEL_AUCTION_RESPONSE, (Object) "Auction cancelled");
+        }
+        return new Message(MessageType.CANCEL_AUCTION_RESPONSE, "Failed to cancel auction");
+    }
+
     private Message handleCreateAuction(Object data) throws Exception {
         AuctionSession auction = (AuctionSession) data;
+        if (auction == null || auction.getSeller() == null) {
+            return new Message(MessageType.CREATE_AUCTION_RESPONSE, "Missing seller information");
+        }
+        // UI có thể switch sang Seller chỉ trong memory; server phải đảm bảo DB có row sellers thật.
+        userService.ensureSellerRole(auction.getSeller().getId());
         boolean success = auctionService.createAuction(auction);
 
         if (success) {
@@ -197,6 +240,10 @@ public class ServerProtocolHandler {
         boolean success = auctionService.deleteItem(itemId);
         if (success) {
             logger.info("Item deleted: " + itemId);
+            // Gửi một session tín hiệu để client biết cần refresh lại từ server.
+            // Id âm giúp phân biệt đây không phải auction thật.
+            ClientBroadcastHub.broadcast(new Message(MessageType.AUCTION_UPDATED_PUSH,
+                    new AuctionSession(-1, null, null, 0, java.time.LocalDateTime.now(), java.time.LocalDateTime.now())));
             return new Message(MessageType.DELETE_ITEM_RESPONSE, (Object) "Item deleted successfully");
         } else {
             return new Message(MessageType.DELETE_ITEM_RESPONSE, "Failed to delete item");
@@ -248,9 +295,22 @@ public class ServerProtocolHandler {
         boolean success = userService.banUser(userId);
         if (success) {
             logger.info("User banned: " + userId);
+            // Broadcast push để client đang online của user này tự logout.
+            ClientBroadcastHub.broadcast(new Message(MessageType.USER_BANNED_PUSH, userId));
             return new Message(MessageType.BAN_USER_RESPONSE, (Object) "User banned successfully");
         } else {
             return new Message(MessageType.BAN_USER_RESPONSE, "Failed to ban user");
+        }
+    }
+
+    private Message handleUnbanUser(Object data) throws Exception {
+        int userId = Integer.parseInt(String.valueOf(data).trim());
+        boolean success = userService.unbanUser(userId);
+        if (success) {
+            logger.info("User unbanned: " + userId);
+            return new Message(MessageType.UNBAN_USER_RESPONSE, (Object) "User unbanned successfully");
+        } else {
+            return new Message(MessageType.UNBAN_USER_RESPONSE, "Failed to unban user");
         }
     }
 

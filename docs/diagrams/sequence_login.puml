@@ -1,18 +1,49 @@
 @startuml
+' Login sequence - current codebase
 actor User
-participant ClientUI
-participant AuthController
-participant ClientConnection
-participant ServerProtocolHandler
-participant UserService
+boundary "LoginController" as LC
+control "ClientProtocolHandler" as CPH
+control "ClientConnection" as CC
+control "SocketClient" as SC
+control "ClientHandler" as CH
+control "ServerProtocolHandler" as SPH
+control "UserService" as US
+entity "UserDAO" as DAO
+database "MySQL" as DB
 
-User -> ClientUI: start/login()
-ClientUI -> AuthController: login(u,p)
-AuthController -> ClientConnection: sendMessage(Message(LOGIN_REQUEST, [u,p]))
-ClientConnection -> ServerProtocolHandler: receive message
-ServerProtocolHandler -> UserService: loginUser(u,p)
-UserService --> ServerProtocolHandler: User or null
-ServerProtocolHandler -> ClientConnection: send Message(LOGIN_RESPONSE, user)
-ClientConnection -> AuthController: response
-AuthController -> ClientUI: success/fail
+User -> LC: enter username/password
+LC -> CPH: login(username, password)
+CPH -> CC: getSocketClient()
+CPH -> SC: sendMessage(LOGIN_REQUEST)
+SC -> CH: TCP ObjectStream Message
+CH -> SPH: handleMessage(message)
+SPH -> US: loginUser(username, password)
+US -> DAO: login(username, password)
+DAO -> DB: SELECT user + role + is_banned
+DB --> DAO: row / empty
+DAO --> US: User or null
+
+alt valid and not banned
+  US --> SPH: User
+  SPH --> CH: LOGIN_RESPONSE(User)
+  CH --> SC: response
+  SC --> CPH: Message success
+  CPH --> LC: User
+  LC -> LC: SessionContext.setCurrentUser(user)
+  LC -> User: open dashboard
+else banned
+  US --> SPH: null; user is banned
+  SPH --> CH: LOGIN_RESPONSE(error: banned)
+  CH --> SC: response
+  SC --> CPH: Message error
+  CPH --> LC: null + lastError
+  LC -> User: show banned message
+else invalid credentials
+  US --> SPH: null
+  SPH --> CH: LOGIN_RESPONSE(error: invalid)
+  CH --> SC: response
+  SC --> CPH: Message error
+  CPH --> LC: null + lastError
+  LC -> User: show invalid login
+end
 @enduml

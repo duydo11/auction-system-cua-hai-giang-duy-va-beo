@@ -1,5 +1,6 @@
 package com.auction.client.network;
 
+import com.auction.client.util.AuctionCache;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.AutoBidConfig;
 import com.auction.shared.model.auction.Bid;
@@ -8,9 +9,15 @@ import com.auction.shared.model.user.User;
 import com.auction.shared.model.user.Transaction;
 import com.auction.shared.protocol.Message;
 import com.auction.shared.protocol.MessageType;
+import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.XYChart;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,6 +29,7 @@ public class ClientProtocolHandler {
     private static final Logger logger = Logger.getLogger(ClientProtocolHandler.class.getName());
 
     private final ClientConnection connection;
+    private static final Object RPC_LOCK = new Object();
     private volatile String lastTransportError;
 
     public ClientProtocolHandler() {
@@ -33,26 +41,29 @@ public class ClientProtocolHandler {
     }
 
     private Message send(MessageType type, Object payload) {
-        lastTransportError = null;
-        Message request = new Message(type, payload);
-        Message response = sendOnce(request);
-        if (response != null) {
+        synchronized (RPC_LOCK) {
+            // Nhiều controller dùng chung singleton socket; serialize RPC để request này không đóng socket của request khác.
+            lastTransportError = null;
+            Message request = new Message(type, payload);
+            Message response = sendOnce(request);
+            if (response != null) {
+                return response;
+            }
+
+            // Retry một lần sau khi reconnect để xử lý socket cũ bị server/client đóng.
+            connection.disconnect();
+            if (!connection.connect()) {
+                lastTransportError = "Cannot connect to server " + connection.getHost() + ":" + connection.getPort();
+                logger.warning("✗ " + lastTransportError);
+                return null;
+            }
+            response = sendOnce(request);
+            if (response == null) {
+                lastTransportError = "Connection lost or timed out while sending " + type;
+                logger.warning("✗ " + lastTransportError);
+            }
             return response;
         }
-
-        // Retry once after reconnect to avoid transient socket drop breaking the UI flow.
-        connection.disconnect();
-        if (!connection.connect()) {
-            lastTransportError = "Không thể kết nối server " + connection.getHost() + ":" + connection.getPort();
-            logger.warning("✗ " + lastTransportError);
-            return null;
-        }
-        response = sendOnce(request);
-        if (response == null) {
-            lastTransportError = "Mất kết nối hoặc timeout khi gửi " + type;
-            logger.warning("✗ " + lastTransportError);
-        }
-        return response;
     }
 
     private Message sendOnce(Message request) {
@@ -74,7 +85,12 @@ public class ClientProtocolHandler {
 
     public User login(String username, String password) {
         Message response = send(MessageType.LOGIN_REQUEST, new String[]{username, password});
-        if (response == null || !response.isSuccess()) {
+        if (response == null) {
+            return null;
+        }
+        if (!response.isSuccess()) {
+            // Giữ nguyên lỗi từ server, ví dụ: "bạn đã bị admin ban".
+            lastTransportError = lastError(response);
             return null;
         }
         Object data = response.getData();
@@ -103,14 +119,38 @@ public class ClientProtocolHandler {
     public List<AuctionSession> getActiveAuctions() {
         Message response = send(MessageType.VIEW_AUCTIONS_REQUEST, null);
         if (response == null || !response.isSuccess()) {
-            return Collections.emptyList();
+            // Lỗi mạng tạm thời thì giữ lại active cache, không trả nhầm all/history.
+            return AuctionCache.getActive();
         }
         Object data = response.getData();
         if (data instanceof List<?> list && list.isEmpty()) {
+            AuctionCache.updateActive(Collections.emptyList());
             return Collections.emptyList();
         }
         if (data instanceof List<?> list && list.get(0) instanceof AuctionSession) {
-            return (List<AuctionSession>) data;
+            List<AuctionSession> auctions = (List<AuctionSession>) data;
+            AuctionCache.updateActive(auctions);
+            return auctions;
+        }
+        return Collections.emptyList();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<AuctionSession> getAllAuctions() {
+        Message response = send(MessageType.GET_ALL_AUCTIONS_REQUEST, null);
+        if (response == null || !response.isSuccess()) {
+            // Lỗi mạng tạm thời thì giữ lại all cache để My Listings/admin không bị trống.
+            return AuctionCache.getAll();
+        }
+        Object data = response.getData();
+        if (data instanceof List<?> list && list.isEmpty()) {
+            AuctionCache.updateAll(Collections.emptyList());
+            return Collections.emptyList();
+        }
+        if (data instanceof List<?> list && list.get(0) instanceof AuctionSession) {
+            List<AuctionSession> auctions = (List<AuctionSession>) data;
+            AuctionCache.updateAll(auctions);
+            return auctions;
         }
         return Collections.emptyList();
     }
@@ -198,7 +238,11 @@ public class ClientProtocolHandler {
      */
     public boolean deleteItem(int itemId) {
         Message response = send(MessageType.DELETE_ITEM_REQUEST, String.valueOf(itemId));
-        return response != null && response.isSuccess();
+        if (response != null && response.isSuccess()) {
+            AuctionCache.removeByItemId(itemId);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -207,7 +251,10 @@ public class ClientProtocolHandler {
      */
     public String deleteItemOrError(int itemId) {
         Message response = send(MessageType.DELETE_ITEM_REQUEST, String.valueOf(itemId));
-        if (response != null && response.isSuccess()) return null;
+        if (response != null && response.isSuccess()) {
+            AuctionCache.removeByItemId(itemId);
+            return null;
+        }
         return lastError(response);
     }
 
@@ -246,6 +293,15 @@ public class ClientProtocolHandler {
      */
     public boolean banUser(int userId) {
         Message response = send(MessageType.BAN_USER_REQUEST, String.valueOf(userId));
+        return response != null && response.isSuccess();
+    }
+
+    /**
+     * Unban user (chỉ admin).
+     * @return true nếu thành công
+     */
+    public boolean unbanUser(int userId) {
+        Message response = send(MessageType.UNBAN_USER_REQUEST, String.valueOf(userId));
         return response != null && response.isSuccess();
     }
 
@@ -296,6 +352,13 @@ public class ClientProtocolHandler {
     /** Convenience helper used by DepositActionController. */
     public boolean deposit(User user, double amount) {
         if (user == null || amount <= 0) return false;
+        // Cộng tiền trực tiếp vào user object do caller truyền vào,
+        // tránh thêm 1 getUserInfo round-trip không cần thiết.
+        if (user instanceof com.auction.shared.model.user.Bidder bidder) {
+            bidder.setAccountBalance(bidder.getAccountBalance() + amount);
+        } else if (user instanceof com.auction.shared.model.user.Seller seller) {
+            seller.setAccountBalance(seller.getAccountBalance() + amount);
+        }
         boolean updated = updateUser(user);
         if (!updated) return false;
         return saveTransaction(new Transaction(
@@ -355,5 +418,18 @@ public class ClientProtocolHandler {
 
     public String getLastTransportError() {
         return lastTransportError;
+    }
+    public boolean cancelAuction(int sessionId) {
+        Message response = send(MessageType.CANCEL_AUCTION_REQUEST, String.valueOf(sessionId));
+        return response != null && response.isSuccess();
+    }
+
+    public AuctionSession getAuctionDetail(int id) {
+        Message response = send(MessageType.AUCTION_DETAILS_REQUEST, String.valueOf(id));
+        if (response == null || !response.isSuccess()) {
+            return null;
+        }
+        Object data = response.getData();
+        return data instanceof AuctionSession ? (AuctionSession) data : null;
     }
 }

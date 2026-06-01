@@ -48,8 +48,12 @@ public final class ItemFactory {
                 String brand = extraParam instanceof String ? (String) extraParam : "Unknown";
                 yield new Vehicle(id, name, description, seller, brand);
             }
+            case "other", "others" -> {
+                // UI có category Others; dùng Electronics mặc định để vẫn lưu được item thay vì báo lỗi type.
+                yield new Electronics(id, name, description, seller, 12);
+            }
             default -> throw new IllegalArgumentException("Unknown item type: " + type + 
-                    ". Supported types: electronics, art, vehicle");
+                    ". Supported types: electronics, art, vehicle, other");
         };
     }
 

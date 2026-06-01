@@ -5,6 +5,7 @@ import com.auction.client.controller.Card.AuctionResult1CardController;
 import com.auction.client.controller.Card.AuctionResult2CardController;
 import com.auction.client.controller.Card.BidderHistoryCardController;
 import com.auction.client.network.ClientProtocolHandler;
+import com.auction.client.util.FxAsync;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.auction.Bid;
@@ -17,7 +18,11 @@ import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -31,18 +36,6 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
-/**
- * Controller for the seller auction detail screen.
- *
- * <p>The seller sees the same live auction data as bidders but from the owner perspective:</p>
- * <ul>
- *   <li>binds product, seller, price, bid count and auction status,</li>
- *   <li>renders bid history and the price history chart,</li>
- *   <li>listens for realtime server pushes to keep the view synchronized,</li>
- *   <li>shows anti-sniping/ending-soon messages,</li>
- *   <li>loads the final result card when the auction is finished.</li>
- * </ul>
- */
 public class AuctionDetailsforSellerController implements Initializable {
 
     @FXML private Label lblItemName;
@@ -59,6 +52,7 @@ public class AuctionDetailsforSellerController implements Initializable {
     @FXML private HBox containerResult;
     @FXML private Label lblStatus;
     @FXML private Label lblWarning;
+    @FXML private ImageView imgProduct;
 
     private AuctionSession session;
     private final ClientProtocolHandler protocol = new ClientProtocolHandler();
@@ -76,11 +70,28 @@ public class AuctionDetailsforSellerController implements Initializable {
 
         this.lastKnownEndTime = session.getEndTime();
         bindBasicInfo();
-        loadBidHistoryChart();
-        loadBidHistoryCards();
+        
+        // Load bid history async để không block UI khi mở dialog
+        loadBidHistoryAsync();
+        updateProductImage();
         loadAuctionResult();
         startCountdownTimer();
         setupRealtimeListener();
+        FxAsync.run("refresh-session-" + session.getId(),
+                () -> protocol.getAuctionDetail(session.getId()),
+                latestSession -> {
+                    this.session = latestSession != null ? latestSession : session;
+                    this.lastKnownEndTime = this.session.getEndTime();
+                    bindBasicInfo();
+                    loadBidHistoryAsync();
+                    loadAuctionResult();
+                },
+                error -> {
+                    // Nếu lỗi mạng, dùng tạm session cũ.
+                    this.session = session;
+                    bindBasicInfo();
+                    loadAuctionResult();
+                });
     }
 
     private void bindBasicInfo() {
@@ -102,36 +113,135 @@ public class AuctionDetailsforSellerController implements Initializable {
         if (lblCurrentBids != null) {
             lblCurrentBids.setText(String.valueOf(session.getBids().size()));
         }
-        if (lblStatus != null && session.getStatus() != null) {
-            switch (session.getStatus()) {
-                case OPEN -> lblStatus.setText("Coming");
-                case RUNNING -> lblStatus.setText("Live");
-                case FINISHED, PAID -> lblStatus.setText("Ended");
-                case CANCELED -> lblStatus.setText("Canceled");
+        updateStatus();
+    }
+    private void updateStatus() {
+        if (session == null || lblStatus == null) {
+            return;
+        }
+        switch (session.getStatus()) {
+            case OPEN -> {
+                lblStatus.setText("COMING");
+                lblStatus.setStyle("-fx-background-color: #e6e64c; -fx-text-fill: #8f8f03; -fx-border-color: #8f8f03; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case RUNNING -> {
+                lblStatus.setText("RUNNING");
+                lblStatus.setStyle("-fx-background-color: #388e3c; -fx-text-fill: #115214; -fx-border-color: #115214; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case FINISHED -> {
+                lblStatus.setText("ENDED");
+                lblStatus.setStyle("-fx-background-color: #c2185b; -fx-text-fill: #780826; -fx-border-color: #780826; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+            case CANCELED -> {
+                lblStatus.setText("CANCELED");
+                if (btnCancelAuction != null) btnCancelAuction.setVisible(false);
+                lblStatus.setStyle("-fx-background-color: #757575; -fx-text-fill: #474141; -fx-border-color: #474141; -fx-background-radius: 20; -fx-border-radius: 20 ");
+            }
+
+        }
+        if (session == null || lblStatus == null) return;
+
+        // ... (Giữ nguyên phần code Switch case đổi màu Label của bạn) ...
+
+        // Xử lý nút Cancel
+        if (btnCancelAuction != null) {
+            // Chỉ hiển thị nút Cancel nếu trạng thái là OPEN
+            if (session.getStatus() == AuctionStatus.OPEN) {
+                btnCancelAuction.setVisible(true);
+                btnCancelAuction.setDisable(false);
+            } else {
+                // Nếu là RUNNING, FINISHED, CANCELED thì ẩn đi hoặc disable
+                btnCancelAuction.setVisible(false);
             }
         }
     }
 
-    private void loadBidHistoryChart() {
+    //Update image
+    private void updateProductImage() {
+        if (imgProduct == null || session == null || session.getItem() == null) {
+            return;
+        }
+        String imagePath = session.getItem().getImagePath();
+        if (imagePath == null || imagePath.isBlank()) {
+            return;
+        }
+        try {
+            imgProduct.setImage(new Image(imagePath, 648, 380, true, true, true));
+        } catch (RuntimeException e) {
+            System.err.println("Cannot load product image: " + imagePath);
+        }
+    }
+
+    /**
+     * Load bid history ở background thread để tránh đơ UI khi mở dialog.
+     */
+    private void loadBidHistoryAsync() {
+        if (session == null) return;
+        
+        // Hiển thị trạng thái loading
+        showLoadingState();
+        
+        // Fetch bid history ở background
+        FxAsync.run("seller-bid-history-" + session.getId(),
+                () -> protocol.getBidHistory(session.getId()),
+                bids -> {
+                    updateBidCount(bids);
+                    renderBidHistoryChart(bids);
+                    renderBidHistoryCards(bids);
+                },
+                error -> {
+                    System.err.println("Error loading bid history: " + error);
+                    clearLoadingState();
+                });
+    }
+
+    private void showLoadingState() {
+        if (containerBidHistory != null) {
+            containerBidHistory.getChildren().clear();
+            Label loading = new Label("Loading bid history...");
+            loading.setStyle("-fx-text-fill: #6b7280;");
+            containerBidHistory.getChildren().add(loading);
+        }
+    }
+
+    private void clearLoadingState() {
+        if (containerBidHistory != null) {
+            containerBidHistory.getChildren().clear();
+        }
+    }
+
+    private void updateBidCount(List<Bid> bids) {
+        if (lblCurrentBids != null) {
+            lblCurrentBids.setText(String.valueOf(bids == null ? 0 : bids.size()));
+        }
+    }
+
+    /**
+     * Render chart từ danh sách bid đã load.
+     */
+    private void renderBidHistoryChart(List<Bid> bids) {
         if (lcPriceHistory == null || session == null) return;
 
         try {
             lcPriceHistory.getData().clear();
-            List<Bid> bids = protocol.getBidHistory(session.getId());
 
             XYChart.Series<String, Number> series = new XYChart.Series<>();
             series.setName("Price History");
 
-            series.getData().add(new XYChart.Data<>("Start", session.getStartingPrice()));
+            List<Bid> chartBids = bids.stream()
+                    .filter(bid -> bid.getTime() != null)
+                    .sorted((b1, b2) -> {
+                        int byTime = b1.getTime().compareTo(b2.getTime());
+                        return byTime != 0 ? byTime : Integer.compare(b1.getId(), b2.getId());
+                    })
+                    .toList();
 
-            for (int i = 0; i < bids.size(); i++) {
-                Bid bid = bids.get(i);
-                String label;
-                if (bid.getTime() != null) {
-                    label = bid.getTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-                } else {
-                    label = "Bid #" + (i + 1);
-                }
+            series.getData().add(new XYChart.Data<>("00 Start", session.getStartingPrice()));
+
+            for (int i = 0; i < chartBids.size(); i++) {
+                Bid bid = chartBids.get(i);
+                String label = String.format("%02d %s", i + 1,
+                        bid.getTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
                 series.getData().add(new XYChart.Data<>(label, bid.getAmount()));
             }
 
@@ -144,13 +254,20 @@ public class AuctionDetailsforSellerController implements Initializable {
         }
     }
 
-    private void loadBidHistoryCards() {
-        if (containerBidHistory == null || session == null) return;
+    /**
+     * Render bid history cards từ danh sách bid đã load.
+     */
+    private void renderBidHistoryCards(List<Bid> bids) {
+        if (containerBidHistory == null) return;
 
         containerBidHistory.getChildren().clear();
         try {
-            List<Bid> bids = protocol.getBidHistory(session.getId());
-            bids.sort((b1, b2) -> b2.getTime().compareTo(b1.getTime()));
+            bids.sort((b1, b2) -> {
+                if (b1.getTime() == null && b2.getTime() == null) return 0;
+                if (b1.getTime() == null) return 1;
+                if (b2.getTime() == null) return -1;
+                return b2.getTime().compareTo(b1.getTime());
+            });
 
             for (Bid bid : bids) {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Card/BidderHistoryCard.fxml"));
@@ -170,7 +287,7 @@ public class AuctionDetailsforSellerController implements Initializable {
 
         containerResult.getChildren().clear();
 
-        // Only load result card if session is ended (FINISHED or PAID or CANCELED)
+        // Chỉ load result card nếu session đã kết thúc (FINISHED hoặc PAID hoặc CANCELED)
         if (session.getStatus() == AuctionStatus.OPEN || session.getStatus() == AuctionStatus.RUNNING) {
             containerResult.setVisible(false);
             return;
@@ -231,7 +348,7 @@ public class AuctionDetailsforSellerController implements Initializable {
             }
             if (countdownTimer != null) countdownTimer.stop();
 
-            // Reload results when countdown ends
+            // Reload results khi countdown kết thúc
             loadAuctionResult();
         } else {
             long hours = seconds / 3600;
@@ -268,8 +385,7 @@ public class AuctionDetailsforSellerController implements Initializable {
             session = updatedSession;
             lastKnownEndTime = updatedSession.getEndTime();
             bindBasicInfo();
-            loadBidHistoryChart();
-            loadBidHistoryCards();
+            loadBidHistoryAsync();
             loadAuctionResult();
             updateTimeLabels();
             if (lblWarning != null && previousEnd != null && updatedSession.getEndTime() != null
@@ -290,4 +406,21 @@ public class AuctionDetailsforSellerController implements Initializable {
             realtimeListener = null;
         }
     }
+    @FXML
+    private HBox btnCancelAuction;
+    @FXML
+    private Label lblAlert;
+    @FXML
+    private void handleCancelAuction() {
+        boolean success = protocol.cancelAuction(session.getId());
+        if (success) {
+            lblAlert.setText("Auction has been canceled successfully");
+            session.setStatus(AuctionStatus.CANCELED);
+            updateStatus(); // Cập nhật lại màu sắc label trạng thái
+        } else {
+            lblAlert.setText("Could not cancel the auction. Please try again.");
+        }
+    }
+
+
 }

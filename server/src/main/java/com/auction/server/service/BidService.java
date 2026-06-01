@@ -60,6 +60,11 @@ public class BidService {
                 return false;
             }
             int bidsBefore = session.getBids().size();
+            if (!(bidder instanceof com.auction.shared.model.user.Bidder bidderAccount)
+                    || bidderAccount.getAccountBalance() < amount) {
+                // Kiểm tra số dư ở server để mọi client đều bị chặn thống nhất, không chỉ dựa vào UI.
+                return false;
+            }
             int bidId = bidDAO.allocateNextBidId();
             Bid bid = new Bid(bidId, bidder, session, amount);
             session.updateCurrentPrice(bid);

@@ -1,16 +1,36 @@
 @startuml
 left to right direction
-actor User
+actor Guest
+actor Bidder
+actor Seller
 actor Admin
 
 rectangle "Auction System" {
-  User -- (Register)
-  User -- (Login)
-  User -- (View Auctions)
-  User -- (Create Auction)
-  User -- (Place Bid)
-  User -- (View Bid History)
-  Admin -- (Manage Categories)
-  Admin -- (End Auction)
+  Guest -- (Register)
+  Guest -- (Login)
+  Guest -- (View public auctions)
+
+  Bidder -- (View auctions)
+  Bidder -- (Place bid)
+  Bidder -- (Register auto-bid)
+  Bidder -- (View bid history)
+  Bidder -- (View price chart)
+  Bidder -- (Manage wallet)
+
+  Seller -- (Create item)
+  Seller -- (Create auction session)
+  Seller -- (Manage listings)
+  Seller -- (View seller wallet)
+  Seller -- (View auction details)
+
+  Admin -- (View dashboard stats)
+  Admin -- (Manage users)
+  Admin -- (Ban/Unban user)
+  Admin -- (Manage auctions/items)
+  Admin -- (Delete item)
 }
+
+Bidder --|> Guest
+Seller --|> Guest
+Admin --|> Guest
 @enduml

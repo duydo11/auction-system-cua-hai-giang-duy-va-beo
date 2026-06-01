@@ -38,16 +38,30 @@ public class DatabaseConnection {
         return instance;
     }
 
-    // ĐÃ SỬA Ở ĐÂY: Đảm bảo connection không bao giờ bị null khi gọi
+    /**
+     * Returns the active JDBC connection.
+     *
+     * <p>Production uses one shared MySQL connection. DAO initialization code
+     * closes only statements, not this shared connection; if MySQL closes the
+     * real connection anyway, this method recreates it before serving the next
+     * request.</p>
+     */
     public static Connection getConnection(){
         // Nếu có test connection → dùng test connection (H2)
         if (testConnection != null) {
             return testConnection;
         }
         
-        // Nếu không → dùng production connection (MySQL)
-        if (instance == null || connection == null) {
-            getInstance();
+        try {
+            if (connection == null || connection.isClosed()) {
+                synchronized (DatabaseConnection.class) {
+                    if (connection == null || connection.isClosed()) {
+                        instance = new DatabaseConnection();
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi kiểm tra kết nối cơ sở dữ liệu!", e);
         }
         return connection;
     }

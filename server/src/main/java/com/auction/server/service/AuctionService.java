@@ -2,23 +2,37 @@ package com.auction.server.service;
 
 import com.auction.server.dao.AuctionSessionDAO;
 import com.auction.server.dao.ItemDAO;
+import com.auction.server.dao.UserDAO;
 import com.auction.shared.model.auction.AuctionSession;
 import com.auction.shared.model.auction.AuctionStatus;
 import com.auction.shared.model.item.Item;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AuctionService {
+    private static final ConcurrentHashMap<Integer, Object> SETTLEMENT_LOCKS = new ConcurrentHashMap<>();
+
     private final AuctionSessionDAO auctionSessionDAO = new AuctionSessionDAO();
     private final ItemDAO itemDAO = new ItemDAO();
+    private final UserDAO userDAO = new UserDAO();
 
     public List<AuctionSession> getActiveAuctions() {
-        return auctionSessionDAO.findAllActiveSessions();
+        return auctionSessionDAO.findAllActiveSessions().stream()
+                .map(this::normalizeStatus)
+                .filter(AuctionSession::isActive)
+                .toList();
+    }
+
+    public List<AuctionSession> getAllAuctions() {
+        return auctionSessionDAO.findAllSessions().stream()
+                .map(this::normalizeStatus)
+                .toList();
     }
 
     public AuctionSession getSessionById(int sessionId) {
-        return auctionSessionDAO.getSessionById(sessionId);
+        return normalizeStatus(auctionSessionDAO.getSessionById(sessionId));
     }
 
     /**
@@ -61,14 +75,12 @@ public class AuctionService {
 
     /**
      * Xóa item theo id.
-     * Validate: chỉ xóa được khi không có phiên nào đang RUNNING với item này.
+     * Admin cần xóa được sản phẩm khi test/demo, nên ta xóa các phiên và bid liên quan trước.
      */
     public boolean deleteItem(int itemId) {
         try {
-            if (isItemInRunningSession(itemId)) {
-                System.err.println("Không thỉ xóa item #" + itemId + " — phiên đang chạy");
-                return false;
-            }
+            // Không xóa item trực tiếp trước, vì auction_sessions/bids có thể đang tham chiếu tới item này.
+            auctionSessionDAO.deleteSessionsByItemId(itemId);
             itemDAO.deleteItem(itemId);
             return true;
         } catch (RuntimeException e) {
@@ -103,33 +115,119 @@ public class AuctionService {
             if (session == null) {
                 return false;
             }
-
-            LocalDateTime now = LocalDateTime.now();
-            
-            // Kiểm tra nếu hết giờ và chưa FINISHED
-            if (now.isAfter(session.getEndTime()) && 
-                (session.getStatus() == AuctionStatus.OPEN || session.getStatus() == AuctionStatus.RUNNING)) {
-                
-                // Chuyển status → FINISHED
-                session.setStatus(AuctionStatus.FINISHED);
-                
-                // Winner đã được set trong updateCurrentPrice, không cần set lại
-                // Nếu không có bid, winner = null (hợp lệ)
-                
-                // Lưu lại DB
-                auctionSessionDAO.updateSession(session);
-                
-                System.out.println("Auction #" + sessionId + " closed. Winner: " + 
-                    (session.getWinner() != null ? session.getWinner().getUsername() : "None"));
-                
-                return true;
-            }
-            
+            AuctionStatus before = session.getStatus();
+            AuctionSession settled = settleAuctionIfExpired(session);
+            return settled != null && before != settled.getStatus();
+        } catch (RuntimeException e) {
+            e.printStackTrace();
             return false;
+        }
+    }
+
+    private AuctionSession normalizeStatus(AuctionSession session) {
+        if (session == null || session.getStartTime() == null || session.getEndTime() == null) {
+            return session;
+        }
+        AuctionStatus current = session.getStatus();
+        if (current == AuctionStatus.CANCELED || current == AuctionStatus.PAID || current == AuctionStatus.FINISHED) {
+            return session;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (!now.isBefore(session.getEndTime())) {
+            return settleAuctionIfExpired(session);
+        }
+
+        AuctionStatus normalized = now.isBefore(session.getStartTime()) ? AuctionStatus.OPEN : AuctionStatus.RUNNING;
+        if (current != normalized) {
+            session.setStatus(normalized);
+            auctionSessionDAO.updateSession(session);
+        }
+        return session;
+    }
+
+    private AuctionSession settleAuctionIfExpired(AuctionSession session) {
+        if (session == null || session.getEndTime() == null || LocalDateTime.now().isBefore(session.getEndTime())) {
+            return session;
+        }
+        synchronized (SETTLEMENT_LOCKS.computeIfAbsent(session.getId(), id -> new Object())) {
+            AuctionSession latestSession = auctionSessionDAO.getSessionById(session.getId());
+            if (latestSession == null || latestSession.getEndTime() == null
+                    || LocalDateTime.now().isBefore(latestSession.getEndTime())) {
+                return latestSession != null ? latestSession : session;
+            }
+
+            AuctionStatus current = latestSession.getStatus();
+            if (current == AuctionStatus.CANCELED || current == AuctionStatus.PAID || current == AuctionStatus.FINISHED) {
+                return latestSession;
+            }
+
+            if (latestSession.getWinner() == null) {
+                latestSession.setStatus(AuctionStatus.FINISHED);
+                auctionSessionDAO.updateSession(latestSession);
+                return latestSession;
+            }
+
+            // getSellerById/getBidderById đảm bảo trả về đúng type dù user vừa là bidder vừa là seller.
+            com.auction.shared.model.user.Bidder latestWinner = userDAO.getBidderById(latestSession.getWinner().getId());
+            com.auction.shared.model.user.Seller latestSeller = latestSession.getSeller() != null
+                    ? userDAO.getSellerById(latestSession.getSeller().getId())
+                    : null;
+            String itemName = latestSession.getItem().getName();
+            String settlementDescription = "#" + latestSession.getId() + " " + itemName;
+            double price = latestSession.getCurrentPrice();
+            LocalDateTime paidAt = LocalDateTime.now();
+
+            // Thanh toán idempotent: nếu transaction của session này đã tồn tại thì không trừ/cộng lần nữa.
+            if (latestWinner != null) {
+                boolean alreadyPaid = userDAO.hasTransaction(latestWinner.getId(), "BID_PAYMENT", settlementDescription)
+                        || userDAO.hasTransaction(latestWinner.getId(), "BID_SUCCESS", itemName);
+                if (!alreadyPaid) {
+                    latestWinner.setAccountBalance(latestWinner.getAccountBalance() - price);
+                    userDAO.updateUser(latestWinner);
+                    userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                            0, latestWinner.getId(), price, "BID_PAYMENT", settlementDescription, paidAt
+                    ));
+                }
+                latestSession.setWinner(latestWinner);
+            }
+            if (latestSeller != null) {
+                boolean alreadyReceived = userDAO.hasTransaction(latestSeller.getId(), "AUCTION_SALE", settlementDescription);
+                if (!alreadyReceived) {
+                    latestSeller.setAccountBalance(latestSeller.getAccountBalance() + price);
+                    userDAO.updateUser(latestSeller);
+                    userDAO.saveTransaction(new com.auction.shared.model.user.Transaction(
+                            0, latestSeller.getId(), price, "AUCTION_SALE", settlementDescription, paidAt
+                    ));
+                }
+                latestSession.setSeller(latestSeller);
+            }
+
+            latestSession.setStatus(AuctionStatus.PAID);
+            auctionSessionDAO.updateSession(latestSession);
+            return latestSession;
+        }
+    }
+
+    public boolean cancelAuction(int sessionId) {
+        try {
+            AuctionSession session = auctionSessionDAO.getSessionById(sessionId);
+            if (session == null || session.getStatus() == AuctionStatus.FINISHED
+                    || session.getStatus() == AuctionStatus.CANCELED) {
+                return false;
+            }
+            session.setStatus(AuctionStatus.CANCELED);
+            auctionSessionDAO.updateSession(session);
+            com.auction.server.network.ClientBroadcastHub.broadcast(
+                    new com.auction.shared.protocol.Message(
+                            com.auction.shared.protocol.MessageType.AUCTION_UPDATED_PUSH,
+                            session
+                    )
+            );
+            return true;
         } catch (RuntimeException e) {
             e.printStackTrace();
             return false;
         }
     }
 }
-
