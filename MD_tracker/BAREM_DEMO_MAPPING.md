@@ -69,7 +69,7 @@
 
 **Nên nói:**
 
-> Nhóm có nhiều design pattern phù hợp. `Factory Method` dùng ở `ItemFactory` để tạo đúng loại item. `Singleton`/shared connection dùng cho registry hoặc client connection để tránh tạo nhiều service/socket rời rạc. `Observer` dùng cho realtime update: server broadcast, client listener nhận push và update UI. Auto-bidding dùng `PriorityBlockingQueue` để xử lý các config theo thứ tự ưu tiên.
+> Nhóm có nhiều design pattern/phong cách thiết kế phù hợp. `Factory Method` dùng ở `ItemFactory` để tạo đúng loại item. `Singleton`/shared connection dùng cho registry hoặc client connection để tránh tạo nhiều service/socket rời rạc. `Observer` dùng cho realtime update: server broadcast, client listener nhận push và update UI. Auto-bidding dùng `PriorityBlockingQueue` để xử lý các config theo thứ tự ưu tiên. Ngoài ra, project có thể trình bày thêm **State/state machine** qua `AuctionStatus` và **Template Method style** qua abstract base class `User`/`Item` với abstract hook method.
 
 **Code chứng minh:**
 
@@ -77,11 +77,46 @@
 - Singleton/shared registry: `server/src/main/java/com/auction/server/ServiceRegistry.java` nếu có trong source, hoặc `client/src/main/java/com/auction/client/network/ClientConnection.java`
 - Observer/realtime: `server/src/main/java/com/auction/server/network/ClientBroadcastHub.java`, `client/src/main/java/com/auction/client/RealtimeAuctionBus.java`
 - Priority queue auto-bid: `server/src/main/java/com/auction/server/service/AutoBidService.java`
+- State/state machine: `shared/src/main/java/com/auction/shared/model/auction/AuctionStatus.java`, `shared/src/main/java/com/auction/shared/model/auction/AuctionSession.java`, `server/src/main/java/com/auction/server/service/AuctionService.java`, `server/src/main/java/com/auction/server/service/AuctionScheduler.java`
+- Template Method style/hook method: `shared/src/main/java/com/auction/shared/model/item/Item.java#getItemType()`, `shared/src/main/java/com/auction/shared/model/user/User.java#getRoleName()`, các subclass `Electronics/Art/Vehicle` và `Bidder/Seller/Admin`
 - README phần `Design Patterns`.
+
+### Nói về State/state machine như nào?
+
+**Nên nói:**
+
+> Trong code hiện tại, nhóm chưa tách mỗi state thành một class riêng như GoF State Pattern chuẩn, nhưng đã áp dụng state-machine rõ ràng bằng enum `AuctionStatus`. Một phiên đấu giá có các trạng thái `OPEN`, `RUNNING`, `FINISHED`, `PAID`, `CANCELED`. Hành vi của hệ thống phụ thuộc vào state này: `isActive()` chỉ cho phép bid khi phiên còn `OPEN/RUNNING` và thời gian hợp lệ; scheduler chuyển phiên hết hạn sang `FINISHED` hoặc `PAID`; UI hiển thị card/status khác nhau theo state.
+
+**Tại sao cần:**
+
+- Tránh dùng string rời rạc như `"running"`, `"done"`, dễ sai chính tả.
+- Gom trạng thái hợp lệ vào một enum rõ ràng.
+- Dễ kiểm soát transition của auction: `OPEN → RUNNING → FINISHED/PAID` hoặc `CANCELED`.
+- UI/backend cùng hiểu một bộ trạng thái thống nhất.
+
+**Cẩn thận khi nói:**
+
+> Nếu thầy hỏi rất chuẩn GoF thì nên nói đây là **state machine bằng enum**, không phải full State Pattern class-per-state. Nhưng về mặt barem design pattern, nó vẫn thể hiện tư duy quản lý trạng thái rõ ràng.
+
+### Nói về Template Method như nào?
+
+**Nên nói:**
+
+> Project có **Template Method style** ở các abstract base class. `Item` định nghĩa khung chung cho mọi sản phẩm: id, name, description, seller, imagePath, và bắt buộc subclass implement `getItemType()`. `User` định nghĩa khung chung cho mọi user: username, password, email, banned, và bắt buộc subclass implement `getRoleName()`. Như vậy lớp cha giữ phần chung, lớp con chỉ điền phần khác biệt.
+
+**Tại sao cần:**
+
+- Tránh duplicate field/method chung ở `Bidder`, `Seller`, `Admin` hoặc `Electronics`, `Art`, `Vehicle`.
+- Ép subclass phải khai báo role/category qua hook method.
+- Giúp UI/DAO/service có thể xử lý theo kiểu cha nhưng vẫn lấy được type/role cụ thể.
+
+**Cẩn thận khi nói:**
+
+> Đây chưa phải Template Method Pattern chuẩn kiểu một method final định nghĩa toàn bộ algorithm rồi gọi các hook step. Nên nói an toàn là **template-method style / abstract hook method**, không nên khẳng định quá mạnh là GoF Template Method hoàn chỉnh.
 
 **Nếu thầy hỏi sâu:**
 
-> Observer hợp lý vì nhiều client cần được thông báo khi bid mới, auction đóng hoặc anti-sniping gia hạn mà không cần tự polling liên tục.
+> Observer hợp lý vì nhiều client cần được thông báo khi bid mới, auction đóng hoặc anti-sniping gia hạn mà không cần tự polling liên tục. State giúp auction không bị xử lý sai trạng thái. Template-style base class giúp tái sử dụng phần chung và bắt buộc subclass khai báo role/type cụ thể.
 
 ---
 
